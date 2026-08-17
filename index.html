@@ -1,0 +1,1259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="data:image/png;base64,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">
+<link rel="apple-touch-icon" href="data:image/png;base64,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">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Roster Cards">
+<meta name="theme-color" content="#1c2b4a">
+<title>Stoney Point Roster Cards</title>
+<style>
+  :root{
+    --navy:#1c2b4a;
+    --navy-deep:#101c33;
+    --paper:#f6f3ea;
+    --card:#fffdf7;
+    --rule:#d8cfb8;
+    --gold:#b8862f;
+    --ink:#26241d;
+    --muted:#7a7364;
+    --gr9:#5b7a9d;
+    --gr10:#6f8f5b;
+    --gr11:#b8862f;
+    --gr12:#a34b3f;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    background-image:
+      linear-gradient(var(--rule) 1px, transparent 1px);
+    background-size: 100% 2.1em;
+    font-family: Georgia, 'Iowan Old Style', serif;
+    color:var(--ink);
+    min-height:100vh;
+  }
+  header{
+    background:var(--navy);
+    color:var(--paper);
+    padding:22px 20px 18px;
+    border-bottom:6px solid var(--gold);
+  }
+  header h1{
+    margin:0;
+    font-family: 'Palatino Linotype', Georgia, serif;
+    font-weight:700;
+    font-size:1.5rem;
+    letter-spacing:0.02em;
+  }
+  header p{
+    margin:6px 0 0;
+    font-family: -apple-system, system-ui, sans-serif;
+    font-size:0.82rem;
+    color:#cfd6e4;
+    letter-spacing:0.03em;
+  }
+  .roll{
+    font-family: -apple-system, system-ui, sans-serif;
+    font-size:0.78rem;
+    color:#9fb0cc;
+    margin-top:4px;
+  }
+
+  .toolbar{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    padding:14px 16px;
+    background:var(--card);
+    border-bottom:1px solid var(--rule);
+    position:sticky;
+    top:0;
+    z-index:5;
+    font-family:-apple-system, system-ui, sans-serif;
+  }
+  .toolbar button, .toolbar select, .toolbar input[type=text]{
+    font-family:inherit;
+    font-size:0.82rem;
+    border:1px solid var(--navy);
+    background:var(--paper);
+    color:var(--navy);
+    padding:8px 12px;
+    border-radius:3px;
+    cursor:pointer;
+  }
+  .toolbar button.primary{
+    background:var(--navy);
+    color:var(--paper);
+  }
+  .toolbar button.gold{
+    background:var(--gold);
+    color:var(--navy-deep);
+    border-color:var(--gold);
+    font-weight:700;
+  }
+  .toolbar input[type=text]{
+    flex:1;
+    min-width:140px;
+    cursor:text;
+  }
+  .toolbar select{cursor:pointer;}
+
+  .stats{
+    font-family:-apple-system, system-ui, sans-serif;
+    font-size:0.76rem;
+    color:var(--muted);
+    padding:8px 16px 0;
+  }
+  .camera-note{
+    margin:8px 16px 0;
+    padding:10px 12px;
+    background:#fdf2df;
+    border:1px solid var(--gold);
+    border-left:5px solid var(--gold);
+    border-radius:4px;
+    font-family:-apple-system, system-ui, sans-serif;
+    font-size:0.78rem;
+    color:#5a4520;
+    line-height:1.4;
+  }
+
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+    gap:14px;
+    padding:16px;
+  }
+
+  .card{
+    perspective:1000px;
+    height:190px;
+  }
+  .card-inner{
+    position:relative;
+    width:100%;
+    height:100%;
+    transition:transform 0.45s;
+    transform-style:preserve-3d;
+    cursor:pointer;
+  }
+  .card.flipped .card-inner{transform:rotateY(180deg);}
+  .face{
+    position:absolute;
+    inset:0;
+    backface-visibility:hidden;
+    border-radius:4px;
+    border:1px solid var(--rule);
+    background:var(--card);
+    box-shadow:0 2px 5px rgba(28,43,74,0.12);
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+  }
+  .face.back{transform:rotateY(180deg);}
+
+  .photo-wrap{
+    height:118px;
+    background:#e4e0d2;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    position:relative;
+    flex-shrink:0;
+  }
+  .photo-wrap img{width:100%;height:100%;object-fit:cover;}
+  .initials{
+    font-family:-apple-system, system-ui, sans-serif;
+    font-weight:700;
+    font-size:1.6rem;
+    color:#fff;
+  }
+  .grade-tab{
+    position:absolute;
+    top:0;
+    right:0;
+    font-family:-apple-system, system-ui, sans-serif;
+    font-size:0.65rem;
+    font-weight:700;
+    color:#fff;
+    padding:2px 7px;
+    border-bottom-left-radius:4px;
+  }
+  .g9{background:var(--gr9);}
+  .g10{background:var(--gr10);}
+  .g11{background:var(--gr11);}
+  .g12{background:var(--gr12);}
+
+  .name-plate{
+    padding:8px 9px 6px;
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+  }
+  .name-plate .first{
+    font-family:-apple-system, system-ui, sans-serif;
+    font-weight:700;
+    font-size:0.86rem;
+    line-height:1.15;
+    color:var(--ink);
+  }
+  .name-plate .last{
+    font-family:-apple-system, system-ui, sans-serif;
+    font-size:0.8rem;
+    font-weight:400;
+    color:var(--muted);
+  }
+  .upload-btn{
+    font-family:-apple-system, system-ui, sans-serif;
+    font-size:0.62rem;
+    color:var(--navy);
+    background:var(--paper);
+    border:1px solid var(--rule);
+    border-radius:2px;
+    padding:2px 5px;
+    position:absolute;
+    bottom:4px;
+    right:4px;
+    cursor:pointer;
+  }
+
+  .face.back{
+    padding:10px;
+    justify-content:space-between;
+    background:var(--navy);
+    color:var(--paper);
+  }
+  .face.back .name{
+    font-family:-apple-system, system-ui, sans-serif;
+    font-weight:700;
+    font-size:0.84rem;
+    border-bottom:1px solid rgba(255,255,255,0.25);
+    padding-bottom:5px;
+  }
+  .edit-row{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+    border-bottom:1px solid rgba(255,255,255,0.25);
+    padding-bottom:6px;
+  }
+  .edit-row input.name-edit, .edit-row select.grade-edit{
+    font-family:-apple-system, system-ui, sans-serif;
+    font-size:0.74rem;
+    padding:4px 6px;
+    border-radius:3px;
+    border:1px solid rgba(255,255,255,0.35);
+    background:rgba(255,255,255,0.1);
+    color:var(--paper);
+  }
+  .edit-row input.name-edit::placeholder{color:#a9b4cc;}
+  .edit-row select.grade-edit option{color:var(--ink);}
+  .face.back textarea{
+    flex:1;
+    width:100%;
+    resize:none;
+    border:1px solid rgba(255,255,255,0.3);
+    background:rgba(255,255,255,0.08);
+    color:var(--paper);
+    font-family:-apple-system, system-ui, sans-serif;
+    font-size:0.74rem;
+    border-radius:3px;
+    padding:6px;
+    margin-top:6px;
+  }
+  .face.back .suggestion{
+    font-family:-apple-system, system-ui, sans-serif;
+    font-size:0.66rem;
+    color:#b9c4dc;
+    font-style:italic;
+    margin-top:4px;
+  }
+  .face.back .del{
+    align-self:flex-end;
+    font-family:-apple-system, system-ui, sans-serif;
+    font-size:0.65rem;
+    color:#e0a9a0;
+    background:none;
+    border:none;
+    cursor:pointer;
+    margin-top:5px;
+  }
+
+  /* Study mode */
+  .study-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(16,28,51,0.92);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:50;
+    flex-direction:column;
+    padding:20px;
+  }
+  .study-overlay.active{display:flex;}
+  .study-card{
+    background:var(--card);
+    border-radius:6px;
+    width:min(340px, 90vw);
+    padding:0;
+    overflow:hidden;
+    box-shadow:0 10px 30px rgba(0,0,0,0.4);
+  }
+  .study-photo{
+    height:260px;
+    background:#e4e0d2;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .study-photo img{width:100%;height:100%;object-fit:cover;}
+  .study-initials{font-family:-apple-system,system-ui,sans-serif;font-weight:700;font-size:3.5rem;color:#fff;}
+  .study-answer{
+    padding:16px;
+    text-align:center;
+    font-family:-apple-system, system-ui, sans-serif;
+  }
+  .study-answer .name{font-size:1.1rem;font-weight:700;color:var(--ink);}
+  .study-answer .grade{font-size:0.78rem;color:var(--muted);margin-top:2px;}
+  .study-answer .cue{font-size:0.78rem;color:var(--gold);margin-top:8px;font-style:italic;}
+  .study-controls{
+    display:flex;
+    gap:10px;
+    margin-top:16px;
+  }
+  .study-controls button{
+    font-family:-apple-system, system-ui, sans-serif;
+    font-size:0.85rem;
+    padding:10px 18px;
+    border-radius:4px;
+    border:none;
+    cursor:pointer;
+    font-weight:700;
+  }
+  .btn-know{background:#6f8f5b;color:#fff;}
+  .btn-dontknow{background:#a34b3f;color:#fff;}
+  .btn-reveal{background:var(--gold);color:var(--navy-deep);}
+  .study-progress{
+    color:#cfd6e4;
+    font-family:-apple-system, system-ui, sans-serif;
+    font-size:0.78rem;
+    margin-bottom:14px;
+  }
+  .study-close{
+    position:absolute;
+    top:16px;
+    right:20px;
+    color:#fff;
+    background:none;
+    border:none;
+    font-size:1.5rem;
+    cursor:pointer;
+  }
+
+  /* Add form modal */
+  .modal-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(16,28,51,0.6);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:60;
+    padding:20px;
+  }
+  .modal-overlay.active{display:flex;}
+  .modal{
+    background:var(--card);
+    border-radius:6px;
+    width:min(360px,92vw);
+    padding:18px;
+    font-family:-apple-system, system-ui, sans-serif;
+  }
+  .modal h3{margin:0 0 12px;font-family:Georgia,serif;color:var(--navy);}
+  .modal label{display:block;font-size:0.76rem;color:var(--muted);margin:10px 0 3px;}
+  .modal input[type=text], .modal select{
+    width:100%;
+    padding:7px 8px;
+    border:1px solid var(--rule);
+    border-radius:3px;
+    font-family:inherit;
+    font-size:0.85rem;
+  }
+  .modal-actions{display:flex;gap:8px;margin-top:16px;}
+  .modal-actions button{
+    flex:1;
+    padding:9px;
+    border-radius:4px;
+    border:none;
+    font-weight:700;
+    cursor:pointer;
+    font-family:inherit;
+  }
+  .empty-note{
+    padding:40px 20px;
+    text-align:center;
+    color:var(--muted);
+    font-family:-apple-system, system-ui, sans-serif;
+    font-size:0.85rem;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Stoney Point Roster Cards</h1>
+  <p>Tap a card to flip it &mdash; add your own memory cue on the back.</p>
+  <div class="roll">25&ndash;26 &middot; <span id="rollCount">0</span> students on roll</div>
+</header>
+
+<div class="toolbar">
+  <input type="text" id="searchBox" placeholder="Search by name...">
+  <select id="gradeFilter">
+    <option value="all">All grades</option>
+    <option value="9">Grade 9</option>
+    <option value="10">Grade 10</option>
+    <option value="11">Grade 11</option>
+    <option value="12">Grade 12</option>
+  </select>
+  <select id="sortMode">
+    <option value="grade">Sort: Grade, then last name</option>
+    <option value="last">Sort: Last name</option>
+    <option value="first">Sort: First name</option>
+  </select>
+  <button class="primary" id="studyBtn">Study mode</button>
+  <button class="primary" id="cameraBtn">📷 Camera</button>
+  <button class="gold" id="exportBtn">⬇ Backup</button>
+  <button class="gold" id="importBtn">⬆ Restore</button>
+  <button class="gold" id="addBtn">+ Add student</button>
+</div>
+<div class="stats" id="statsLine"></div>
+<div class="camera-note">
+  📷 <b>Camera</b> opens your phone's own camera app &mdash; use it to add a new student's photo, or to snap a student and look up who they are.
+</div>
+<div class="camera-note" style="background:#e9f0e4; border-color:var(--gr10);">
+  💾 This saves to <b>this browser only</b> and will be wiped if you clear Chrome's data. Tap <b>⬇ Backup</b> regularly (e.g. right before you clear data) to save a real file, then <b>⬆ Restore</b> to load it back in.
+</div>
+<input type="file" id="importFileInput" accept="application/json" style="display:none;">
+
+<div class="grid" id="grid"></div>
+<div class="empty-note" id="emptyNote" style="display:none;">No students match that search.</div>
+
+<!-- Study overlay -->
+<div class="study-overlay" id="studyOverlay">
+  <button class="study-close" id="studyClose">&times;</button>
+  <div class="study-progress" id="studyProgress"></div>
+  <div class="study-card">
+    <div class="study-photo" id="studyPhoto"></div>
+    <div class="study-answer" id="studyAnswer" style="display:none;">
+      <div class="name" id="studyName"></div>
+      <div class="grade" id="studyGrade"></div>
+      <div class="cue" id="studyCue"></div>
+    </div>
+  </div>
+  <div class="study-controls">
+    <button class="btn-reveal" id="revealBtn">Reveal name</button>
+    <button class="btn-dontknow" id="dontKnowBtn" style="display:none;">Still learning</button>
+    <button class="btn-know" id="knowBtn" style="display:none;">I knew it</button>
+  </div>
+</div>
+
+<!-- Camera quiz overlay -->
+<div class="study-overlay" id="cameraOverlay">
+  <button class="study-close" id="cameraClose">&times;</button>
+
+  <!-- step 1: choose what the camera is for -->
+  <div class="study-card" id="cameraChooseStage" style="width:min(360px,92vw); display:flex; align-items:center; justify-content:center; flex-direction:column; padding:26px 18px; text-align:center;">
+    <div style="font-size:2.2rem; margin-bottom:6px;">📷</div>
+    <div style="font-weight:800; font-size:1rem; color:var(--navy); margin-bottom:14px; font-family:-apple-system,system-ui,sans-serif;">What do you need?</div>
+    <button class="btn-reveal" id="chooseAddBtn" style="width:100%; margin-bottom:10px; padding:12px;">➕ Add a new student</button>
+    <button class="btn-reveal" id="chooseIdBtn" style="width:100%; padding:12px; background:var(--navy); color:#fff;">🔍 Who is this student?</button>
+  </div>
+
+  <!-- shown after snapping, before we know the mode's next step -->
+  <div class="study-card" id="cameraCapturedStage" style="display:none; width:min(360px,92vw); margin-top:10px;">
+    <div class="study-photo"><img id="capturedImg" style="width:100%;height:100%;object-fit:cover;"></div>
+  </div>
+
+  <!-- ADD-STUDENT path: name/grade form under the captured photo -->
+  <div id="addFromCameraForm" style="display:none; width:min(360px,92vw); margin-top:10px; background:var(--card); border-radius:6px; padding:14px; font-family:-apple-system,system-ui,sans-serif;">
+    <label style="display:block;font-size:0.76rem;color:var(--muted);margin-bottom:3px;">First name</label>
+    <input type="text" id="camNewFirst" style="width:100%;padding:7px 8px;border:1px solid var(--rule);border-radius:3px;font-family:inherit;font-size:0.85rem;box-sizing:border-box;margin-bottom:10px;">
+    <label style="display:block;font-size:0.76rem;color:var(--muted);margin-bottom:3px;">Last name</label>
+    <input type="text" id="camNewLast" style="width:100%;padding:7px 8px;border:1px solid var(--rule);border-radius:3px;font-family:inherit;font-size:0.85rem;box-sizing:border-box;margin-bottom:10px;">
+    <label style="display:block;font-size:0.76rem;color:var(--muted);margin-bottom:3px;">Grade</label>
+    <select id="camNewGrade" style="width:100%;padding:7px 8px;border:1px solid var(--rule);border-radius:3px;font-family:inherit;font-size:0.85rem;">
+      <option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12" selected>12</option>
+    </select>
+  </div>
+  <div class="study-controls" id="cameraControlsCaptured" style="display:none;">
+    <button class="btn-reveal" id="confirmActionBtn">Continue</button>
+    <button class="btn-dontknow" id="retakeBtn">Retake photo</button>
+  </div>
+
+  <!-- IDENTIFY path: search roster and compare -->
+  <div id="matchPicker" style="display:none; width:min(360px,92vw); margin-top:10px;">
+    <input type="text" id="matchSearch" placeholder="Search the roster..." style="width:100%;padding:8px;border-radius:4px;border:1px solid var(--rule);font-family:inherit;font-size:0.85rem;box-sizing:border-box;margin-bottom:8px;">
+    <div id="matchResults" style="max-height:220px;overflow-y:auto;background:var(--card);border-radius:4px;"></div>
+  </div>
+  <div id="matchCompare" style="display:none; width:min(360px,92vw); margin-top:10px; background:var(--card); border-radius:6px; padding:12px; text-align:center; font-family:-apple-system,system-ui,sans-serif;">
+    <div style="display:flex; gap:10px; justify-content:center;">
+      <img id="compareCaptured" style="width:110px;height:140px;object-fit:cover;border-radius:4px;">
+      <img id="compareRoster" style="width:110px;height:140px;object-fit:cover;border-radius:4px;">
+    </div>
+    <div id="compareName" style="margin-top:8px;font-weight:700;color:var(--ink);"></div>
+    <button id="compareAgainBtn" style="margin-top:10px;padding:8px 16px;border-radius:4px;border:none;background:var(--navy);color:#fff;font-weight:700;cursor:pointer;">Use camera again</button>
+  </div>
+
+  <!-- confirmation after saving a new student -->
+  <div id="addSavedNote" style="display:none; width:min(360px,92vw); margin-top:10px; background:var(--card); border-radius:6px; padding:16px; text-align:center; font-family:-apple-system,system-ui,sans-serif;">
+    <div style="font-size:1.6rem;">✅</div>
+    <div style="margin-top:6px; font-weight:700; color:var(--ink);" id="addSavedName"></div>
+    <div style="font-size:0.8rem; color:var(--muted); margin-top:2px;">Added to the roster.</div>
+    <button id="addAnotherBtn" style="margin-top:12px;padding:8px 16px;border-radius:4px;border:none;background:var(--navy);color:#fff;font-weight:700;cursor:pointer;">Use camera again</button>
+  </div>
+</div>
+
+<input type="file" id="cameraCaptureInput" accept="image/*" capture="environment" style="display:none;">
+
+
+<!-- Add modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h3>Add a student</h3>
+    <label>Photo (optional)</label>
+    <div id="newPhotoPreviewWrap" style="display:flex; align-items:center; gap:10px; margin-bottom:4px;">
+      <div id="newPhotoPreviewCircle" style="width:56px;height:56px;border-radius:50%;overflow:hidden;background:var(--rule);flex-shrink:0;display:flex;align-items:center;justify-content:center;">
+        <span id="newPhotoPreviewIcon" style="font-size:1.3rem;color:#8a8368;">＋</span>
+        <img id="newPhotoPreviewImg" style="width:100%;height:100%;object-fit:cover;display:none;">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;flex:1;">
+        <button type="button" id="newPhotoCameraBtn" style="padding:7px 8px;border-radius:3px;border:1px solid var(--navy);background:var(--paper);color:var(--navy);font-family:inherit;font-size:0.78rem;cursor:pointer;">📷 Take photo</button>
+        <button type="button" id="newPhotoGalleryBtn" style="padding:7px 8px;border-radius:3px;border:1px solid var(--navy);background:var(--paper);color:var(--navy);font-family:inherit;font-size:0.78rem;cursor:pointer;">🖼️ Choose from gallery</button>
+      </div>
+    </div>
+    <label>Last name</label>
+    <input type="text" id="newLast" placeholder="e.g. Garcia">
+    <label>First name</label>
+    <input type="text" id="newFirst" placeholder="e.g. Sofia">
+    <label>Grade</label>
+    <select id="newGrade">
+      <option value="9">9</option>
+      <option value="10">10</option>
+      <option value="11">11</option>
+      <option value="12" selected>12</option>
+    </select>
+    <div class="modal-actions">
+      <button style="background:var(--rule);color:var(--ink);" id="cancelAdd">Cancel</button>
+      <button style="background:var(--navy);color:#fff;" id="confirmAdd">Add student</button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="newPhotoCameraInput" accept="image/*" capture="environment" style="display:none;">
+<input type="file" id="newPhotoGalleryInput" accept="image/*" style="display:none;">
+
+<input type="file" id="photoInput" accept="image/*" style="display:none;">
+
+<script>
+const GRADE_COLORS = {9:'g9',10:'g10',11:'g11',12:'g12'};
+const AVATAR_HUES = ['#5b7a9d','#6f8f5b','#b8862f','#a34b3f','#7a6a9d','#4a8f8f'];
+
+const SEED_STUDENTS = [
+  // Intentionally empty. No real student names or photos live in this
+  // file's source code. Load your actual roster after deploying by using
+  // the Restore button with your own backup .json file.
+];
+
+function uid(){return 's'+Math.random().toString(36).slice(2,10);}
+function initialsOf(s){return (s.first[0]||'')+(s.last[0]||'');}
+function hueFor(s){
+  let h=0;
+  for(const c of s.last+s.first) h+=c.charCodeAt(0);
+  return AVATAR_HUES[h%AVATAR_HUES.length];
+}
+function mnemonicSuggestion(s){
+  const tips=[];
+  if(s.last.length<=5) tips.push(`Short surname \u2014 say "${s.last}" three times fast when you meet them.`);
+  if(/^[aeiou]/i.test(s.first)) tips.push(`First name starts with a vowel \u2014 pair it with a vivid image.`);
+  const doubled = s.last.match(/(.)\1/);
+  if(doubled) tips.push(`Notice the double "${doubled[1]}" in ${s.last}.`);
+  if(s.first.split(' ').length>1) tips.push(`Has a middle name \u2014 try linking just the first syllable of "${s.first.split(' ')[0]}" to something familiar.`);
+  if(tips.length===0) tips.push(`Try linking "${s.first}" to someone you already know with that name.`);
+  return tips[0];
+}
+
+let students = [];
+let filterText='';
+let filterGrade='all';
+let sortMode='grade';
+
+function applySort(){
+  if(sortMode==='first'){
+    students.sort((a,b)=> a.first.localeCompare(b.first) || a.last.localeCompare(b.last));
+  } else if(sortMode==='last'){
+    students.sort((a,b)=> a.last.localeCompare(b.last) || a.first.localeCompare(b.first));
+  } else {
+    students.sort((a,b)=> a.grade-b.grade || a.last.localeCompare(b.last));
+  }
+}
+let studyQueue=[];
+let studyIndex=0;
+let activePhotoTargetId=null;
+
+const grid = document.getElementById('grid');
+const emptyNote = document.getElementById('emptyNote');
+const statsLine = document.getElementById('statsLine');
+const rollCount = document.getElementById('rollCount');
+
+const SEED_VERSION = 'v3-idb-smaller-photos';
+const LS_PREFIX = 'spr:'; // localStorage prefix, used only as a last-resort fallback
+
+// Portable storage, in priority order:
+// 1. Claude's window.storage, when this runs inside the in-chat preview.
+// 2. IndexedDB, which has a much larger quota than localStorage and is what
+//    this file actually relies on when opened standalone from Downloads.
+//    (An earlier version used localStorage here, which silently ran out of
+//    space partway through saving 86 students' photos - that's why the
+//    roster was stuck showing only 48. IndexedDB fixes that.)
+// 3. localStorage, only if IndexedDB is unavailable for some reason.
+const hasClaudeStorage = typeof window.storage !== 'undefined' && window.storage;
+
+let idbPromise = null;
+function openIDB(){
+  if(idbPromise) return idbPromise;
+  idbPromise = new Promise((resolve,reject)=>{
+    if(!('indexedDB' in window)){ reject(new Error('no indexeddb')); return; }
+    const req = indexedDB.open('stoneyPointRoster', 1);
+    req.onupgradeneeded = ()=>{ req.result.createObjectStore('kv'); };
+    req.onsuccess = ()=> resolve(req.result);
+    req.onerror = ()=> reject(req.error);
+  });
+  return idbPromise;
+}
+async function idbGet(key){
+  const db = await openIDB();
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction('kv','readonly');
+    const r=tx.objectStore('kv').get(key);
+    r.onsuccess=()=>resolve(r.result===undefined? null : r.result);
+    r.onerror=()=>reject(r.error);
+  });
+}
+async function idbSet(key, value){
+  const db = await openIDB();
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction('kv','readwrite');
+    tx.objectStore('kv').put(value, key);
+    tx.oncomplete=()=>resolve(true);
+    tx.onerror=()=>reject(tx.error);
+  });
+}
+async function idbDelete(key){
+  const db = await openIDB();
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction('kv','readwrite');
+    tx.objectStore('kv').delete(key);
+    tx.oncomplete=()=>resolve();
+    tx.onerror=()=>reject(tx.error);
+  });
+}
+async function idbListKeys(prefix){
+  const db = await openIDB();
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction('kv','readonly');
+    const req=tx.objectStore('kv').getAllKeys();
+    req.onsuccess=()=>resolve(req.result.filter(k=>String(k).startsWith(prefix)));
+    req.onerror=()=>reject(req.error);
+  });
+}
+
+async function storeGet(key){
+  if(hasClaudeStorage){
+    try{ const r = await window.storage.get(key, false); return r ? r.value : null; }catch(e){ return null; }
+  }
+  try{ const v = await idbGet(key); if(v!==null) return v; }catch(e){}
+  try{ return localStorage.getItem(LS_PREFIX+key); }catch(e){ return null; }
+}
+async function storeSet(key, value){
+  if(hasClaudeStorage){
+    try{ await window.storage.set(key, value, false); return true; }catch(e){ return false; }
+  }
+  try{ await idbSet(key, value); return true; }catch(e){}
+  try{ localStorage.setItem(LS_PREFIX+key, value); return true; }catch(e){ return false; }
+}
+async function storeDelete(key){
+  if(hasClaudeStorage){
+    try{ await window.storage.delete(key, false); }catch(e){}
+    return;
+  }
+  try{ await idbDelete(key); }catch(e){}
+  try{ localStorage.removeItem(LS_PREFIX+key); }catch(e){}
+}
+async function storeListKeys(prefix){
+  if(hasClaudeStorage){
+    try{ const r = await window.storage.list(prefix, false); return (r && r.keys) || []; }catch(e){ return []; }
+  }
+  try{
+    const keys = await idbListKeys(prefix);
+    if(keys.length>0) return keys;
+  }catch(e){}
+  try{
+    const out=[];
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i);
+      if(k && k.startsWith(LS_PREFIX+prefix)) out.push(k.slice(LS_PREFIX.length));
+    }
+    return out;
+  }catch(e){ return []; }
+}
+
+async function loadAll(){
+  try{
+    const currentVersion = await storeGet('meta:seedVersion');
+    const keys = await storeListKeys('student:');
+
+    if(keys.length===0 || currentVersion !== SEED_VERSION){
+      // fresh start, or an older roster without photos - reseed with the photo-included roster
+      for(const k of keys){ await storeDelete(k); }
+      students = SEED_STUDENTS.map(s=>({...s, id:uid(), cue:''}));
+      await saveAllNew();
+      await storeSet('meta:seedVersion', SEED_VERSION);
+    } else {
+      students = [];
+      for(const k of keys){
+        const v = await storeGet(k);
+        if(v){ try{ students.push(JSON.parse(v)); }catch(e){} }
+      }
+      students.sort((a,b)=> a.grade-b.grade || a.last.localeCompare(b.last));
+    }
+  }catch(e){
+    students = SEED_STUDENTS.map(s=>({...s, id:uid(), cue:''}));
+  }
+  render();
+}
+
+async function saveAllNew(){
+  for(const s of students){
+    await storeSet('student:'+s.id, JSON.stringify(s));
+  }
+}
+
+async function saveOne(s){
+  await storeSet('student:'+s.id, JSON.stringify(s));
+}
+
+async function deleteOne(id){
+  await storeDelete('student:'+id);
+  students = students.filter(s=>s.id!==id);
+  render();
+}
+
+function matchesFilter(s){
+  const text = (s.first+' '+s.last).toLowerCase();
+  const passText = filterText==='' || text.includes(filterText.toLowerCase());
+  const passGrade = filterGrade==='all' || String(s.grade)===filterGrade;
+  return passText && passGrade;
+}
+
+function render(){
+  applySort();
+  grid.innerHTML='';
+  const visible = students.filter(matchesFilter);
+  rollCount.textContent = students.length;
+  statsLine.textContent = `Showing ${visible.length} of ${students.length}`;
+  emptyNote.style.display = visible.length===0 ? 'block' : 'none';
+
+  for(const s of visible){
+    const card = document.createElement('div');
+    card.className='card';
+    card.dataset.id=s.id;
+
+    const inner = document.createElement('div');
+    inner.className='card-inner';
+
+    // FRONT
+    const front = document.createElement('div');
+    front.className='face front';
+
+    const photoWrap = document.createElement('div');
+    photoWrap.className='photo-wrap';
+    photoWrap.style.background = s.photo ? 'transparent' : hueFor(s);
+    if(s.photo){
+      const img=document.createElement('img');
+      img.src=s.photo;
+      photoWrap.appendChild(img);
+    } else {
+      const ini=document.createElement('div');
+      ini.className='initials';
+      ini.textContent=initialsOf(s).toUpperCase();
+      photoWrap.appendChild(ini);
+    }
+    const gradeTab=document.createElement('div');
+    gradeTab.className='grade-tab '+GRADE_COLORS[s.grade];
+    gradeTab.textContent='GR '+s.grade;
+    photoWrap.appendChild(gradeTab);
+
+    const uploadBtn=document.createElement('button');
+    uploadBtn.className='upload-btn';
+    uploadBtn.textContent=s.photo?'Change photo':'+ photo';
+    uploadBtn.onclick=(e)=>{e.stopPropagation(); activePhotoTargetId=s.id; document.getElementById('photoInput').click();};
+    photoWrap.appendChild(uploadBtn);
+
+    front.appendChild(photoWrap);
+
+    const plate=document.createElement('div');
+    plate.className='name-plate';
+    plate.innerHTML=`<div class="first">${s.first}</div><div class="last">${s.last}</div>`;
+    front.appendChild(plate);
+
+    // BACK
+    const back = document.createElement('div');
+    back.className='face back';
+
+    const editRow=document.createElement('div');
+    editRow.className='edit-row';
+    editRow.onclick=(e)=>e.stopPropagation();
+
+    const firstInput=document.createElement('input');
+    firstInput.type='text'; firstInput.className='name-edit'; firstInput.value=s.first; firstInput.placeholder='First name';
+    firstInput.onchange=()=>{s.first=firstInput.value.trim()||s.first; saveOne(s); render();};
+
+    const lastInput=document.createElement('input');
+    lastInput.type='text'; lastInput.className='name-edit'; lastInput.value=s.last; lastInput.placeholder='Last name';
+    lastInput.onchange=()=>{s.last=lastInput.value.trim()||s.last; saveOne(s); render();};
+
+    const gradeSelect=document.createElement('select');
+    gradeSelect.className='grade-edit';
+    [9,10,11,12].forEach(g=>{
+      const opt=document.createElement('option');
+      opt.value=g; opt.textContent='Grade '+g;
+      if(g===s.grade) opt.selected=true;
+      gradeSelect.appendChild(opt);
+    });
+    gradeSelect.onchange=()=>{s.grade=parseInt(gradeSelect.value,10); saveOne(s); render();};
+
+    editRow.appendChild(firstInput);
+    editRow.appendChild(lastInput);
+    editRow.appendChild(gradeSelect);
+    back.appendChild(editRow);
+
+    const ta=document.createElement('textarea');
+    ta.placeholder='Write your own memory cue...';
+    ta.value=s.cue||'';
+    ta.onclick=(e)=>e.stopPropagation();
+    ta.onchange=()=>{s.cue=ta.value; saveOne(s);};
+    back.appendChild(ta);
+
+    const sugg=document.createElement('div');
+    sugg.className='suggestion';
+    sugg.textContent='Idea: '+mnemonicSuggestion(s);
+    back.appendChild(sugg);
+
+    const del=document.createElement('button');
+    del.className='del';
+    del.textContent='Remove student';
+    del.onclick=(e)=>{e.stopPropagation(); if(confirm(`Remove ${s.first} ${s.last}?`)) deleteOne(s.id);};
+    back.appendChild(del);
+
+    inner.appendChild(front);
+    inner.appendChild(back);
+    card.appendChild(inner);
+
+    card.addEventListener('click',(e)=>{
+      card.classList.toggle('flipped');
+    });
+
+    grid.appendChild(card);
+  }
+}
+
+function resizeImageToDataUrl(file, maxDim){
+  return new Promise((resolve, reject)=>{
+    const reader=new FileReader();
+    reader.onerror=()=>reject(new Error('read failed'));
+    reader.onload=(ev)=>{
+      const img=new Image();
+      img.onerror=()=>reject(new Error('decode failed'));
+      img.onload=()=>{
+        let {width,height}=img;
+        if(width>height && width>maxDim){ height=Math.round(height*(maxDim/width)); width=maxDim; }
+        else if(height>maxDim){ width=Math.round(width*(maxDim/height)); height=maxDim; }
+        const canvas=document.createElement('canvas');
+        canvas.width=width; canvas.height=height;
+        const ctx=canvas.getContext('2d');
+        ctx.drawImage(img,0,0,width,height);
+        resolve(canvas.toDataURL('image/jpeg', 0.82));
+      };
+      img.src=ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+document.getElementById('photoInput').addEventListener('change', async function(e){
+  const file=e.target.files[0];
+  const targetId=activePhotoTargetId;
+  e.target.value='';
+  if(!file || !targetId) return;
+  const s = students.find(x=>x.id===targetId);
+  if(!s) return;
+  try{
+    const dataUrl = await resizeImageToDataUrl(file, 400);
+    s.photo=dataUrl;
+    render();
+    const result = await storeSet('student:'+s.id, JSON.stringify(s));
+    if(!result){ alert('Photo saved for this session, but could not be saved permanently. Try a different photo if this keeps happening.'); }
+  }catch(err){
+    alert('Sorry, that photo could not be processed. Try a different image.');
+  }
+});
+
+document.getElementById('searchBox').addEventListener('input',(e)=>{
+  filterText=e.target.value; render();
+});
+document.getElementById('gradeFilter').addEventListener('change',(e)=>{
+  filterGrade=e.target.value; render();
+});
+document.getElementById('sortMode').addEventListener('change',(e)=>{
+  sortMode=e.target.value; render();
+});
+
+// Backup (export to a real file) / Restore (import from a real file)
+document.getElementById('exportBtn').onclick=()=>{
+  const payload = {
+    exportedAt: new Date().toISOString(),
+    school: 'Stoney Point High School',
+    students: students.map(({id, ...rest})=>rest) // ids get regenerated on import
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const stamp = new Date().toISOString().slice(0,10);
+  a.href = url;
+  a.download = `stoney-point-roster-backup-${stamp}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 2000);
+};
+
+document.getElementById('importBtn').onclick=()=>{
+  document.getElementById('importFileInput').click();
+};
+
+document.getElementById('importFileInput').addEventListener('change', function(e){
+  const file=e.target.files[0];
+  e.target.value='';
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=async (ev)=>{
+    let data;
+    try{ data = JSON.parse(ev.target.result); }
+    catch(err){ alert('That file could not be read as a backup. Make sure you picked the right .json file.'); return; }
+    const incoming = Array.isArray(data) ? data : data.students;
+    if(!Array.isArray(incoming)){ alert('That file does not look like a roster backup.'); return; }
+
+    const choice = confirm(
+      `This backup has ${incoming.length} students.\n\nTap OK to REPLACE everything currently in the app with this backup.\nTap Cancel to MERGE it in instead (adds anyone not already present, by name).`
+    );
+
+    if(choice){
+      // Replace: wipe current, load backup as the new roster
+      const existingKeys = await storeListKeys('student:');
+      for(const k of existingKeys){ await storeDelete(k); }
+      students = incoming.map(s=>({...s, id:uid()}));
+    } else {
+      // Merge: add anyone whose first+last isn't already in the roster
+      const existingNames = new Set(students.map(s=>(s.first+'|'+s.last).toLowerCase()));
+      for(const s of incoming){
+        const key=(s.first+'|'+s.last).toLowerCase();
+        if(!existingNames.has(key)){
+          students.push({...s, id:uid()});
+          existingNames.add(key);
+        }
+      }
+    }
+    students.sort((a,b)=> a.grade-b.grade || a.last.localeCompare(b.last));
+    await saveAllNew();
+    await storeSet('meta:seedVersion', SEED_VERSION);
+    render();
+    alert('Backup restored.');
+  };
+  reader.readAsText(file);
+});
+
+// Add student modal
+const modalOverlay=document.getElementById('modalOverlay');
+const newPhotoPreviewImg=document.getElementById('newPhotoPreviewImg');
+const newPhotoPreviewIcon=document.getElementById('newPhotoPreviewIcon');
+let newStudentPhoto=null;
+
+function resetAddModal(){
+  document.getElementById('newLast').value='';
+  document.getElementById('newFirst').value='';
+  newStudentPhoto=null;
+  newPhotoPreviewImg.style.display='none';
+  newPhotoPreviewIcon.style.display='block';
+}
+
+document.getElementById('addBtn').onclick=()=>{ resetAddModal(); modalOverlay.classList.add('active'); };
+document.getElementById('cancelAdd').onclick=()=>{modalOverlay.classList.remove('active');};
+
+document.getElementById('newPhotoCameraBtn').onclick=()=>{ document.getElementById('newPhotoCameraInput').click(); };
+document.getElementById('newPhotoGalleryBtn').onclick=()=>{ document.getElementById('newPhotoGalleryInput').click(); };
+
+function handleNewPhotoFile(e){
+  const file=e.target.files[0];
+  e.target.value='';
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=(ev)=>{
+    newStudentPhoto=ev.target.result;
+    newPhotoPreviewImg.src=newStudentPhoto;
+    newPhotoPreviewImg.style.display='block';
+    newPhotoPreviewIcon.style.display='none';
+  };
+  reader.readAsDataURL(file);
+}
+document.getElementById('newPhotoCameraInput').addEventListener('change', handleNewPhotoFile);
+document.getElementById('newPhotoGalleryInput').addEventListener('change', handleNewPhotoFile);
+
+document.getElementById('confirmAdd').onclick=async ()=>{
+  const last=document.getElementById('newLast').value.trim();
+  const first=document.getElementById('newFirst').value.trim();
+  const grade=parseInt(document.getElementById('newGrade').value,10);
+  if(!last || !first){ alert('Please enter a first and last name.'); return; }
+  const s={id:uid(), last, first, grade, cue:'', photo:newStudentPhoto};
+  students.push(s);
+  students.sort((a,b)=> a.grade-b.grade || a.last.localeCompare(b.last));
+  await saveOne(s);
+  resetAddModal();
+  modalOverlay.classList.remove('active');
+  render();
+};
+
+// Study mode
+const studyOverlay=document.getElementById('studyOverlay');
+const studyPhoto=document.getElementById('studyPhoto');
+const studyAnswer=document.getElementById('studyAnswer');
+const studyName=document.getElementById('studyName');
+const studyGrade=document.getElementById('studyGrade');
+const studyCue=document.getElementById('studyCue');
+const studyProgress=document.getElementById('studyProgress');
+const revealBtn=document.getElementById('revealBtn');
+const knowBtn=document.getElementById('knowBtn');
+const dontKnowBtn=document.getElementById('dontKnowBtn');
+
+function shuffle(arr){
+  const a=arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+
+function startStudy(){
+  const pool = students.filter(matchesFilter);
+  if(pool.length===0){ alert('No students to study with that filter.'); return; }
+  studyQueue = shuffle(pool);
+  studyIndex=0;
+  studyOverlay.classList.add('active');
+  showStudyCard();
+}
+
+function showStudyCard(){
+  if(studyIndex>=studyQueue.length){
+    studyOverlay.classList.remove('active');
+    alert('Done! Ran through '+studyQueue.length+' students. Nice work.');
+    return;
+  }
+  const s=studyQueue[studyIndex];
+  studyProgress.textContent=`Card ${studyIndex+1} of ${studyQueue.length}`;
+  studyPhoto.innerHTML='';
+  studyPhoto.style.background = s.photo ? 'transparent' : hueFor(s);
+  if(s.photo){
+    const img=document.createElement('img'); img.src=s.photo; studyPhoto.appendChild(img);
+  } else {
+    const ini=document.createElement('div'); ini.className='study-initials'; ini.textContent=initialsOf(s).toUpperCase();
+    studyPhoto.appendChild(ini);
+  }
+  studyName.textContent=`${s.first} ${s.last}`;
+  studyGrade.textContent='Grade '+s.grade;
+  studyCue.textContent = s.cue ? s.cue : mnemonicSuggestion(s);
+  studyAnswer.style.display='none';
+  revealBtn.style.display='inline-block';
+  knowBtn.style.display='none';
+  dontKnowBtn.style.display='none';
+}
+
+revealBtn.onclick=()=>{
+  studyAnswer.style.display='block';
+  revealBtn.style.display='none';
+  knowBtn.style.display='inline-block';
+  dontKnowBtn.style.display='inline-block';
+};
+knowBtn.onclick=()=>{ studyIndex++; showStudyCard(); };
+dontKnowBtn.onclick=()=>{
+  // push this card a few spots later so it resurfaces
+  const s=studyQueue.splice(studyIndex,1)[0];
+  const reinsertAt=Math.min(studyQueue.length, studyIndex+3);
+  studyQueue.splice(reinsertAt,0,s);
+  showStudyCard();
+};
+document.getElementById('studyBtn').onclick=startStudy;
+document.getElementById('studyClose').onclick=()=>{studyOverlay.classList.remove('active');};
+
+// Camera quiz mode (uses the phone's native camera app via a file input,
+// since live getUserMedia video requires HTTPS and won't work from a local file)
+const cameraOverlay=document.getElementById('cameraOverlay');
+const cameraChooseStage=document.getElementById('cameraChooseStage');
+const cameraCapturedStage=document.getElementById('cameraCapturedStage');
+const cameraControlsCaptured=document.getElementById('cameraControlsCaptured');
+const addFromCameraForm=document.getElementById('addFromCameraForm');
+const capturedImg=document.getElementById('capturedImg');
+const cameraCaptureInput=document.getElementById('cameraCaptureInput');
+const matchPicker=document.getElementById('matchPicker');
+const matchSearch=document.getElementById('matchSearch');
+const matchResults=document.getElementById('matchResults');
+const matchCompare=document.getElementById('matchCompare');
+const compareCaptured=document.getElementById('compareCaptured');
+const compareRoster=document.getElementById('compareRoster');
+const compareName=document.getElementById('compareName');
+const addSavedNote=document.getElementById('addSavedNote');
+
+let capturedDataUrl=null;
+let cameraMode=null; // 'add' or 'identify'
+
+function resetCameraStage(){
+  cameraChooseStage.style.display='flex';
+  cameraCapturedStage.style.display='none';
+  cameraControlsCaptured.style.display='none';
+  addFromCameraForm.style.display='none';
+  matchPicker.style.display='none';
+  matchCompare.style.display='none';
+  addSavedNote.style.display='none';
+  matchSearch.value='';
+  capturedDataUrl=null;
+  cameraMode=null;
+}
+
+function openCamera(){
+  cameraOverlay.classList.add('active');
+  resetCameraStage();
+}
+
+document.getElementById('cameraBtn').onclick=openCamera;
+document.getElementById('cameraClose').onclick=()=>{ cameraOverlay.classList.remove('active'); };
+
+document.getElementById('chooseAddBtn').onclick=()=>{ cameraMode='add'; cameraChooseStage.style.display='none'; cameraCaptureInput.click(); };
+document.getElementById('chooseIdBtn').onclick=()=>{ cameraMode='identify'; cameraChooseStage.style.display='none'; cameraCaptureInput.click(); };
+document.getElementById('retakeBtn').onclick=()=>{ cameraCaptureInput.click(); };
+
+cameraCaptureInput.addEventListener('change', function(e){
+  const file=e.target.files[0];
+  e.target.value='';
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    capturedDataUrl=ev.target.result;
+    capturedImg.src=capturedDataUrl;
+    cameraChooseStage.style.display='none';
+    cameraCapturedStage.style.display='block';
+    cameraControlsCaptured.style.display='flex';
+    matchPicker.style.display='none';
+    matchCompare.style.display='none';
+    addSavedNote.style.display='none';
+
+    if(cameraMode==='add'){
+      addFromCameraForm.style.display='block';
+      document.getElementById('confirmActionBtn').textContent='Add to roster';
+      document.getElementById('camNewFirst').value='';
+      document.getElementById('camNewLast').value='';
+    } else {
+      addFromCameraForm.style.display='none';
+      document.getElementById('confirmActionBtn').textContent='Find in roster';
+    }
+  };
+  reader.readAsDataURL(file);
+});
+
+document.getElementById('confirmActionBtn').onclick=async ()=>{
+  if(cameraMode==='add'){
+    const first=document.getElementById('camNewFirst').value.trim();
+    const last=document.getElementById('camNewLast').value.trim();
+    const grade=parseInt(document.getElementById('camNewGrade').value,10);
+    if(!first || !last){ alert('Please enter a first and last name.'); return; }
+    const s={id:uid(), last, first, grade, cue:'', photo:capturedDataUrl};
+    students.push(s);
+    await saveOne(s);
+    render();
+    cameraCapturedStage.style.display='none';
+    cameraControlsCaptured.style.display='none';
+    addFromCameraForm.style.display='none';
+    addSavedNote.style.display='block';
+    document.getElementById('addSavedName').textContent=`${first} ${last} \u00b7 Grade ${grade}`;
+  } else {
+    cameraCapturedStage.style.display='none';
+    cameraControlsCaptured.style.display='none';
+    matchPicker.style.display='block';
+    renderMatchResults('');
+    matchSearch.focus();
+  }
+};
+
+document.getElementById('addAnotherBtn').onclick=()=>{ resetCameraStage(); };
+
+function renderMatchResults(q){
+  const ql=q.toLowerCase();
+  const pool = students.filter(s=> (s.first+' '+s.last).toLowerCase().includes(ql)).slice(0,25);
+  matchResults.innerHTML='';
+  pool.forEach(s=>{
+    const row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:10px;padding:8px;border-bottom:1px solid var(--rule);cursor:pointer;font-family:-apple-system,system-ui,sans-serif;';
+    const thumb=document.createElement('div');
+    thumb.style.cssText='width:36px;height:36px;border-radius:50%;overflow:hidden;flex-shrink:0;background:'+(s.photo?'transparent':hueFor(s));
+    if(s.photo){
+      const im=document.createElement('img'); im.src=s.photo; im.style.cssText='width:100%;height:100%;object-fit:cover;';
+      thumb.appendChild(im);
+    } else {
+      thumb.style.display='flex'; thumb.style.alignItems='center'; thumb.style.justifyContent='center';
+      thumb.innerHTML=`<span style="color:#fff;font-size:0.7rem;font-weight:700;">${initialsOf(s).toUpperCase()}</span>`;
+    }
+    const label=document.createElement('div');
+    label.innerHTML=`<div style="font-weight:700;color:var(--ink);font-size:0.82rem;">${s.first} ${s.last}</div><div style="font-size:0.7rem;color:var(--muted);">Grade ${s.grade}</div>`;
+    row.appendChild(thumb); row.appendChild(label);
+    row.onclick=()=>showCompare(s);
+    matchResults.appendChild(row);
+  });
+  if(pool.length===0){
+    matchResults.innerHTML='<div style="padding:10px;color:var(--muted);font-family:-apple-system,system-ui,sans-serif;font-size:0.8rem;">No matches.</div>';
+  }
+}
+matchSearch.addEventListener('input',(e)=>renderMatchResults(e.target.value));
+
+function showCompare(s){
+  matchPicker.style.display='none';
+  matchCompare.style.display='block';
+  compareCaptured.src=capturedDataUrl;
+  if(s.photo){ compareRoster.src=s.photo; compareRoster.style.background='transparent'; }
+  else {
+    compareRoster.removeAttribute('src');
+    compareRoster.style.background=hueFor(s);
+  }
+  compareName.textContent=`${s.first} ${s.last} \u00b7 Grade ${s.grade}`;
+}
+
+document.getElementById('compareAgainBtn').onclick=()=>{
+  resetCameraStage();
+};
+
+loadAll();
+</script>
+</body>
+</html>
