@@ -218,6 +218,16 @@
     right:4px;
     cursor:pointer;
   }
+  .nudge-btn{
+    font-family:-apple-system, system-ui, sans-serif;
+    font-size:0.95rem;
+    color:var(--navy);
+    background:var(--paper);
+    border:1px solid var(--rule);
+    border-radius:4px;
+    cursor:pointer;
+  }
+  .nudge-btn:active{ background:var(--rule); }
 
   .face.back{
     padding:10px;
@@ -519,6 +529,32 @@
 <input type="file" id="cameraCaptureInput" accept="image/*" capture="environment" style="display:none;">
 
 
+<!-- Adjust photo modal -->
+<div class="modal-overlay" id="adjustOverlay">
+  <div class="modal" style="text-align:center;">
+    <h3>Adjust photo</h3>
+    <div id="adjustPreviewWrap" style="width:200px;height:200px;margin:0 auto 14px;border-radius:6px;overflow:hidden;background:#e4e0d2;border:1px solid var(--rule);">
+      <img id="adjustPreviewImg" style="width:100%;height:100%;object-fit:cover;">
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,44px);grid-template-rows:repeat(3,44px);gap:4px;justify-content:center;margin-bottom:12px;">
+      <div></div>
+      <button type="button" id="adjUp" class="nudge-btn">▲</button>
+      <div></div>
+      <button type="button" id="adjLeft" class="nudge-btn">◀</button>
+      <button type="button" id="adjCenter" class="nudge-btn" style="font-size:0.65rem;">Center</button>
+      <button type="button" id="adjRight" class="nudge-btn">▶</button>
+      <div></div>
+      <button type="button" id="adjDown" class="nudge-btn">▼</button>
+      <div></div>
+    </div>
+    <div style="font-size:0.74rem;color:var(--muted);margin-bottom:10px;">Tap the arrows to shift which part of the photo shows in the frame.</div>
+    <div class="modal-actions">
+      <button style="background:var(--rule);color:var(--ink);" id="adjustCancel">Cancel</button>
+      <button style="background:var(--navy);color:#fff;" id="adjustSave">Save</button>
+    </div>
+  </div>
+</div>
+
 <!-- Add modal -->
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal">
@@ -573,6 +609,10 @@ function hueFor(s){
   let h=0;
   for(const c of s.last+s.first) h+=c.charCodeAt(0);
   return AVATAR_HUES[h%AVATAR_HUES.length];
+}
+function posStr(s){
+  const p = s.photoPos || {x:50,y:50};
+  return `${p.x}% ${p.y}%`;
 }
 function mnemonicSuggestion(s){
   const tips=[];
@@ -784,6 +824,7 @@ function render(){
     if(s.photo){
       const img=document.createElement('img');
       img.src=s.photo;
+      img.style.objectPosition = posStr(s);
       photoWrap.appendChild(img);
     } else {
       const ini=document.createElement('div');
@@ -801,6 +842,16 @@ function render(){
     uploadBtn.textContent=s.photo?'Change photo':'+ photo';
     uploadBtn.onclick=(e)=>{e.stopPropagation(); activePhotoTargetId=s.id; document.getElementById('photoInput').click();};
     photoWrap.appendChild(uploadBtn);
+
+    if(s.photo){
+      const adjustBtn=document.createElement('button');
+      adjustBtn.className='upload-btn';
+      adjustBtn.style.right='auto';
+      adjustBtn.style.left='4px';
+      adjustBtn.textContent='Adjust';
+      adjustBtn.onclick=(e)=>{e.stopPropagation(); openAdjustModal(s.id);};
+      photoWrap.appendChild(adjustBtn);
+    }
 
     front.appendChild(photoWrap);
 
@@ -985,6 +1036,44 @@ document.getElementById('importFileInput').addEventListener('change', function(e
   reader.readAsText(file);
 });
 
+// Adjust photo modal
+const adjustOverlay=document.getElementById('adjustOverlay');
+const adjustPreviewImg=document.getElementById('adjustPreviewImg');
+let adjustTargetId=null;
+let adjustPos={x:50,y:50};
+
+function openAdjustModal(id){
+  const s = students.find(x=>x.id===id);
+  if(!s || !s.photo) return;
+  adjustTargetId=id;
+  adjustPos = {...(s.photoPos || {x:50,y:50})};
+  adjustPreviewImg.src=s.photo;
+  adjustPreviewImg.style.objectPosition = `${adjustPos.x}% ${adjustPos.y}%`;
+  adjustOverlay.classList.add('active');
+}
+
+function nudge(dx,dy){
+  adjustPos.x = Math.max(0, Math.min(100, adjustPos.x + dx));
+  adjustPos.y = Math.max(0, Math.min(100, adjustPos.y + dy));
+  adjustPreviewImg.style.objectPosition = `${adjustPos.x}% ${adjustPos.y}%`;
+}
+
+document.getElementById('adjUp').onclick=()=>nudge(0,-10);
+document.getElementById('adjDown').onclick=()=>nudge(0,10);
+document.getElementById('adjLeft').onclick=()=>nudge(-10,0);
+document.getElementById('adjRight').onclick=()=>nudge(10,0);
+document.getElementById('adjCenter').onclick=()=>{ adjustPos={x:50,y:50}; adjustPreviewImg.style.objectPosition='50% 50%'; };
+document.getElementById('adjustCancel').onclick=()=>{ adjustOverlay.classList.remove('active'); };
+document.getElementById('adjustSave').onclick=async ()=>{
+  const s = students.find(x=>x.id===adjustTargetId);
+  if(s){
+    s.photoPos = {...adjustPos};
+    await saveOne(s);
+    render();
+  }
+  adjustOverlay.classList.remove('active');
+};
+
 // Add student modal
 const modalOverlay=document.getElementById('modalOverlay');
 const newPhotoPreviewImg=document.getElementById('newPhotoPreviewImg');
@@ -1076,7 +1165,7 @@ function showStudyCard(){
   studyPhoto.innerHTML='';
   studyPhoto.style.background = s.photo ? 'transparent' : hueFor(s);
   if(s.photo){
-    const img=document.createElement('img'); img.src=s.photo; studyPhoto.appendChild(img);
+    const img=document.createElement('img'); img.src=s.photo; img.style.objectPosition=posStr(s); studyPhoto.appendChild(img);
   } else {
     const ini=document.createElement('div'); ini.className='study-initials'; ini.textContent=initialsOf(s).toUpperCase();
     studyPhoto.appendChild(ini);
@@ -1239,7 +1328,7 @@ function showCompare(s){
   matchPicker.style.display='none';
   matchCompare.style.display='block';
   compareCaptured.src=capturedDataUrl;
-  if(s.photo){ compareRoster.src=s.photo; compareRoster.style.background='transparent'; }
+  if(s.photo){ compareRoster.src=s.photo; compareRoster.style.objectPosition=posStr(s); compareRoster.style.background='transparent'; }
   else {
     compareRoster.removeAttribute('src');
     compareRoster.style.background=hueFor(s);
