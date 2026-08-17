@@ -430,7 +430,7 @@
   </select>
   <select id="sortMode">
     <option value="grade">Sort: Grade, then last name</option>
-    <option value="last">Sort: Last name</option>
+    <option value="last" selected>Sort: Last name</option>
     <option value="first">Sort: First name</option>
   </select>
   <button class="primary" id="studyBtn">Study mode</button>
@@ -628,7 +628,7 @@ function mnemonicSuggestion(s){
 let students = [];
 let filterText='';
 let filterGrade='all';
-let sortMode='grade';
+let sortMode='last';
 
 function applySort(){
   if(sortMode==='first'){
@@ -752,6 +752,12 @@ async function storeListKeys(prefix){
 
 async function loadAll(){
   try{
+    const savedSort = await storeGet('meta:sortMode');
+    if(savedSort && ['grade','last','first'].includes(savedSort)){
+      sortMode = savedSort;
+      document.getElementById('sortMode').value = savedSort;
+    }
+
     const currentVersion = await storeGet('meta:seedVersion');
     const keys = await storeListKeys('student:');
 
@@ -969,7 +975,9 @@ document.getElementById('gradeFilter').addEventListener('change',(e)=>{
   filterGrade=e.target.value; render();
 });
 document.getElementById('sortMode').addEventListener('change',(e)=>{
-  sortMode=e.target.value; render();
+  sortMode=e.target.value;
+  storeSet('meta:sortMode', sortMode);
+  render();
 });
 
 // Backup (export to a real file) / Restore (import from a real file)
