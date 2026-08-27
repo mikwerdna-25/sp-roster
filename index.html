@@ -829,10 +829,36 @@
     <div class="roll-header">
       <button class="profile-close" id="rollClose">&times;</button>
       <div style="font-weight:800;">Take Roll</div>
-      <input type="date" id="rollDate">
+      <div style="display:flex; gap:8px; align-items:center; margin-top:6px; flex-wrap:wrap;">
+        <input type="date" id="rollDate">
+        <select id="rollSort" style="padding:5px 8px;border-radius:4px;border:none;font-family:inherit;font-size:0.8rem;">
+          <option value="last">Sort: Last name</option>
+          <option value="first">Sort: First name</option>
+        </select>
+      </div>
     </div>
     <div class="roll-summary" id="rollSummary"></div>
+    <div style="padding:10px 16px;border-bottom:1px solid var(--rule);">
+      <button id="shareListBtn" style="padding:8px 14px;border:none;border-radius:4px;background:var(--gold);color:var(--navy-deep);font-weight:700;font-size:0.82rem;cursor:pointer;">📤 Share present/absent list</button>
+    </div>
     <div id="rollList"></div>
+  </div>
+</div>
+
+<!-- Share sheet -->
+<div class="modal-overlay" id="shareOverlay">
+  <div class="modal">
+    <h3>Share attendance list</h3>
+    <textarea id="shareText" readonly style="width:100%;min-height:180px;font-family:-apple-system,system-ui,sans-serif;font-size:0.8rem;padding:8px;border:1px solid var(--rule);border-radius:4px;box-sizing:border-box;"></textarea>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;">
+      <button id="shareNativeBtn" style="flex:1;min-width:110px;padding:9px;border:none;border-radius:4px;background:var(--navy);color:#fff;font-weight:700;cursor:pointer;">📤 Share&hellip;</button>
+      <button id="shareWhatsappBtn" style="flex:1;min-width:110px;padding:9px;border:none;border-radius:4px;background:#25D366;color:#fff;font-weight:700;cursor:pointer;">WhatsApp</button>
+      <button id="shareEmailBtn" style="flex:1;min-width:110px;padding:9px;border:none;border-radius:4px;background:#5b7a9d;color:#fff;font-weight:700;cursor:pointer;">Email</button>
+      <button id="shareCopyBtn" style="flex:1;min-width:110px;padding:9px;border:1px solid var(--navy);border-radius:4px;background:var(--paper);color:var(--navy);font-weight:700;cursor:pointer;">Copy text</button>
+    </div>
+    <div class="modal-actions">
+      <button style="background:var(--rule);color:var(--ink);width:100%;" id="shareCloseBtn">Close</button>
+    </div>
   </div>
 </div>
 
@@ -1516,23 +1542,40 @@ document.getElementById('addCourseBtn').onclick=async ()=>{
 // Take Roll
 const rollOverlay=document.getElementById('rollOverlay');
 const rollDateInput=document.getElementById('rollDate');
+const rollSortSelect=document.getElementById('rollSort');
+let rollSortMode='last';
 
 function todayStr(){ return new Date().toISOString().slice(0,10); }
 
-function openRollModal(){
+async function openRollModal(){
   if(!rollDateInput.value) rollDateInput.value = todayStr();
+  const saved = await storeGet('meta:rollSortMode');
+  if(saved && ['last','first'].includes(saved)){
+    rollSortMode = saved;
+    rollSortSelect.value = saved;
+  }
   rollOverlay.classList.add('active');
   renderRollList();
 }
 document.getElementById('rollBtn').onclick=openRollModal;
 document.getElementById('rollClose').onclick=()=>{ rollOverlay.classList.remove('active'); };
 rollDateInput.addEventListener('change', renderRollList);
+rollSortSelect.addEventListener('change', (e)=>{
+  rollSortMode = e.target.value;
+  storeSet('meta:rollSortMode', rollSortMode);
+  renderRollList();
+});
 
 function renderRollList(){
   const date = rollDateInput.value || todayStr();
   const list = document.getElementById('rollList');
   list.innerHTML='';
-  const pool = students.slice().sort((a,b)=> a.last.localeCompare(b.last) || a.first.localeCompare(b.first));
+  const pool = students.slice().sort((a,b)=>{
+    if(rollSortMode==='first'){
+      return a.first.localeCompare(b.first) || a.last.localeCompare(b.last);
+    }
+    return a.last.localeCompare(b.last) || a.first.localeCompare(b.first);
+  });
   let counts={present:0,absent:0,tardy:0,unmarked:0};
   pool.forEach(s=>{
     ensureProfileFields(s);
@@ -1551,7 +1594,7 @@ function renderRollList(){
     }
     const name=document.createElement('div');
     name.className='roll-name';
-    name.textContent=`${s.first} ${s.last}`;
+    name.textContent = rollSortMode==='first' ? `${s.first} ${s.last}` : `${s.last}, ${s.first}`;
     const btns=document.createElement('div');
     btns.className='roll-buttons';
     [['present','P'],['absent','A'],['tardy','T']].forEach(([status,label])=>{
@@ -1572,6 +1615,67 @@ function renderRollList(){
   document.getElementById('rollSummary').textContent =
     `${date} \u2014 Present ${counts.present} \u00b7 Absent ${counts.absent} \u00b7 Tardy ${counts.tardy} \u00b7 Unmarked ${counts.unmarked}`;
 }
+
+// Share present/absent list
+const shareOverlay=document.getElementById('shareOverlay');
+const shareTextArea=document.getElementById('shareText');
+
+function buildAttendanceText(){
+  const date = rollDateInput.value || todayStr();
+  const pool = students.slice().sort((a,b)=>{
+    if(rollSortMode==='first') return a.first.localeCompare(b.first) || a.last.localeCompare(b.last);
+    return a.last.localeCompare(b.last) || a.first.localeCompare(b.first);
+  });
+  const nameOf = s => rollSortMode==='first' ? `${s.first} ${s.last}` : `${s.last}, ${s.first}`;
+  const groups = {present:[], absent:[], tardy:[], unmarked:[]};
+  pool.forEach(s=>{
+    const st = s.attendance[date];
+    groups[st && groups[st] ? st : 'unmarked'].push(nameOf(s));
+  });
+  let out = `Stoney Point Attendance \u2014 ${date}\n\n`;
+  out += `PRESENT (${groups.present.length}):\n${groups.present.join(', ') || '\u2014'}\n\n`;
+  out += `ABSENT (${groups.absent.length}):\n${groups.absent.join(', ') || '\u2014'}\n\n`;
+  out += `TARDY (${groups.tardy.length}):\n${groups.tardy.join(', ') || '\u2014'}\n\n`;
+  if(groups.unmarked.length){
+    out += `UNMARKED (${groups.unmarked.length}):\n${groups.unmarked.join(', ')}\n`;
+  }
+  return out;
+}
+
+document.getElementById('shareListBtn').onclick=()=>{
+  shareTextArea.value = buildAttendanceText();
+  shareOverlay.classList.add('active');
+};
+document.getElementById('shareCloseBtn').onclick=()=>{ shareOverlay.classList.remove('active'); };
+
+document.getElementById('shareNativeBtn').onclick=async ()=>{
+  const text = shareTextArea.value;
+  if(navigator.share){
+    try{ await navigator.share({title:'Stoney Point Attendance', text}); }
+    catch(err){ /* user cancelled - no action needed */ }
+  } else {
+    alert("Your browser doesn't support the native share sheet. Try WhatsApp, Email, or Copy text instead.");
+  }
+};
+document.getElementById('shareWhatsappBtn').onclick=()=>{
+  const text = encodeURIComponent(shareTextArea.value);
+  window.open(`https://wa.me/?text=${text}`, '_blank');
+};
+document.getElementById('shareEmailBtn').onclick=()=>{
+  const date = rollDateInput.value || todayStr();
+  const subject = encodeURIComponent(`Stoney Point Attendance - ${date}`);
+  const body = encodeURIComponent(shareTextArea.value);
+  window.location.href = `mailto:?subject=${subject}&body=${body}`;
+};
+document.getElementById('shareCopyBtn').onclick=async ()=>{
+  try{
+    await navigator.clipboard.writeText(shareTextArea.value);
+    alert('Copied. You can paste it into Messages, WhatsApp, email, or anywhere else.');
+  }catch(err){
+    shareTextArea.select();
+    alert("Couldn't copy automatically - text is selected, use your keyboard's copy instead.");
+  }
+};
 
 // Adjust photo modal
 const adjustOverlay=document.getElementById('adjustOverlay');
