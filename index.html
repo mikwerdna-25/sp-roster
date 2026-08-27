@@ -252,9 +252,12 @@
 
   .face.back{
     padding:10px;
-    justify-content:space-between;
+    justify-content:flex-start;
     background:var(--navy);
     color:var(--paper);
+    overflow-y:auto;
+    overflow-x:hidden;
+    gap:6px;
   }
   .face.back .name{
     font-family:-apple-system, system-ui, sans-serif;
@@ -967,7 +970,7 @@
 <input type="file" id="photoInput" accept="image/*" style="display:none;">
 
 <script>
-const APP_BUILD = 'build-8-settings-page';
+const APP_BUILD = 'build-9-scrollable-card-back';
 const GRADE_COLORS = {9:'g9',10:'g10',11:'g11',12:'g12'};
 const AVATAR_HUES = ['#5b7a9d','#6f8f5b','#b8862f','#a34b3f','#7a6a9d','#4a8f8f'];
 
