@@ -970,7 +970,7 @@
 <input type="file" id="photoInput" accept="image/*" style="display:none;">
 
 <script>
-const APP_BUILD = 'build-13-dash-normalization';
+const APP_BUILD = 'build-14-truncated-name-match';
 const GRADE_COLORS = {9:'g9',10:'g10',11:'g11',12:'g12'};
 const AVATAR_HUES = ['#5b7a9d','#6f8f5b','#b8862f','#a34b3f','#7a6a9d','#4a8f8f'];
 
@@ -1914,26 +1914,39 @@ function findBestFuzzyMatch(checkinFirst, checkinLast, candidates){
   return null;
 }
 
-// Handles compound names where a student self-reports only part of their
-// first name, last name, or both - e.g. roster has "Eric Daniel" / "Andrade"
-// but the check-in just says "Eric" / "Andrade", or roster has "Rhianna" /
-// "Aguilar Morales" and the check-in says "Rhianna" / "Aguilar". Only
-// accepts it if exactly one roster student fits (never guesses between
-// two similar names).
+// Handles compound/truncated names where a student self-reports only part
+// of their name, in any of these ways:
+//  - dropped a word entirely: "Eric" / "Andrade" -> "Eric Daniel" / "Andrade"
+//  - gave the second word instead of the first: "Fajardo" -> "Miranda Fajardo"
+//  - truncated/nicknamed a word: "Leo" -> "Leonardo" (must share the first
+//    3+ letters, so it won't match on something as thin as "Le")
+// Only accepts a match if exactly one roster student fits (never guesses
+// between two similarly-named students).
 function tokensOf(s){ return normalizeName(s).split(' ').filter(Boolean); }
-function isPrefixSubset(a,b){
+function tokenMatches(a,b){
+  if(a===b) return true;
   const shorter = a.length<=b.length ? a : b;
   const longer = a.length<=b.length ? b : a;
-  if(shorter.length===0) return false;
-  for(let i=0;i<shorter.length;i++){ if(shorter[i]!==longer[i]) return false; }
-  return true;
+  return shorter.length>=3 && longer.startsWith(shorter);
+}
+function isOrderedSubsequence(smallTokens, bigTokens){
+  let bi=0;
+  for(const t of smallTokens){
+    let found=false;
+    while(bi<bigTokens.length){
+      if(tokenMatches(t, bigTokens[bi])){ found=true; bi++; break; }
+      bi++;
+    }
+    if(!found) return false;
+  }
+  return smallTokens.length>0;
 }
 function findPartialNameMatch(checkinFirst, checkinLast, candidates){
   const cFirstTokens = tokensOf(checkinFirst);
   const cLastTokens = tokensOf(checkinLast);
   const matches = candidates.filter(s=>{
-    const firstOk = isPrefixSubset(cFirstTokens, tokensOf(s.first));
-    const lastOk = isPrefixSubset(cLastTokens, tokensOf(s.last));
+    const firstOk = isOrderedSubsequence(cFirstTokens, tokensOf(s.first));
+    const lastOk = isOrderedSubsequence(cLastTokens, tokensOf(s.last));
     return firstOk && lastOk;
   });
   return matches.length===1 ? matches[0] : null;
