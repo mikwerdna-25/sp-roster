@@ -970,7 +970,7 @@
 <input type="file" id="photoInput" accept="image/*" style="display:none;">
 
 <script>
-const APP_BUILD = 'build-10-fuzzy-checkin-match';
+const APP_BUILD = 'build-11-surname-prefix-match';
 const GRADE_COLORS = {9:'g9',10:'g10',11:'g11',12:'g12'};
 const AVATAR_HUES = ['#5b7a9d','#6f8f5b','#b8862f','#a34b3f','#7a6a9d','#4a8f8f'];
 
@@ -1913,6 +1913,27 @@ function findBestFuzzyMatch(checkinFirst, checkinLast, candidates){
   return null;
 }
 
+// Handles compound surnames where a student self-reports only part of it,
+// e.g. roster has "Aguilar Morales" but the check-in just says "Aguilar" -
+// very common with two-part (paternal + maternal) surnames. Requires the
+// first name to match exactly, and only accepts it if exactly one roster
+// student fits (never guesses between two similar surnames).
+function findSurnamePrefixMatch(checkinFirst, checkinLast, candidates){
+  const cFirst = normalizeName(checkinFirst);
+  const cLastTokens = normalizeName(checkinLast).split(' ').filter(Boolean);
+  if(cLastTokens.length===0) return null;
+  const matches = candidates.filter(s=>{
+    if(normalizeName(s.first) !== cFirst) return false;
+    const sLastTokens = normalizeName(s.last).split(' ').filter(Boolean);
+    const shorter = cLastTokens.length <= sLastTokens.length ? cLastTokens : sLastTokens;
+    const longer = cLastTokens.length <= sLastTokens.length ? sLastTokens : cLastTokens;
+    if(shorter.length===0 || shorter.length===longer.length) return false; // must be a real subset, not identical (that's already an exact match)
+    for(let i=0;i<shorter.length;i++){ if(shorter[i]!==longer[i]) return false; }
+    return true;
+  });
+  return matches.length===1 ? matches[0] : null;
+}
+
 document.getElementById('syncCheckinBtn').onclick=async ()=>{
   const url = await storeGet('meta:checkinUrl');
   if(!url){ alert('Set your Apps Script Web app URL first in ⚙️ Settings.'); return; }
@@ -1938,9 +1959,18 @@ document.getElementById('syncCheckinBtn').onclick=async ()=>{
     const matchedIds = new Set();
     const unmatchedNames = [];
     const fuzzyMatches = []; // {checkinName, matchedName, distance}
+    const surnameMatches = []; // {checkinName, matchedName}
     for(const c of checkins){
       const key = normalizeName(c.first)+'|'+normalizeName(c.last);
       let s = byName.get(key);
+      if(!s){
+        const remaining = students.filter(st=>!matchedIds.has(st.id));
+        const surnameMatch = findSurnamePrefixMatch(c.first, c.last, remaining);
+        if(surnameMatch){
+          s = surnameMatch;
+          surnameMatches.push({checkinName:`${c.first} ${c.last}`, matchedName:`${s.first} ${s.last}`});
+        }
+      }
       if(!s){
         const remaining = students.filter(st=>!matchedIds.has(st.id));
         const fuzzy = findBestFuzzyMatch(c.first, c.last, remaining);
@@ -1959,6 +1989,10 @@ document.getElementById('syncCheckinBtn').onclick=async ()=>{
 
     let absentCount = 0;
     let summaryMsg = `Matched ${matchedIds.size} check-in(s) to your roster for ${date}.\n\n`;
+    if(surnameMatches.length){
+      summaryMsg += `Matched by partial surname (e.g. dropped second surname):\n` +
+        surnameMatches.map(f=>`  "${f.checkinName}" \u2192 ${f.matchedName}`).join('\n') + '\n\n';
+    }
     if(fuzzyMatches.length){
       summaryMsg += `Fuzzy matches (double-check these!):\n` +
         fuzzyMatches.map(f=>`  "${f.checkinName}" \u2192 ${f.matchedName}`).join('\n') + '\n\n';
