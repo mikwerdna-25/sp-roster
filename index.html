@@ -830,7 +830,10 @@
       <button class="profile-close" id="rollClose">&times;</button>
       <div style="font-weight:800;">Take Roll</div>
       <div style="display:flex; gap:8px; align-items:center; margin-top:6px; flex-wrap:wrap;">
+        <button type="button" id="rollPrevDay" style="padding:5px 9px;border-radius:4px;border:none;font-family:inherit;font-size:0.85rem;cursor:pointer;">&larr;</button>
         <input type="date" id="rollDate">
+        <button type="button" id="rollNextDay" style="padding:5px 9px;border-radius:4px;border:none;font-family:inherit;font-size:0.85rem;cursor:pointer;">&rarr;</button>
+        <button type="button" id="rollTodayBtn" style="padding:5px 10px;border-radius:4px;border:none;font-family:inherit;font-size:0.78rem;cursor:pointer;background:#cfd6e4;">Today</button>
         <select id="rollSort" style="padding:5px 8px;border-radius:4px;border:none;font-family:inherit;font-size:0.8rem;">
           <option value="last">Sort: Last name</option>
           <option value="first">Sort: First name</option>
@@ -838,9 +841,12 @@
       </div>
     </div>
     <div class="roll-summary" id="rollSummary"></div>
-    <div style="padding:10px 16px;border-bottom:1px solid var(--rule);">
+    <div style="padding:10px 16px;border-bottom:1px solid var(--rule); display:flex; flex-wrap:wrap; gap:8px;">
       <button id="shareListBtn" style="padding:8px 14px;border:none;border-radius:4px;background:var(--gold);color:var(--navy-deep);font-weight:700;font-size:0.82rem;cursor:pointer;">📤 Share present/absent list</button>
+      <button id="exportAttBtn" style="padding:8px 14px;border:1px solid var(--navy);border-radius:4px;background:var(--paper);color:var(--navy);font-weight:700;font-size:0.82rem;cursor:pointer;">⬇ Export attendance CSV</button>
+      <button id="importAttBtn" style="padding:8px 14px;border:1px solid var(--navy);border-radius:4px;background:var(--paper);color:var(--navy);font-weight:700;font-size:0.82rem;cursor:pointer;">⬆ Import attendance CSV</button>
     </div>
+    <input type="file" id="importAttInput" accept=".csv,text/csv" style="display:none;">
     <div id="rollList"></div>
   </div>
 </div>
@@ -1450,14 +1456,47 @@ function renderAttendanceSection(s){
   `;
   const log = document.getElementById('attLog');
   if(dates.length===0){
-    log.innerHTML = '<div style="padding:10px;color:var(--muted);">No attendance recorded yet. Use Take Roll from the main screen.</div>';
+    log.innerHTML = '<div style="padding:10px;color:var(--muted);">No attendance recorded yet. Use Take Roll from the main screen, or tap this student\'s photo on the roster.</div>';
     return;
   }
-  log.innerHTML = dates.slice(0,60).map(d=>{
-    const st = s.attendance[d];
-    const label = st.charAt(0).toUpperCase()+st.slice(1);
-    return `<div class="att-log-row"><span>${d}</span><span class="att-pill att-${st}" style="padding:1px 8px;">${label}</span></div>`;
-  }).join('');
+  log.innerHTML='';
+  dates.slice(0,90).forEach(d=>{
+    const row=document.createElement('div');
+    row.className='att-log-row';
+    const dateSpan=document.createElement('span');
+    dateSpan.textContent=d;
+    const btns=document.createElement('div');
+    btns.style.cssText='display:flex;gap:4px;';
+    [['present','P'],['absent','A'],['tardy','T']].forEach(([status,label])=>{
+      const b=document.createElement('button');
+      b.textContent=label;
+      b.className='roll-buttons-inline-btn';
+      b.style.cssText='font-family:-apple-system,system-ui,sans-serif;font-size:0.65rem;padding:2px 7px;border-radius:3px;cursor:pointer;border:1px solid var(--rule);background:#fff;';
+      if(s.attendance[d]===status){
+        const colorMap={present:'#3d5c2c',absent:'#7a2f22',tardy:'#7a5b0e'};
+        b.style.background=colorMap[status]; b.style.color='#fff'; b.style.borderColor=colorMap[status];
+      }
+      b.onclick=async ()=>{
+        s.attendance[d]=status;
+        await saveOne(s);
+        renderAttendanceSection(s);
+      };
+      btns.appendChild(b);
+    });
+    const delBtn=document.createElement('button');
+    delBtn.textContent='\u00d7';
+    delBtn.title='Remove this date';
+    delBtn.style.cssText='font-family:inherit;font-size:0.75rem;padding:2px 7px;border-radius:3px;cursor:pointer;border:1px solid var(--rule);background:#fff;color:#a34b3f;';
+    delBtn.onclick=async ()=>{
+      delete s.attendance[d];
+      await saveOne(s);
+      renderAttendanceSection(s);
+    };
+    btns.appendChild(delBtn);
+    row.appendChild(dateSpan);
+    row.appendChild(btns);
+    log.appendChild(row);
+  });
 }
 
 function renderCoursesSection(s){
@@ -1560,6 +1599,15 @@ async function openRollModal(){
 document.getElementById('rollBtn').onclick=openRollModal;
 document.getElementById('rollClose').onclick=()=>{ rollOverlay.classList.remove('active'); };
 rollDateInput.addEventListener('change', renderRollList);
+function shiftRollDate(days){
+  const d = new Date(rollDateInput.value || todayStr());
+  d.setDate(d.getDate()+days);
+  rollDateInput.value = d.toISOString().slice(0,10);
+  renderRollList();
+}
+document.getElementById('rollPrevDay').onclick=()=>shiftRollDate(-1);
+document.getElementById('rollNextDay').onclick=()=>shiftRollDate(1);
+document.getElementById('rollTodayBtn').onclick=()=>{ rollDateInput.value=todayStr(); renderRollList(); };
 rollSortSelect.addEventListener('change', (e)=>{
   rollSortMode = e.target.value;
   storeSet('meta:rollSortMode', rollSortMode);
@@ -1676,6 +1724,102 @@ document.getElementById('shareCopyBtn').onclick=async ()=>{
     alert("Couldn't copy automatically - text is selected, use your keyboard's copy instead.");
   }
 };
+
+// Attendance CSV export / import
+function csvEscape(val){
+  const s = String(val==null ? '' : val);
+  if(/[",\n]/.test(s)) return '"'+s.replace(/"/g,'""')+'"';
+  return s;
+}
+function csvParseLine(line){
+  const out=[]; let cur=''; let inQuotes=false;
+  for(let i=0;i<line.length;i++){
+    const c=line[i];
+    if(inQuotes){
+      if(c==='"'){
+        if(line[i+1]==='"'){ cur+='"'; i++; } else { inQuotes=false; }
+      } else cur+=c;
+    } else {
+      if(c==='"') inQuotes=true;
+      else if(c===','){ out.push(cur); cur=''; }
+      else cur+=c;
+    }
+  }
+  out.push(cur);
+  return out;
+}
+
+document.getElementById('exportAttBtn').onclick=()=>{
+  const rows=[['Last','First','Grade','Date','Status']];
+  students.forEach(s=>{
+    ensureProfileFields(s);
+    Object.keys(s.attendance).sort().forEach(date=>{
+      rows.push([s.last, s.first, s.grade, date, s.attendance[date]]);
+    });
+  });
+  if(rows.length===1){ alert('No attendance recorded yet - nothing to export.'); return; }
+  const csv = rows.map(r=>r.map(csvEscape).join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const stamp = new Date().toISOString().slice(0,10);
+  a.href=url;
+  a.download = `stoney-point-attendance-${stamp}.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 2000);
+};
+
+document.getElementById('importAttBtn').onclick=()=>{
+  document.getElementById('importAttInput').click();
+};
+
+document.getElementById('importAttInput').addEventListener('change', function(e){
+  const file=e.target.files[0];
+  e.target.value='';
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=async (ev)=>{
+    const lines = ev.target.result.split(/\r?\n/).filter(l=>l.trim().length>0);
+    if(lines.length<2){ alert('That file looks empty.'); return; }
+    const header = csvParseLine(lines[0]).map(h=>h.trim().toLowerCase());
+    const lastIdx = header.indexOf('last');
+    const firstIdx = header.indexOf('first');
+    const dateIdx = header.indexOf('date');
+    const statusIdx = header.indexOf('status');
+    if(lastIdx===-1 || firstIdx===-1 || dateIdx===-1 || statusIdx===-1){
+      alert('That CSV needs columns named Last, First, Date, and Status (Grade is optional).');
+      return;
+    }
+    const byName = new Map();
+    students.forEach(s=>{ ensureProfileFields(s); byName.set((s.first+'|'+s.last).toLowerCase(), s); });
+
+    let applied=0, skippedNoMatch=0, skippedBadStatus=0;
+    const touched = new Set();
+    for(let i=1;i<lines.length;i++){
+      const cols = csvParseLine(lines[i]);
+      const last=(cols[lastIdx]||'').trim();
+      const first=(cols[firstIdx]||'').trim();
+      const date=(cols[dateIdx]||'').trim();
+      let status=(cols[statusIdx]||'').trim().toLowerCase();
+      if(!last || !first || !date) continue;
+      if(!['present','absent','tardy'].includes(status)){ skippedBadStatus++; continue; }
+      const s = byName.get((first+'|'+last).toLowerCase());
+      if(!s){ skippedNoMatch++; continue; }
+      s.attendance[date]=status;
+      touched.add(s.id);
+      applied++;
+    }
+    for(const id of touched){
+      const s = students.find(x=>x.id===id);
+      if(s) await saveOne(s);
+    }
+    renderRollList();
+    alert(`Imported ${applied} attendance record(s) across ${touched.size} student(s).`+
+      (skippedNoMatch? `\n${skippedNoMatch} row(s) skipped - no matching student name on the roster.`:'')+
+      (skippedBadStatus? `\n${skippedBadStatus} row(s) skipped - Status must be present, absent, or tardy.`:''));
+  };
+  reader.readAsText(file);
+});
 
 // Adjust photo modal
 const adjustOverlay=document.getElementById('adjustOverlay');
