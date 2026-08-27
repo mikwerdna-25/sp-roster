@@ -970,7 +970,7 @@
 <input type="file" id="photoInput" accept="image/*" style="display:none;">
 
 <script>
-const APP_BUILD = 'build-11-surname-prefix-match';
+const APP_BUILD = 'build-13-dash-normalization';
 const GRADE_COLORS = {9:'g9',10:'g10',11:'g11',12:'g12'};
 const AVATAR_HUES = ['#5b7a9d','#6f8f5b','#b8862f','#a34b3f','#7a6a9d','#4a8f8f'];
 
@@ -1881,6 +1881,7 @@ document.getElementById('settingsSaveCheckinUrl').onclick=async ()=>{
 function normalizeName(s){
   return String(s||'')
     .normalize('NFD').replace(/[\u0300-\u036f]/g,'') // strip accents: José -> Jose
+    .replace(/[-_]/g,' ') // treat dashes/underscores like spaces: Corona-Villagran -> Corona Villagran
     .trim().replace(/\s+/g,' ').toLowerCase();
 }
 function levenshtein(a,b){
@@ -1913,23 +1914,27 @@ function findBestFuzzyMatch(checkinFirst, checkinLast, candidates){
   return null;
 }
 
-// Handles compound surnames where a student self-reports only part of it,
-// e.g. roster has "Aguilar Morales" but the check-in just says "Aguilar" -
-// very common with two-part (paternal + maternal) surnames. Requires the
-// first name to match exactly, and only accepts it if exactly one roster
-// student fits (never guesses between two similar surnames).
-function findSurnamePrefixMatch(checkinFirst, checkinLast, candidates){
-  const cFirst = normalizeName(checkinFirst);
-  const cLastTokens = normalizeName(checkinLast).split(' ').filter(Boolean);
-  if(cLastTokens.length===0) return null;
+// Handles compound names where a student self-reports only part of their
+// first name, last name, or both - e.g. roster has "Eric Daniel" / "Andrade"
+// but the check-in just says "Eric" / "Andrade", or roster has "Rhianna" /
+// "Aguilar Morales" and the check-in says "Rhianna" / "Aguilar". Only
+// accepts it if exactly one roster student fits (never guesses between
+// two similar names).
+function tokensOf(s){ return normalizeName(s).split(' ').filter(Boolean); }
+function isPrefixSubset(a,b){
+  const shorter = a.length<=b.length ? a : b;
+  const longer = a.length<=b.length ? b : a;
+  if(shorter.length===0) return false;
+  for(let i=0;i<shorter.length;i++){ if(shorter[i]!==longer[i]) return false; }
+  return true;
+}
+function findPartialNameMatch(checkinFirst, checkinLast, candidates){
+  const cFirstTokens = tokensOf(checkinFirst);
+  const cLastTokens = tokensOf(checkinLast);
   const matches = candidates.filter(s=>{
-    if(normalizeName(s.first) !== cFirst) return false;
-    const sLastTokens = normalizeName(s.last).split(' ').filter(Boolean);
-    const shorter = cLastTokens.length <= sLastTokens.length ? cLastTokens : sLastTokens;
-    const longer = cLastTokens.length <= sLastTokens.length ? sLastTokens : cLastTokens;
-    if(shorter.length===0 || shorter.length===longer.length) return false; // must be a real subset, not identical (that's already an exact match)
-    for(let i=0;i<shorter.length;i++){ if(shorter[i]!==longer[i]) return false; }
-    return true;
+    const firstOk = isPrefixSubset(cFirstTokens, tokensOf(s.first));
+    const lastOk = isPrefixSubset(cLastTokens, tokensOf(s.last));
+    return firstOk && lastOk;
   });
   return matches.length===1 ? matches[0] : null;
 }
@@ -1965,7 +1970,7 @@ document.getElementById('syncCheckinBtn').onclick=async ()=>{
       let s = byName.get(key);
       if(!s){
         const remaining = students.filter(st=>!matchedIds.has(st.id));
-        const surnameMatch = findSurnamePrefixMatch(c.first, c.last, remaining);
+        const surnameMatch = findPartialNameMatch(c.first, c.last, remaining);
         if(surnameMatch){
           s = surnameMatch;
           surnameMatches.push({checkinName:`${c.first} ${c.last}`, matchedName:`${s.first} ${s.last}`});
@@ -1990,7 +1995,7 @@ document.getElementById('syncCheckinBtn').onclick=async ()=>{
     let absentCount = 0;
     let summaryMsg = `Matched ${matchedIds.size} check-in(s) to your roster for ${date}.\n\n`;
     if(surnameMatches.length){
-      summaryMsg += `Matched by partial surname (e.g. dropped second surname):\n` +
+      summaryMsg += `Matched by partial name (first or last name shortened):\n` +
         surnameMatches.map(f=>`  "${f.checkinName}" \u2192 ${f.matchedName}`).join('\n') + '\n\n';
     }
     if(fuzzyMatches.length){
