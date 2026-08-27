@@ -206,6 +206,22 @@
   .att-badge-absent{background:#7a2f22;border-color:#7a2f22;}
   .att-badge-tardy{background:#7a5b0e;border-color:#7a5b0e;}
 
+  .attn-flag-badge{
+    position:absolute;
+    top:5px;
+    left:50%;
+    transform:translateX(-50%);
+    font-size:0.72rem;
+    line-height:1;
+    padding:2px 7px;
+    border-radius:9px;
+    font-weight:800;
+    color:#fff;
+  }
+  .attn-flag-chronic{background:#a34b3f;}
+  .attn-flag-absentstreak{background:#d97706;}
+  .attn-flag-presentstreak{background:#2f5c2c;}
+
   .name-plate{
     padding:8px 9px 6px;
     flex:1;
@@ -705,6 +721,9 @@
 <div class="camera-note" style="background:#eef2fa; border-color:var(--gr9);">
   ✅ <b>Tap a student's photo</b> to cycle today's attendance: Present &rarr; Absent &rarr; Tardy &rarr; unmarked. Tap the name or edges of the card to flip it as usual.
 </div>
+<div class="camera-note" style="background:#fdf0ee; border-color:var(--gr12);">
+  🏷️ Badges above a photo flag attendance patterns: <b style="color:#a34b3f;">⚠ chronic</b> (10%+ absent), <b style="color:#d97706;">❗ streak</b> (3+ absences in a row), <b style="color:#2f5c2c;">🔥 streak</b> (5+ present in a row). Tap-and-hold a badge to see the exact numbers.
+</div>
 <div class="camera-note" style="background:#e9f0e4; border-color:var(--gr10);">
   💾 This saves to <b>this browser only</b> and will be wiped if you clear Chrome's data. Tap <b>⬇ Backup</b> regularly (e.g. right before you clear data) to save a real file, then <b>⬆ Restore</b> to load it back in.
 </div>
@@ -970,7 +989,7 @@
 <input type="file" id="photoInput" accept="image/*" style="display:none;">
 
 <script>
-const APP_BUILD = 'build-14-truncated-name-match';
+const APP_BUILD = 'build-15-attendance-pattern-flags';
 const GRADE_COLORS = {9:'g9',10:'g10',11:'g11',12:'g12'};
 const AVATAR_HUES = ['#5b7a9d','#6f8f5b','#b8862f','#a34b3f','#7a6a9d','#4a8f8f'];
 
@@ -997,6 +1016,49 @@ function ensureProfileFields(s){
   if(typeof s.strengths !== 'string') s.strengths = '';
   if(typeof s.needs !== 'string') s.needs = '';
   return s;
+}
+
+// Attendance pattern thresholds - adjustable if these don't fit your needs.
+const CHRONIC_ABSENCE_RATE = 0.10;   // California's own chronic-absenteeism threshold: 10%+ of days
+const CHRONIC_MIN_DAYS = 10;         // require at least this many recorded days before flagging chronic
+const ABSENT_STREAK_THRESHOLD = 3;   // consecutive absences right now = early warning
+const PRESENT_STREAK_THRESHOLD = 5;  // consecutive presences right now = positive streak
+
+function computeAttendanceStats(s){
+  ensureProfileFields(s);
+  const dates = Object.keys(s.attendance).sort(); // ascending, recorded days only (not a full calendar)
+  const total = dates.length;
+  let absentCount=0;
+  dates.forEach(d=>{ if(s.attendance[d]==='absent') absentCount++; });
+  const absenceRate = total>0 ? absentCount/total : 0;
+  const chronic = total>=CHRONIC_MIN_DAYS && absenceRate>=CHRONIC_ABSENCE_RATE;
+
+  // Current streak, walking backward from the most recently recorded day.
+  // Tardy (or any gap) breaks both kinds of streak.
+  let presentStreak=0, absentStreak=0;
+  for(let i=dates.length-1;i>=0;i--){
+    const status = s.attendance[dates[i]];
+    if(presentStreak===0 && absentStreak===0){
+      if(status==='present') presentStreak=1;
+      else if(status==='absent') absentStreak=1;
+      else break;
+    } else if(presentStreak>0){
+      if(status==='present') presentStreak++;
+      else break;
+    } else {
+      if(status==='absent') absentStreak++;
+      else break;
+    }
+  }
+  return { total, absentCount, absenceRate, chronic, presentStreak, absentStreak };
+}
+
+function attendanceFlag(s){
+  const st = computeAttendanceStats(s);
+  if(st.chronic) return { type:'chronic', label:'\u26A0', title:`Chronic absence \u2014 ${Math.round(st.absenceRate*100)}% absent over ${st.total} recorded days` };
+  if(st.absentStreak >= ABSENT_STREAK_THRESHOLD) return { type:'absentstreak', label:'\u2757', title:`${st.absentStreak} consecutive absences` };
+  if(st.presentStreak >= PRESENT_STREAK_THRESHOLD) return { type:'presentstreak', label:'\uD83D\uDD25', title:`${st.presentStreak}-day present streak` };
+  return null;
 }
 function mnemonicSuggestion(s){
   const tips=[];
@@ -1228,6 +1290,15 @@ function render(){
     gradeTab.className='grade-tab '+GRADE_COLORS[s.grade];
     gradeTab.textContent='GR '+s.grade;
     photoWrap.appendChild(gradeTab);
+
+    const flag = attendanceFlag(s);
+    if(flag){
+      const flagBadge=document.createElement('div');
+      flagBadge.className='attn-flag-badge attn-flag-'+flag.type;
+      flagBadge.textContent=flag.label;
+      flagBadge.title=flag.title;
+      photoWrap.appendChild(flagBadge);
+    }
 
     const todayStatus = (s.attendance||{})[todayStr()];
     const attBadge=document.createElement('div');
@@ -1487,10 +1558,13 @@ function renderAttendanceSection(s){
   const counts = {present:0, absent:0, tardy:0};
   dates.forEach(d=>{ const st=s.attendance[d]; if(counts[st]!==undefined) counts[st]++; });
   const summary = document.getElementById('attSummary');
+  const flag = attendanceFlag(s);
+  const flagColors = {chronic:'#a34b3f', absentstreak:'#d97706', presentstreak:'#2f5c2c'};
   summary.innerHTML = `
     <span class="att-pill att-present">Present ${counts.present}</span>
     <span class="att-pill att-absent">Absent ${counts.absent}</span>
     <span class="att-pill att-tardy">Tardy ${counts.tardy}</span>
+    ${flag ? `<span class="att-pill" style="background:${flagColors[flag.type]};color:#fff;">${flag.label} ${flag.title}</span>` : ''}
   `;
   const log = document.getElementById('attLog');
   if(dates.length===0){
