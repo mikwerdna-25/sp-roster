@@ -208,13 +208,12 @@
 
   .attn-flag-badge{
     position:absolute;
-    top:5px;
-    left:50%;
-    transform:translateX(-50%);
-    font-size:0.72rem;
+    top:3px;
+    right:3px;
+    font-size:0.65rem;
     line-height:1;
-    padding:2px 7px;
-    border-radius:9px;
+    padding:2px 6px;
+    border-radius:8px;
     font-weight:800;
     color:#fff;
   }
@@ -228,6 +227,7 @@
     display:flex;
     flex-direction:column;
     justify-content:center;
+    position:relative;
   }
   .name-plate .first{
     font-family:-apple-system, system-ui, sans-serif;
@@ -989,7 +989,7 @@
 <input type="file" id="photoInput" accept="image/*" style="display:none;">
 
 <script>
-const APP_BUILD = 'build-15-attendance-pattern-flags';
+const APP_BUILD = 'build-16-badge-off-photo';
 const GRADE_COLORS = {9:'g9',10:'g10',11:'g11',12:'g12'};
 const AVATAR_HUES = ['#5b7a9d','#6f8f5b','#b8862f','#a34b3f','#7a6a9d','#4a8f8f'];
 
@@ -1291,15 +1291,6 @@ function render(){
     gradeTab.textContent='GR '+s.grade;
     photoWrap.appendChild(gradeTab);
 
-    const flag = attendanceFlag(s);
-    if(flag){
-      const flagBadge=document.createElement('div');
-      flagBadge.className='attn-flag-badge attn-flag-'+flag.type;
-      flagBadge.textContent=flag.label;
-      flagBadge.title=flag.title;
-      photoWrap.appendChild(flagBadge);
-    }
-
     const todayStatus = (s.attendance||{})[todayStr()];
     const attBadge=document.createElement('div');
     attBadge.className='att-badge' + (todayStatus ? ' att-badge-'+todayStatus : '');
@@ -1339,6 +1330,14 @@ function render(){
     const plate=document.createElement('div');
     plate.className='name-plate';
     plate.innerHTML=`<div class="first">${s.first}</div><div class="last">${s.last}</div>`;
+    const flag = attendanceFlag(s);
+    if(flag){
+      const flagBadge=document.createElement('div');
+      flagBadge.className='attn-flag-badge attn-flag-'+flag.type;
+      flagBadge.textContent=flag.label;
+      flagBadge.title=flag.title;
+      plate.appendChild(flagBadge);
+    }
     front.appendChild(plate);
 
     // BACK
