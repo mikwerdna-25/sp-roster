@@ -970,7 +970,7 @@
 <input type="file" id="photoInput" accept="image/*" style="display:none;">
 
 <script>
-const APP_BUILD = 'build-9-scrollable-card-back';
+const APP_BUILD = 'build-10-fuzzy-checkin-match';
 const GRADE_COLORS = {9:'g9',10:'g10',11:'g11',12:'g12'};
 const AVATAR_HUES = ['#5b7a9d','#6f8f5b','#b8862f','#a34b3f','#7a6a9d','#4a8f8f'];
 
@@ -1875,6 +1875,44 @@ document.getElementById('settingsSaveCheckinUrl').onclick=async ()=>{
 };
 
 // Check-in sheet sync
+// Name matching helpers for check-in sync: normalize away case/accent/
+// whitespace differences first, then fall back to a small-edit-distance
+// fuzzy match for genuine typos - flagged for review rather than silently trusted.
+function normalizeName(s){
+  return String(s||'')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'') // strip accents: José -> Jose
+    .trim().replace(/\s+/g,' ').toLowerCase();
+}
+function levenshtein(a,b){
+  const m=a.length, n=b.length;
+  if(m===0) return n;
+  if(n===0) return m;
+  const dp = Array.from({length:m+1},(_,i)=>[i,...Array(n).fill(0)]);
+  for(let j=0;j<=n;j++) dp[0][j]=j;
+  for(let i=1;i<=m;i++){
+    for(let j=1;j<=n;j++){
+      dp[i][j] = a[i-1]===b[j-1]
+        ? dp[i-1][j-1]
+        : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+    }
+  }
+  return dp[m][n];
+}
+function findBestFuzzyMatch(checkinFirst, checkinLast, candidates){
+  const target = normalizeName(checkinFirst)+' '+normalizeName(checkinLast);
+  let best=null, bestDist=Infinity, secondBestDist=Infinity;
+  for(const s of candidates){
+    const name = normalizeName(s.first)+' '+normalizeName(s.last);
+    const dist = levenshtein(target, name);
+    if(dist < bestDist){ secondBestDist = bestDist; best = s; bestDist = dist; }
+    else if(dist < secondBestDist){ secondBestDist = dist; }
+  }
+  const maxAllowed = Math.max(1, Math.floor(target.length/6)); // small typo budget, scales with name length
+  const unambiguous = secondBestDist - bestDist >= 2; // must be a clearly better match than the runner-up
+  if(best && bestDist <= maxAllowed && unambiguous) return {student:best, distance:bestDist};
+  return null;
+}
+
 document.getElementById('syncCheckinBtn').onclick=async ()=>{
   const url = await storeGet('meta:checkinUrl');
   if(!url){ alert('Set your Apps Script Web app URL first in ⚙️ Settings.'); return; }
@@ -1895,13 +1933,22 @@ document.getElementById('syncCheckinBtn').onclick=async ()=>{
     }
 
     const byName = new Map();
-    students.forEach(s=>{ ensureProfileFields(s); byName.set((s.first+'|'+s.last).toLowerCase(), s); });
+    students.forEach(s=>{ ensureProfileFields(s); byName.set(normalizeName(s.first)+'|'+normalizeName(s.last), s); });
 
     const matchedIds = new Set();
     const unmatchedNames = [];
+    const fuzzyMatches = []; // {checkinName, matchedName, distance}
     for(const c of checkins){
-      const key = (c.first+'|'+c.last).toLowerCase();
-      const s = byName.get(key);
+      const key = normalizeName(c.first)+'|'+normalizeName(c.last);
+      let s = byName.get(key);
+      if(!s){
+        const remaining = students.filter(st=>!matchedIds.has(st.id));
+        const fuzzy = findBestFuzzyMatch(c.first, c.last, remaining);
+        if(fuzzy){
+          s = fuzzy.student;
+          fuzzyMatches.push({checkinName:`${c.first} ${c.last}`, matchedName:`${s.first} ${s.last}`, distance:fuzzy.distance});
+        }
+      }
       if(s){
         s.attendance[date] = 'present';
         matchedIds.add(s.id);
@@ -1911,10 +1958,16 @@ document.getElementById('syncCheckinBtn').onclick=async ()=>{
     }
 
     let absentCount = 0;
+    let summaryMsg = `Matched ${matchedIds.size} check-in(s) to your roster for ${date}.\n\n`;
+    if(fuzzyMatches.length){
+      summaryMsg += `Fuzzy matches (double-check these!):\n` +
+        fuzzyMatches.map(f=>`  "${f.checkinName}" \u2192 ${f.matchedName}`).join('\n') + '\n\n';
+    }
+    if(unmatchedNames.length){
+      summaryMsg += `${unmatchedNames.length} check-in name(s) didn't match anyone: ${unmatchedNames.slice(0,10).join(', ')}${unmatchedNames.length>10?'...':''}\n\n`;
+    }
     const markRestAbsent = confirm(
-      `Matched ${matchedIds.size} check-in(s) to your roster for ${date}.\n\n`+
-      (unmatchedNames.length ? `${unmatchedNames.length} check-in name(s) didn't match anyone: ${unmatchedNames.slice(0,10).join(', ')}${unmatchedNames.length>10?'...':''}\n\n`:'')+
-      `Mark everyone else on the roster as Absent for ${date} (leaving anyone already marked Tardy or Absent untouched)?`
+      summaryMsg + `Mark everyone else on the roster as Absent for ${date} (leaving anyone already marked Tardy or Absent untouched)?`
     );
     if(markRestAbsent){
       students.forEach(s=>{
@@ -1932,7 +1985,8 @@ document.getElementById('syncCheckinBtn').onclick=async ()=>{
       if(s) await saveOne(s);
     }
     renderRollList();
-    alert(`Sync complete for ${date}. ${checkins.length} check-in(s) processed, ${absentCount} marked absent.`);
+    alert(`Sync complete for ${date}. ${checkins.length} check-in(s) processed, ${absentCount} marked absent.`+
+      (fuzzyMatches.length ? ` ${fuzzyMatches.length} used a fuzzy match - worth a quick check in the student's Full profile.` : ''));
   }catch(err){
     alert("Couldn't sync: "+err.message+"\n\nDouble check the Web app URL is correct and the deployment is set to \"Anyone\" access.");
   } finally {
