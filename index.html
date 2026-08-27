@@ -670,7 +670,7 @@
 <header>
   <h1>Stoney Point Roster Cards</h1>
   <p>Tap a card to flip it &mdash; add your own memory cue on the back.</p>
-  <div class="roll">25&ndash;26 &middot; <span id="rollCount">0</span> students on roll</div>
+  <div class="roll">25&ndash;26 &middot; <span id="rollCount">0</span> students on roll &middot; <span id="buildTag" style="opacity:0.7;"></span></div>
 </header>
 
 <div class="toolbar">
@@ -693,6 +693,7 @@
   <button class="gold" id="exportBtn">⬇ Backup</button>
   <button class="gold" id="importBtn">⬆ Restore</button>
   <button class="gold" id="addBtn">+ Add student</button>
+  <button id="settingsBtn" style="border:1px solid var(--navy);background:var(--paper);color:var(--navy);font-size:0.82rem;padding:8px 12px;border-radius:3px;cursor:pointer;">⚙️ Settings</button>
 </div>
 <div class="stats" id="statsLine"></div>
 <div class="camera-note">
@@ -850,14 +851,7 @@
 
     <div style="padding:10px 16px; border-bottom:1px solid var(--rule); background:#eef2fa;">
       <div style="font-size:0.76rem; color:var(--muted); margin-bottom:6px;">
-        Check-in sheet sync (from a Google Form)
-      </div>
-      <div style="display:flex; gap:6px; margin-bottom:6px;">
-        <input type="text" id="checkinUrlInput" placeholder="Paste Apps Script Web app URL..." style="flex:1;padding:6px 8px;border:1px solid var(--rule);border-radius:4px;font-family:inherit;font-size:0.78rem;">
-        <button id="saveCheckinUrlBtn" style="padding:6px 10px;border:none;border-radius:4px;background:var(--navy);color:#fff;font-size:0.76rem;cursor:pointer;">Save</button>
-      </div>
-      <div style="font-size:0.68rem; color:#a34b3f; margin-bottom:8px;">
-        ⚠️ Keep this URL private &mdash; treat it like a password. Anyone with it can view check-in data without logging in.
+        Check-in sheet sync &mdash; configure the sheet URL in <b>⚙️ Settings</b> first.
       </div>
       <button id="syncCheckinBtn" style="padding:7px 12px;border:none;border-radius:4px;background:var(--gr10);color:#fff;font-weight:700;font-size:0.8rem;cursor:pointer;">🔄 Sync check-ins for this date</button>
     </div>
@@ -879,6 +873,31 @@
     </div>
     <div class="modal-actions">
       <button style="background:var(--rule);color:var(--ink);width:100%;" id="shareCloseBtn">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Settings -->
+<div class="modal-overlay" id="settingsOverlay">
+  <div class="modal" style="max-width:400px;">
+    <h3>⚙️ Settings</h3>
+
+    <div style="font-size:0.76rem;color:var(--muted);margin-bottom:14px;padding:8px 10px;background:#f6f3ea;border-radius:4px;">
+      App build: <b id="settingsBuildTag"></b><br>
+      If a feature seems missing after uploading a new file, check this number matches what Claude told you to expect &mdash; if it doesn't, the upload or your browser cache hasn't updated yet.
+    </div>
+
+    <label>Check-in sheet URL (Apps Script Web app)</label>
+    <div style="display:flex;gap:6px;margin-bottom:4px;">
+      <input type="text" id="settingsCheckinUrl" placeholder="https://script.google.com/macros/s/.../exec" style="flex:1;">
+      <button id="settingsSaveCheckinUrl" style="padding:0 12px;border:none;border-radius:3px;background:var(--navy);color:#fff;font-weight:700;cursor:pointer;">Save</button>
+    </div>
+    <div style="font-size:0.68rem;color:#a34b3f;margin-bottom:14px;">
+      ⚠️ Keep this URL private &mdash; treat it like a password. Anyone with it can view check-in data without logging in.
+    </div>
+
+    <div class="modal-actions">
+      <button style="background:var(--rule);color:var(--ink);width:100%;" id="settingsCloseBtn">Close</button>
     </div>
   </div>
 </div>
@@ -948,6 +967,7 @@
 <input type="file" id="photoInput" accept="image/*" style="display:none;">
 
 <script>
+const APP_BUILD = 'build-8-settings-page';
 const GRADE_COLORS = {9:'g9',10:'g10',11:'g11',12:'g12'};
 const AVATAR_HUES = ['#5b7a9d','#6f8f5b','#b8862f','#a34b3f','#7a6a9d','#4a8f8f'];
 
@@ -1608,8 +1628,6 @@ async function openRollModal(){
     rollSortMode = saved;
     rollSortSelect.value = saved;
   }
-  const savedUrl = await storeGet('meta:checkinUrl');
-  if(savedUrl) document.getElementById('checkinUrlInput').value = savedUrl;
   rollOverlay.classList.add('active');
   renderRollList();
 }
@@ -1838,16 +1856,25 @@ document.getElementById('importAttInput').addEventListener('change', function(e)
   reader.readAsText(file);
 });
 
-// Check-in sheet sync
-document.getElementById('saveCheckinUrlBtn').onclick=async ()=>{
-  const url = document.getElementById('checkinUrlInput').value.trim();
+// Settings modal
+const settingsOverlay=document.getElementById('settingsOverlay');
+document.getElementById('settingsBtn').onclick=async ()=>{
+  document.getElementById('settingsBuildTag').textContent = APP_BUILD;
+  const savedUrl = await storeGet('meta:checkinUrl');
+  document.getElementById('settingsCheckinUrl').value = savedUrl || '';
+  settingsOverlay.classList.add('active');
+};
+document.getElementById('settingsCloseBtn').onclick=()=>{ settingsOverlay.classList.remove('active'); };
+document.getElementById('settingsSaveCheckinUrl').onclick=async ()=>{
+  const url = document.getElementById('settingsCheckinUrl').value.trim();
   await storeSet('meta:checkinUrl', url);
   alert(url ? 'Saved.' : 'Cleared.');
 };
 
+// Check-in sheet sync
 document.getElementById('syncCheckinBtn').onclick=async ()=>{
-  const url = document.getElementById('checkinUrlInput').value.trim();
-  if(!url){ alert('Paste your Apps Script Web app URL above and tap Save first.'); return; }
+  const url = await storeGet('meta:checkinUrl');
+  if(!url){ alert('Set your Apps Script Web app URL first in ⚙️ Settings.'); return; }
   const date = rollDateInput.value || todayStr();
   const btn = document.getElementById('syncCheckinBtn');
   const originalText = btn.textContent;
@@ -2215,6 +2242,7 @@ document.getElementById('compareAgainBtn').onclick=()=>{
   resetCameraStage();
 };
 
+document.getElementById('buildTag').textContent = APP_BUILD;
 loadAll();
 </script>
 </body>
