@@ -847,6 +847,21 @@
       <button id="importAttBtn" style="padding:8px 14px;border:1px solid var(--navy);border-radius:4px;background:var(--paper);color:var(--navy);font-weight:700;font-size:0.82rem;cursor:pointer;">⬆ Import attendance CSV</button>
     </div>
     <input type="file" id="importAttInput" accept=".csv,text/csv" style="display:none;">
+
+    <div style="padding:10px 16px; border-bottom:1px solid var(--rule); background:#eef2fa;">
+      <div style="font-size:0.76rem; color:var(--muted); margin-bottom:6px;">
+        Check-in sheet sync (from a Google Form)
+      </div>
+      <div style="display:flex; gap:6px; margin-bottom:6px;">
+        <input type="text" id="checkinUrlInput" placeholder="Paste Apps Script Web app URL..." style="flex:1;padding:6px 8px;border:1px solid var(--rule);border-radius:4px;font-family:inherit;font-size:0.78rem;">
+        <button id="saveCheckinUrlBtn" style="padding:6px 10px;border:none;border-radius:4px;background:var(--navy);color:#fff;font-size:0.76rem;cursor:pointer;">Save</button>
+      </div>
+      <div style="font-size:0.68rem; color:#a34b3f; margin-bottom:8px;">
+        ⚠️ Keep this URL private &mdash; treat it like a password. Anyone with it can view check-in data without logging in.
+      </div>
+      <button id="syncCheckinBtn" style="padding:7px 12px;border:none;border-radius:4px;background:var(--gr10);color:#fff;font-weight:700;font-size:0.8rem;cursor:pointer;">🔄 Sync check-ins for this date</button>
+    </div>
+
     <div id="rollList"></div>
   </div>
 </div>
@@ -1593,6 +1608,8 @@ async function openRollModal(){
     rollSortMode = saved;
     rollSortSelect.value = saved;
   }
+  const savedUrl = await storeGet('meta:checkinUrl');
+  if(savedUrl) document.getElementById('checkinUrlInput').value = savedUrl;
   rollOverlay.classList.add('active');
   renderRollList();
 }
@@ -1820,6 +1837,79 @@ document.getElementById('importAttInput').addEventListener('change', function(e)
   };
   reader.readAsText(file);
 });
+
+// Check-in sheet sync
+document.getElementById('saveCheckinUrlBtn').onclick=async ()=>{
+  const url = document.getElementById('checkinUrlInput').value.trim();
+  await storeSet('meta:checkinUrl', url);
+  alert(url ? 'Saved.' : 'Cleared.');
+};
+
+document.getElementById('syncCheckinBtn').onclick=async ()=>{
+  const url = document.getElementById('checkinUrlInput').value.trim();
+  if(!url){ alert('Paste your Apps Script Web app URL above and tap Save first.'); return; }
+  const date = rollDateInput.value || todayStr();
+  const btn = document.getElementById('syncCheckinBtn');
+  const originalText = btn.textContent;
+  btn.textContent = 'Syncing\u2026';
+  btn.disabled = true;
+  try{
+    const res = await fetch(`${url}?date=${date}`);
+    if(!res.ok) throw new Error('Request failed: '+res.status);
+    const data = await res.json();
+    if(data.error) throw new Error(data.error);
+    const checkins = data.checkins || [];
+    if(checkins.length===0){
+      alert(`No check-ins found for ${date}. Nothing to sync.`);
+      return;
+    }
+
+    const byName = new Map();
+    students.forEach(s=>{ ensureProfileFields(s); byName.set((s.first+'|'+s.last).toLowerCase(), s); });
+
+    const matchedIds = new Set();
+    const unmatchedNames = [];
+    for(const c of checkins){
+      const key = (c.first+'|'+c.last).toLowerCase();
+      const s = byName.get(key);
+      if(s){
+        s.attendance[date] = 'present';
+        matchedIds.add(s.id);
+      } else {
+        unmatchedNames.push(`${c.first} ${c.last}`);
+      }
+    }
+
+    let absentCount = 0;
+    const markRestAbsent = confirm(
+      `Matched ${matchedIds.size} check-in(s) to your roster for ${date}.\n\n`+
+      (unmatchedNames.length ? `${unmatchedNames.length} check-in name(s) didn't match anyone: ${unmatchedNames.slice(0,10).join(', ')}${unmatchedNames.length>10?'...':''}\n\n`:'')+
+      `Mark everyone else on the roster as Absent for ${date} (leaving anyone already marked Tardy or Absent untouched)?`
+    );
+    if(markRestAbsent){
+      students.forEach(s=>{
+        ensureProfileFields(s);
+        if(!matchedIds.has(s.id) && !s.attendance[date]){
+          s.attendance[date]='absent';
+          matchedIds.add(s.id);
+          absentCount++;
+        }
+      });
+    }
+
+    for(const id of matchedIds){
+      const s = students.find(x=>x.id===id);
+      if(s) await saveOne(s);
+    }
+    renderRollList();
+    alert(`Sync complete for ${date}. ${checkins.length} check-in(s) processed, ${absentCount} marked absent.`);
+  }catch(err){
+    alert("Couldn't sync: "+err.message+"\n\nDouble check the Web app URL is correct and the deployment is set to \"Anyone\" access.");
+  } finally {
+    btn.textContent = originalText;
+    btn.disabled = false;
+  }
+};
 
 // Adjust photo modal
 const adjustOverlay=document.getElementById('adjustOverlay');
