@@ -189,18 +189,20 @@
     position:absolute;
     top:5px;
     left:5px;
-    width:20px;
-    height:20px;
+    width:28px;
+    height:28px;
     border-radius:50%;
     display:flex;
     align-items:center;
     justify-content:center;
     font-family:-apple-system, system-ui, sans-serif;
-    font-size:0.68rem;
+    font-size:0.74rem;
     font-weight:800;
     color:#fff;
     background:rgba(255,255,255,0.35);
     border:1.5px solid rgba(255,255,255,0.8);
+    cursor:pointer;
+    z-index:2;
   }
   .att-badge-present{background:#3d5c2c;border-color:#3d5c2c;}
   .att-badge-absent{background:#7a2f22;border-color:#7a2f22;}
@@ -220,6 +222,19 @@
   .attn-flag-chronic{background:#a34b3f;}
   .attn-flag-absentstreak{background:#d97706;}
   .attn-flag-presentstreak{background:#2f5c2c;}
+
+  .flip-btn{
+    position:absolute;
+    bottom:2px;
+    right:3px;
+    background:none;
+    border:none;
+    color:var(--muted);
+    font-size:1rem;
+    line-height:1;
+    padding:2px 4px;
+    cursor:pointer;
+  }
 
   .name-plate{
     padding:8px 9px 6px;
@@ -329,18 +344,6 @@
     border:none;
     cursor:pointer;
     margin-top:5px;
-  }
-  .profile-link-btn{
-    font-family:-apple-system, system-ui, sans-serif;
-    font-size:0.66rem;
-    color:var(--gold);
-    background:none;
-    border:1px solid rgba(184,134,47,0.5);
-    border-radius:3px;
-    padding:4px 6px;
-    cursor:pointer;
-    margin-top:6px;
-    text-align:left;
   }
 
   /* Profile modal */
@@ -688,7 +691,7 @@
 
 <header>
   <h1>Stoney Point Roster Cards</h1>
-  <p>Tap a card to flip it &mdash; add your own memory cue on the back.</p>
+  <p>Tap a card to open that student's full profile.</p>
   <div class="roll">25&ndash;26 &middot; <span id="rollCount">0</span> students on roll &middot; <span id="buildTag" style="opacity:0.7;"></span></div>
 </header>
 
@@ -719,7 +722,7 @@
   📷 <b>Camera</b> opens your phone's own camera app &mdash; use it to add a new student's photo, or to snap a student and look up who they are.
 </div>
 <div class="camera-note" style="background:#eef2fa; border-color:var(--gr9);">
-  ✅ <b>Tap a student's photo</b> to cycle today's attendance: Present &rarr; Absent &rarr; Tardy &rarr; unmarked. Tap the name or edges of the card to flip it as usual.
+  ✅ <b>Tap the small circle</b> in the top-left of a photo to mark today's attendance: Present &rarr; Absent &rarr; Tardy &rarr; unmarked. Tap anywhere else on the card to open that student's full profile. Tap <b>&#x22EF;</b> (bottom-right of the name) for the memory-cue card back.
 </div>
 <div class="camera-note" style="background:#fdf0ee; border-color:var(--gr12);">
   🏷️ Badges next to a student's name flag attendance patterns: <b style="color:#a34b3f;">!! chronic</b> (10%+ absent), <b style="color:#d97706;">! streak</b> (3+ absences in a row), <b style="color:#2f5c2c;">&check; streak</b> (5+ present in a row). Tap-and-hold a badge to see the exact numbers.
@@ -989,7 +992,7 @@
 <input type="file" id="photoInput" accept="image/*" style="display:none;">
 
 <script>
-const APP_BUILD = 'build-17-plain-text-badges';
+const APP_BUILD = 'build-18-new-tap-model';
 const GRADE_COLORS = {9:'g9',10:'g10',11:'g11',12:'g12'};
 const AVATAR_HUES = ['#5b7a9d','#6f8f5b','#b8862f','#a34b3f','#7a6a9d','#4a8f8f'];
 
@@ -1274,7 +1277,6 @@ function render(){
     const photoWrap = document.createElement('div');
     photoWrap.className='photo-wrap';
     photoWrap.style.background = s.photo ? 'transparent' : hueFor(s);
-    photoWrap.title = "Tap to mark today's attendance (cycles Present \u2192 Absent \u2192 Tardy \u2192 unmarked)";
     if(s.photo){
       const img=document.createElement('img');
       img.src=s.photo;
@@ -1295,9 +1297,8 @@ function render(){
     const attBadge=document.createElement('div');
     attBadge.className='att-badge' + (todayStatus ? ' att-badge-'+todayStatus : '');
     attBadge.textContent = todayStatus ? todayStatus.charAt(0).toUpperCase() : '\u25CB';
-    photoWrap.appendChild(attBadge);
-
-    photoWrap.addEventListener('click', async (e)=>{
+    attBadge.title = "Tap to mark today's attendance (cycles Present \u2192 Absent \u2192 Tardy \u2192 unmarked)";
+    attBadge.addEventListener('click', async (e)=>{
       e.stopPropagation();
       ensureProfileFields(s);
       const order = ['present','absent','tardy',undefined];
@@ -1308,6 +1309,7 @@ function render(){
       await saveOne(s);
       render();
     });
+    photoWrap.appendChild(attBadge);
 
     const uploadBtn=document.createElement('button');
     uploadBtn.className='upload-btn';
@@ -1338,6 +1340,12 @@ function render(){
       flagBadge.title=flag.title;
       plate.appendChild(flagBadge);
     }
+    const flipBtn=document.createElement('button');
+    flipBtn.className='flip-btn';
+    flipBtn.textContent='\u22EF';
+    flipBtn.title='Flip card (memory cue, quick edit, remove)';
+    flipBtn.onclick=(e)=>{ e.stopPropagation(); card.classList.toggle('flipped'); };
+    plate.appendChild(flipBtn);
     front.appendChild(plate);
 
     // BACK
@@ -1383,12 +1391,6 @@ function render(){
     sugg.textContent='Idea: '+mnemonicSuggestion(s);
     back.appendChild(sugg);
 
-    const profileBtn=document.createElement('button');
-    profileBtn.className='profile-link-btn';
-    profileBtn.textContent='📋 Full profile (attendance, points, grades)';
-    profileBtn.onclick=(e)=>{e.stopPropagation(); openProfileModal(s.id);};
-    back.appendChild(profileBtn);
-
     const del=document.createElement('button');
     del.className='del';
     del.textContent='Remove student';
@@ -1400,7 +1402,11 @@ function render(){
     card.appendChild(inner);
 
     card.addEventListener('click',(e)=>{
-      card.classList.toggle('flipped');
+      if(card.classList.contains('flipped')){
+        card.classList.remove('flipped');
+      } else {
+        openProfileModal(s.id);
+      }
     });
 
     grid.appendChild(card);
