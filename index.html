@@ -861,8 +861,16 @@
   <div class="profile-sheet">
     <div class="profile-header">
       <button class="profile-close" id="profileClose">&times;</button>
-      <div class="pname" id="profileName"></div>
-      <div class="pgrade" id="profileGrade"></div>
+      <div style="display:flex; gap:6px; margin-bottom:6px; margin-top:4px;">
+        <input type="text" id="profileFirstInput" placeholder="First name" style="flex:1;padding:6px 8px;border-radius:4px;border:1px solid rgba(255,255,255,0.35);background:rgba(255,255,255,0.1);color:#fff;font-family:-apple-system,system-ui,sans-serif;font-weight:700;font-size:0.95rem;">
+        <input type="text" id="profileLastInput" placeholder="Last name" style="flex:1;padding:6px 8px;border-radius:4px;border:1px solid rgba(255,255,255,0.35);background:rgba(255,255,255,0.1);color:#fff;font-family:-apple-system,system-ui,sans-serif;font-weight:700;font-size:0.95rem;">
+      </div>
+      <select id="profileGradeInput" style="padding:5px 8px;border-radius:4px;border:1px solid rgba(255,255,255,0.35);background:rgba(255,255,255,0.1);color:#fff;font-family:-apple-system,system-ui,sans-serif;font-size:0.82rem;">
+        <option value="9">Grade 9</option>
+        <option value="10">Grade 10</option>
+        <option value="11">Grade 11</option>
+        <option value="12">Grade 12</option>
+      </select>
     </div>
     <div class="profile-note">This is your own working record, not the official one &mdash; grades and attendance still need to be entered in MiSiS.</div>
 
@@ -922,6 +930,20 @@
         Check-in sheet sync &mdash; configure the sheet URL in <b>⚙️ Settings</b> first.
       </div>
       <button id="syncCheckinBtn" style="padding:7px 12px;border:none;border-radius:4px;background:var(--gr10);color:#fff;font-weight:700;font-size:0.8rem;cursor:pointer;">🔄 Sync check-ins for this date</button>
+
+      <div style="margin-top:12px; padding-top:10px; border-top:1px solid rgba(0,0,0,0.1);">
+        <div style="font-size:0.76rem; color:var(--muted); margin-bottom:6px;">Sync every day in a range at once (uses your daily archive tabs)</div>
+        <div style="display:flex; gap:6px; align-items:center; margin-bottom:6px; flex-wrap:wrap;">
+          <input type="date" id="rangeSyncFrom" style="padding:5px 7px;border-radius:4px;border:1px solid var(--rule);font-family:inherit;font-size:0.78rem;">
+          <span style="font-size:0.78rem;color:var(--muted);">to</span>
+          <input type="date" id="rangeSyncTo" style="padding:5px 7px;border-radius:4px;border:1px solid var(--rule);font-family:inherit;font-size:0.78rem;">
+        </div>
+        <label style="display:flex; align-items:flex-start; gap:6px; font-size:0.72rem; color:var(--muted); margin-bottom:8px;">
+          <input type="checkbox" id="rangeSyncAbsentToo" style="margin-top:2px;">
+          <span>Also mark absent anyone with no check-in, on every day in this range &mdash; only enable this if <b>every day in the range was a real school day</b>. Otherwise weekends/breaks will wrongly mark the whole roster absent.</span>
+        </label>
+        <button id="rangeSyncBtn" style="padding:7px 12px;border:none;border-radius:4px;background:var(--navy);color:#fff;font-weight:700;font-size:0.8rem;cursor:pointer;">📅 Sync date range</button>
+      </div>
     </div>
 
     <div id="rollList"></div>
@@ -1035,7 +1057,7 @@
 <input type="file" id="photoInput" accept="image/*" style="display:none;">
 
 <script>
-const APP_BUILD = 'build-21-present-no-checkin-flag';
+const APP_BUILD = 'build-22-name-edit-and-range-sync';
 const GRADE_COLORS = {9:'g9',10:'g10',11:'g11',12:'g12'};
 const AVATAR_HUES = ['#5b7a9d','#6f8f5b','#b8862f','#a34b3f','#7a6a9d','#4a8f8f'];
 
@@ -1596,15 +1618,29 @@ function openProfileModal(id){
   if(!s) return;
   ensureProfileFields(s);
   profileTargetId=id;
-  document.getElementById('profileName').textContent=`${s.first} ${s.last}`;
-  document.getElementById('profileGrade').textContent='Grade '+s.grade;
+  document.getElementById('profileFirstInput').value=s.first;
+  document.getElementById('profileLastInput').value=s.last;
+  document.getElementById('profileGradeInput').value=s.grade;
   document.getElementById('strengthsBox').value=s.strengths;
   document.getElementById('needsBox').value=s.needs;
   renderAttendanceSection(s);
   renderCoursesSection(s);
   profileOverlay.classList.add('active');
 }
-document.getElementById('profileClose').onclick=()=>{ profileOverlay.classList.remove('active'); };
+document.getElementById('profileClose').onclick=()=>{ profileOverlay.classList.remove('active'); render(); };
+
+document.getElementById('profileFirstInput').addEventListener('change', async (e)=>{
+  const s = students.find(x=>x.id===profileTargetId);
+  if(s && e.target.value.trim()){ s.first=e.target.value.trim(); await saveOne(s); }
+});
+document.getElementById('profileLastInput').addEventListener('change', async (e)=>{
+  const s = students.find(x=>x.id===profileTargetId);
+  if(s && e.target.value.trim()){ s.last=e.target.value.trim(); await saveOne(s); }
+});
+document.getElementById('profileGradeInput').addEventListener('change', async (e)=>{
+  const s = students.find(x=>x.id===profileTargetId);
+  if(s){ s.grade=parseInt(e.target.value,10); await saveOne(s); }
+});
 
 document.getElementById('strengthsBox').addEventListener('change', async (e)=>{
   const s = students.find(x=>x.id===profileTargetId);
@@ -2095,6 +2131,98 @@ function findPartialNameMatch(checkinFirst, checkinLast, candidates){
   return matches.length===1 ? matches[0] : null;
 }
 
+// Core matching step for one date's check-ins - no dialogs, safe to call in a loop.
+// Applies 'present' status + discrepancy/no-checkin tracking. Does NOT do the
+// "mark rest absent" sweep - that's a separate, optional step (see applyAbsentSweep).
+function matchCheckinsForDate(checkins, date){
+  const byName = new Map();
+  students.forEach(s=>{ ensureProfileFields(s); byName.set(normalizeName(s.first)+'|'+normalizeName(s.last), s); });
+
+  const matchedIds = new Set();
+  const unmatchedNames = [];
+  const fuzzyMatches = [];
+  const surnameMatches = [];
+  const discrepancies = [];
+  const idsToSave = new Set();
+
+  function applyStatus(s, newStatus){
+    const oldStatus = s.attendance[date];
+    if(oldStatus && oldStatus !== newStatus){
+      discrepancies.push({name:`${s.first} ${s.last}`, oldStatus, newStatus});
+      s.attendanceDiscrepancies[date] = { old:oldStatus, new:newStatus, at:new Date().toISOString() };
+    } else {
+      delete s.attendanceDiscrepancies[date];
+    }
+    s.attendance[date] = newStatus;
+    idsToSave.add(s.id);
+  }
+
+  for(const c of checkins){
+    const key = normalizeName(c.first)+'|'+normalizeName(c.last);
+    let s = byName.get(key);
+    if(!s){
+      const remaining = students.filter(st=>!matchedIds.has(st.id));
+      const surnameMatch = findPartialNameMatch(c.first, c.last, remaining);
+      if(surnameMatch){ s = surnameMatch; surnameMatches.push({checkinName:`${c.first} ${c.last}`, matchedName:`${s.first} ${s.last}`}); }
+    }
+    if(!s){
+      const remaining = students.filter(st=>!matchedIds.has(st.id));
+      const fuzzy = findBestFuzzyMatch(c.first, c.last, remaining);
+      if(fuzzy){ s = fuzzy.student; fuzzyMatches.push({checkinName:`${c.first} ${c.last}`, matchedName:`${s.first} ${s.last}`, distance:fuzzy.distance}); }
+    }
+    if(s){ applyStatus(s, 'present'); matchedIds.add(s.id); }
+    else unmatchedNames.push(`${c.first} ${c.last}`);
+  }
+
+  const presentNoCheckin = [];
+  students.forEach(s=>{
+    ensureProfileFields(s);
+    if(matchedIds.has(s.id)){
+      if(s.attendanceNoCheckin[date]){ delete s.attendanceNoCheckin[date]; idsToSave.add(s.id); }
+    } else if(s.attendance[date]==='present'){
+      s.attendanceNoCheckin[date] = true;
+      presentNoCheckin.push(s);
+      idsToSave.add(s.id);
+    } else if(s.attendanceNoCheckin[date]){
+      delete s.attendanceNoCheckin[date];
+      idsToSave.add(s.id);
+    }
+  });
+
+  return { matchedIds, unmatchedNames, fuzzyMatches, surnameMatches, discrepancies, presentNoCheckin, idsToSave };
+}
+
+// Optional second step: mark everyone not covered by a check-in as Absent.
+// Never overrides a manual "Present" (see build-20 note). Mutates idsToSave in place.
+function applyAbsentSweep(date, matchedIds, discrepancies, idsToSave){
+  let absentCount = 0;
+  students.forEach(s=>{
+    ensureProfileFields(s);
+    if(!matchedIds.has(s.id)){
+      const oldStatus = s.attendance[date];
+      if(oldStatus === 'present') return;
+      if(oldStatus && oldStatus !== 'absent'){
+        discrepancies.push({name:`${s.first} ${s.last}`, oldStatus, newStatus:'absent'});
+        s.attendanceDiscrepancies[date] = { old:oldStatus, new:'absent', at:new Date().toISOString() };
+      } else if(!oldStatus){
+        delete s.attendanceDiscrepancies[date];
+      }
+      s.attendance[date]='absent';
+      idsToSave.add(s.id);
+      absentCount++;
+    }
+  });
+  return absentCount;
+}
+
+async function fetchCheckinsForDate(url, date){
+  const res = await fetch(`${url}?date=${date}`);
+  if(!res.ok) throw new Error('Request failed: '+res.status);
+  const data = await res.json();
+  if(data.error) throw new Error(data.error);
+  return data.checkins || [];
+}
+
 document.getElementById('syncCheckinBtn').onclick=async ()=>{
   const url = await storeGet('meta:checkinUrl');
   if(!url){ alert('Set your Apps Script Web app URL first in ⚙️ Settings.'); return; }
@@ -2104,83 +2232,14 @@ document.getElementById('syncCheckinBtn').onclick=async ()=>{
   btn.textContent = 'Syncing\u2026';
   btn.disabled = true;
   try{
-    const res = await fetch(`${url}?date=${date}`);
-    if(!res.ok) throw new Error('Request failed: '+res.status);
-    const data = await res.json();
-    if(data.error) throw new Error(data.error);
-    const checkins = data.checkins || [];
+    const checkins = await fetchCheckinsForDate(url, date);
     if(checkins.length===0){
       alert(`No check-ins found for ${date}. Nothing to sync.`);
       return;
     }
 
-    const byName = new Map();
-    students.forEach(s=>{ ensureProfileFields(s); byName.set(normalizeName(s.first)+'|'+normalizeName(s.last), s); });
+    const { matchedIds, unmatchedNames, fuzzyMatches, surnameMatches, discrepancies, presentNoCheckin, idsToSave } = matchCheckinsForDate(checkins, date);
 
-    const matchedIds = new Set();
-    const unmatchedNames = [];
-    const fuzzyMatches = []; // {checkinName, matchedName, distance}
-    const surnameMatches = []; // {checkinName, matchedName}
-    const discrepancies = []; // {name, oldStatus, newStatus}
-
-    function applyStatus(s, newStatus){
-      const oldStatus = s.attendance[date];
-      if(oldStatus && oldStatus !== newStatus){
-        discrepancies.push({name:`${s.first} ${s.last}`, oldStatus, newStatus});
-        s.attendanceDiscrepancies[date] = { old:oldStatus, new:newStatus, at:new Date().toISOString() };
-      } else {
-        delete s.attendanceDiscrepancies[date]; // no conflict this time - clear any stale flag
-      }
-      s.attendance[date] = newStatus;
-    }
-
-    for(const c of checkins){
-      const key = normalizeName(c.first)+'|'+normalizeName(c.last);
-      let s = byName.get(key);
-      if(!s){
-        const remaining = students.filter(st=>!matchedIds.has(st.id));
-        const surnameMatch = findPartialNameMatch(c.first, c.last, remaining);
-        if(surnameMatch){
-          s = surnameMatch;
-          surnameMatches.push({checkinName:`${c.first} ${c.last}`, matchedName:`${s.first} ${s.last}`});
-        }
-      }
-      if(!s){
-        const remaining = students.filter(st=>!matchedIds.has(st.id));
-        const fuzzy = findBestFuzzyMatch(c.first, c.last, remaining);
-        if(fuzzy){
-          s = fuzzy.student;
-          fuzzyMatches.push({checkinName:`${c.first} ${c.last}`, matchedName:`${s.first} ${s.last}`, distance:fuzzy.distance});
-        }
-      }
-      if(s){
-        applyStatus(s, 'present');
-        matchedIds.add(s.id);
-      } else {
-        unmatchedNames.push(`${c.first} ${c.last}`);
-      }
-    }
-
-    // Anyone already marked Present who did NOT show up in today's check-ins.
-    // This is tracked regardless of whether "mark rest absent" gets confirmed below -
-    // it's information worth surfacing either way, not just a side effect of that choice.
-    const idsToSave = new Set(matchedIds);
-    const presentNoCheckin = [];
-    students.forEach(s=>{
-      ensureProfileFields(s);
-      if(matchedIds.has(s.id)){
-        if(s.attendanceNoCheckin[date]){ delete s.attendanceNoCheckin[date]; idsToSave.add(s.id); }
-      } else if(s.attendance[date]==='present'){
-        s.attendanceNoCheckin[date] = true;
-        presentNoCheckin.push(s);
-        idsToSave.add(s.id);
-      } else if(s.attendanceNoCheckin[date]){
-        delete s.attendanceNoCheckin[date]; // no longer marked present, so the flag no longer applies
-        idsToSave.add(s.id);
-      }
-    });
-
-    let absentCount = 0;
     let summaryMsg = `Matched ${matchedIds.size} check-in(s) to your roster for ${date}. The spreadsheet will override any conflicting entry you already had.\n\n`;
     if(surnameMatches.length){
       summaryMsg += `Matched by partial name (first or last name shortened):\n` +
@@ -2204,25 +2263,9 @@ document.getElementById('syncCheckinBtn').onclick=async ()=>{
     const markRestAbsent = confirm(
       summaryMsg + `Mark everyone else on the roster as Absent for ${date}? This will override anyone currently marked Tardy or left blank, but will NOT touch anyone you've manually marked Present \u2014 the spreadsheet can confirm someone's here, but silence from it isn't proof they're not.`
     );
+    let absentCount = 0;
     if(markRestAbsent){
-      students.forEach(s=>{
-        ensureProfileFields(s);
-        if(!matchedIds.has(s.id)){
-          const oldStatus = s.attendance[date];
-          if(oldStatus === 'present'){
-            return; // your manual "Present" stands - already flagged above, not overwritten
-          }
-          if(oldStatus && oldStatus !== 'absent'){
-            discrepancies.push({name:`${s.first} ${s.last}`, oldStatus, newStatus:'absent'});
-            s.attendanceDiscrepancies[date] = { old:oldStatus, new:'absent', at:new Date().toISOString() };
-          } else if(!oldStatus){
-            delete s.attendanceDiscrepancies[date];
-          }
-          s.attendance[date]='absent';
-          idsToSave.add(s.id);
-          absentCount++;
-        }
-      });
+      absentCount = applyAbsentSweep(date, matchedIds, discrepancies, idsToSave);
     }
 
     for(const id of idsToSave){
@@ -2241,6 +2284,81 @@ document.getElementById('syncCheckinBtn').onclick=async ()=>{
     btn.textContent = originalText;
     btn.disabled = false;
   }
+};
+
+document.getElementById('rangeSyncBtn').onclick=async ()=>{
+  const url = await storeGet('meta:checkinUrl');
+  if(!url){ alert('Set your Apps Script Web app URL first in ⚙️ Settings.'); return; }
+  const fromStr = document.getElementById('rangeSyncFrom').value;
+  const toStr = document.getElementById('rangeSyncTo').value;
+  if(!fromStr || !toStr){ alert('Pick both a start and end date.'); return; }
+  const from = new Date(fromStr+'T00:00:00');
+  const to = new Date(toStr+'T00:00:00');
+  if(from > to){ alert('Start date is after end date.'); return; }
+  const dayCount = Math.round((to-from)/86400000)+1;
+  if(dayCount > 90){ alert('That\'s more than 90 days - pick a shorter range to keep this from taking a very long time.'); return; }
+  const doAbsentSweep = document.getElementById('rangeSyncAbsentToo').checked;
+  if(!confirm(`Sync ${dayCount} day(s) from ${fromStr} to ${toStr}?`+(doAbsentSweep? '\n\nThis WILL mark absent anyone with no check-in on every one of those days - make sure none of them are weekends or breaks.' : '\n\nThis will only fill in Present marks from check-ins and flag anything worth reviewing - it will not mark anyone absent.'))){
+    return;
+  }
+
+  const btn = document.getElementById('rangeSyncBtn');
+  const originalText = btn.textContent;
+  btn.disabled = true;
+
+  const totals = { days:0, checkins:0, matched:0, absent:0, discrepancies:0, presentNoCheckin:0, unmatchedNames:[], errorDays:[] };
+  const allIdsToSave = new Set();
+
+  let cursor = new Date(from);
+  let dayIndex = 0;
+  while(cursor <= to){
+    dayIndex++;
+    const d = cursor.toISOString().slice(0,10);
+    btn.textContent = `Syncing ${dayIndex}/${dayCount} (${d})\u2026`;
+    try{
+      const checkins = await fetchCheckinsForDate(url, d);
+      if(checkins.length>0){
+        const { matchedIds, unmatchedNames, discrepancies, presentNoCheckin, idsToSave } = matchCheckinsForDate(checkins, d);
+        totals.days++;
+        totals.checkins += checkins.length;
+        totals.matched += matchedIds.size;
+        totals.discrepancies += discrepancies.length;
+        totals.presentNoCheckin += presentNoCheckin.length;
+        unmatchedNames.forEach(n=>totals.unmatchedNames.push(`${d}: ${n}`));
+        idsToSave.forEach(id=>allIdsToSave.add(id));
+        if(doAbsentSweep){
+          totals.absent += applyAbsentSweep(d, matchedIds, discrepancies, idsToSave);
+          idsToSave.forEach(id=>allIdsToSave.add(id));
+        }
+      }
+    }catch(err){
+      totals.errorDays.push(`${d}: ${err.message}`);
+    }
+    cursor.setDate(cursor.getDate()+1);
+  }
+
+  for(const id of allIdsToSave){
+    const s = students.find(x=>x.id===id);
+    if(s) await saveOne(s);
+  }
+  renderRollList();
+  render();
+  btn.textContent = originalText;
+  btn.disabled = false;
+
+  let summary = `Range sync complete: ${fromStr} to ${toStr}.\n\n`+
+    `${totals.days} of ${dayCount} day(s) had check-in data.\n`+
+    `${totals.checkins} check-in(s) processed, ${totals.matched} matched, ${totals.discrepancies} overridden`+
+    (doAbsentSweep ? `, ${totals.absent} marked absent.\n` : ' (absent-marking was off).\n')+
+    (totals.presentNoCheckin ? `${totals.presentNoCheckin} Present-but-no-checkin flag(s) set across the range.\n` : '');
+  if(totals.unmatchedNames.length){
+    summary += `\n${totals.unmatchedNames.length} check-in name(s) never matched anyone:\n`+
+      totals.unmatchedNames.slice(0,15).join('\n')+(totals.unmatchedNames.length>15?'\n...':'');
+  }
+  if(totals.errorDays.length){
+    summary += `\n\n${totals.errorDays.length} day(s) failed to fetch:\n`+totals.errorDays.slice(0,10).join('\n');
+  }
+  alert(summary);
 };
 
 // Adjust photo modal
