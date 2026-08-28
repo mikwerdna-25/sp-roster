@@ -207,6 +207,43 @@
   .att-badge-present{background:#3d5c2c;border-color:#3d5c2c;}
   .att-badge-absent{background:#7a2f22;border-color:#7a2f22;}
   .att-badge-tardy{background:#7a5b0e;border-color:#7a5b0e;}
+  .att-badge-synced{
+    box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px #5b7a9d;
+  }
+  .att-badge-synced::after{
+    content:'\21BB';
+    position:absolute;
+    bottom:-3px;
+    right:-3px;
+    width:12px;
+    height:12px;
+    border-radius:50%;
+    background:#5b7a9d;
+    color:#fff;
+    font-size:0.5rem;
+    line-height:12px;
+    text-align:center;
+    border:1px solid var(--paper);
+  }
+  .att-badge-nocheckin{
+    box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px #d97706;
+  }
+  .att-badge-nocheckin::after{
+    content:'?';
+    position:absolute;
+    bottom:-3px;
+    right:-3px;
+    width:12px;
+    height:12px;
+    border-radius:50%;
+    background:#d97706;
+    color:#fff;
+    font-size:0.55rem;
+    font-weight:800;
+    line-height:12px;
+    text-align:center;
+    border:1px solid var(--paper);
+  }
 
   .attn-flag-badge{
     position:absolute;
@@ -727,6 +764,12 @@
 <div class="camera-note" style="background:#fdf0ee; border-color:var(--gr12);">
   🏷️ Badges next to a student's name flag attendance patterns: <b style="color:#a34b3f;">!! chronic</b> (10%+ absent), <b style="color:#d97706;">! streak</b> (3+ absences in a row), <b style="color:#2f5c2c;">&check; streak</b> (5+ present in a row). Tap-and-hold a badge to see the exact numbers.
 </div>
+<div class="camera-note" style="background:#eef2fa; border-color:#5b7a9d;">
+  🔄 A small blue ring + arrow on today's attendance circle means <b>the spreadsheet sync overrode</b> what was there before. The spreadsheet always wins on sync &mdash; tap the circle to change it manually if the sync got it wrong.
+</div>
+<div class="camera-note" style="background:#fef6ea; border-color:#d97706;">
+  ❓ A small orange dashed ring + ? means <b>you marked them Present but the spreadsheet has no check-in for them</b> &mdash; your mark is kept as-is, this is just a nudge to double check. Tap the circle to clear it once you've confirmed.
+</div>
 <div class="camera-note" style="background:#e9f0e4; border-color:var(--gr10);">
   💾 This saves to <b>this browser only</b> and will be wiped if you clear Chrome's data. Tap <b>⬇ Backup</b> regularly (e.g. right before you clear data) to save a real file, then <b>⬆ Restore</b> to load it back in.
 </div>
@@ -992,7 +1035,7 @@
 <input type="file" id="photoInput" accept="image/*" style="display:none;">
 
 <script>
-const APP_BUILD = 'build-18-new-tap-model';
+const APP_BUILD = 'build-21-present-no-checkin-flag';
 const GRADE_COLORS = {9:'g9',10:'g10',11:'g11',12:'g12'};
 const AVATAR_HUES = ['#5b7a9d','#6f8f5b','#b8862f','#a34b3f','#7a6a9d','#4a8f8f'];
 
@@ -1018,6 +1061,8 @@ function ensureProfileFields(s){
   if(!Array.isArray(s.courses)) s.courses = [];
   if(typeof s.strengths !== 'string') s.strengths = '';
   if(typeof s.needs !== 'string') s.needs = '';
+  if(!s.attendanceDiscrepancies || typeof s.attendanceDiscrepancies !== 'object') s.attendanceDiscrepancies = {};
+  if(!s.attendanceNoCheckin || typeof s.attendanceNoCheckin !== 'object') s.attendanceNoCheckin = {};
   return s;
 }
 
@@ -1297,7 +1342,17 @@ function render(){
     const attBadge=document.createElement('div');
     attBadge.className='att-badge' + (todayStatus ? ' att-badge-'+todayStatus : '');
     attBadge.textContent = todayStatus ? todayStatus.charAt(0).toUpperCase() : '\u25CB';
-    attBadge.title = "Tap to mark today's attendance (cycles Present \u2192 Absent \u2192 Tardy \u2192 unmarked)";
+    const todayDiscrepancy = (s.attendanceDiscrepancies||{})[todayStr()];
+    const todayNoCheckin = (s.attendanceNoCheckin||{})[todayStr()];
+    if(todayDiscrepancy){
+      attBadge.classList.add('att-badge-synced');
+      attBadge.title = `Set by spreadsheet sync (was ${todayDiscrepancy.old}). Tap to change manually.`;
+    } else if(todayNoCheckin){
+      attBadge.classList.add('att-badge-nocheckin');
+      attBadge.title = `You marked this Present, but there's no check-in for them today. Worth a glance to confirm.`;
+    } else {
+      attBadge.title = "Tap to mark today's attendance (cycles Present \u2192 Absent \u2192 Tardy \u2192 unmarked)";
+    }
     attBadge.addEventListener('click', async (e)=>{
       e.stopPropagation();
       ensureProfileFields(s);
@@ -1306,6 +1361,8 @@ function render(){
       const next = order[(order.indexOf(current)+1) % order.length];
       if(next===undefined) delete s.attendance[todayStr()];
       else s.attendance[todayStr()] = next;
+      delete s.attendanceDiscrepancies[todayStr()]; // manual edit clears the sync-override flag
+      delete s.attendanceNoCheckin[todayStr()]; // and clears the no-checkin flag too
       await saveOne(s);
       render();
     });
@@ -1581,7 +1638,12 @@ function renderAttendanceSection(s){
     const row=document.createElement('div');
     row.className='att-log-row';
     const dateSpan=document.createElement('span');
-    dateSpan.textContent=d;
+    const discrepancy = (s.attendanceDiscrepancies||{})[d];
+    dateSpan.textContent = discrepancy ? `${d} \u21BB` : d;
+    if(discrepancy){
+      dateSpan.style.color = '#5b7a9d';
+      dateSpan.title = `Spreadsheet sync changed this from ${discrepancy.old} to ${discrepancy.new}`;
+    }
     const btns=document.createElement('div');
     btns.style.cssText='display:flex;gap:4px;';
     [['present','P'],['absent','A'],['tardy','T']].forEach(([status,label])=>{
@@ -1595,6 +1657,7 @@ function renderAttendanceSection(s){
       }
       b.onclick=async ()=>{
         s.attendance[d]=status;
+        delete s.attendanceDiscrepancies[d];
         await saveOne(s);
         renderAttendanceSection(s);
       };
@@ -1606,6 +1669,7 @@ function renderAttendanceSection(s){
     delBtn.style.cssText='font-family:inherit;font-size:0.75rem;padding:2px 7px;border-radius:3px;cursor:pointer;border:1px solid var(--rule);background:#fff;color:#a34b3f;';
     delBtn.onclick=async ()=>{
       delete s.attendance[d];
+      delete s.attendanceDiscrepancies[d];
       await saveOne(s);
       renderAttendanceSection(s);
     };
@@ -2057,6 +2121,19 @@ document.getElementById('syncCheckinBtn').onclick=async ()=>{
     const unmatchedNames = [];
     const fuzzyMatches = []; // {checkinName, matchedName, distance}
     const surnameMatches = []; // {checkinName, matchedName}
+    const discrepancies = []; // {name, oldStatus, newStatus}
+
+    function applyStatus(s, newStatus){
+      const oldStatus = s.attendance[date];
+      if(oldStatus && oldStatus !== newStatus){
+        discrepancies.push({name:`${s.first} ${s.last}`, oldStatus, newStatus});
+        s.attendanceDiscrepancies[date] = { old:oldStatus, new:newStatus, at:new Date().toISOString() };
+      } else {
+        delete s.attendanceDiscrepancies[date]; // no conflict this time - clear any stale flag
+      }
+      s.attendance[date] = newStatus;
+    }
+
     for(const c of checkins){
       const key = normalizeName(c.first)+'|'+normalizeName(c.last);
       let s = byName.get(key);
@@ -2077,15 +2154,34 @@ document.getElementById('syncCheckinBtn').onclick=async ()=>{
         }
       }
       if(s){
-        s.attendance[date] = 'present';
+        applyStatus(s, 'present');
         matchedIds.add(s.id);
       } else {
         unmatchedNames.push(`${c.first} ${c.last}`);
       }
     }
 
+    // Anyone already marked Present who did NOT show up in today's check-ins.
+    // This is tracked regardless of whether "mark rest absent" gets confirmed below -
+    // it's information worth surfacing either way, not just a side effect of that choice.
+    const idsToSave = new Set(matchedIds);
+    const presentNoCheckin = [];
+    students.forEach(s=>{
+      ensureProfileFields(s);
+      if(matchedIds.has(s.id)){
+        if(s.attendanceNoCheckin[date]){ delete s.attendanceNoCheckin[date]; idsToSave.add(s.id); }
+      } else if(s.attendance[date]==='present'){
+        s.attendanceNoCheckin[date] = true;
+        presentNoCheckin.push(s);
+        idsToSave.add(s.id);
+      } else if(s.attendanceNoCheckin[date]){
+        delete s.attendanceNoCheckin[date]; // no longer marked present, so the flag no longer applies
+        idsToSave.add(s.id);
+      }
+    });
+
     let absentCount = 0;
-    let summaryMsg = `Matched ${matchedIds.size} check-in(s) to your roster for ${date}.\n\n`;
+    let summaryMsg = `Matched ${matchedIds.size} check-in(s) to your roster for ${date}. The spreadsheet will override any conflicting entry you already had.\n\n`;
     if(surnameMatches.length){
       summaryMsg += `Matched by partial name (first or last name shortened):\n` +
         surnameMatches.map(f=>`  "${f.checkinName}" \u2192 ${f.matchedName}`).join('\n') + '\n\n';
@@ -2094,30 +2190,51 @@ document.getElementById('syncCheckinBtn').onclick=async ()=>{
       summaryMsg += `Fuzzy matches (double-check these!):\n` +
         fuzzyMatches.map(f=>`  "${f.checkinName}" \u2192 ${f.matchedName}`).join('\n') + '\n\n';
     }
+    if(discrepancies.length){
+      summaryMsg += `\u26A0\uFE0E Overrode ${discrepancies.length} existing entr${discrepancies.length===1?'y':'ies'} (spreadsheet took priority):\n` +
+        discrepancies.map(d=>`  ${d.name}: was ${d.oldStatus} \u2192 now ${d.newStatus}`).join('\n') + '\n\n';
+    }
+    if(presentNoCheckin.length){
+      summaryMsg += `Marked Present but no check-in found for them today:\n` +
+        presentNoCheckin.map(s=>`  ${s.first} ${s.last}`).join('\n') + '\n\n';
+    }
     if(unmatchedNames.length){
       summaryMsg += `${unmatchedNames.length} check-in name(s) didn't match anyone: ${unmatchedNames.slice(0,10).join(', ')}${unmatchedNames.length>10?'...':''}\n\n`;
     }
     const markRestAbsent = confirm(
-      summaryMsg + `Mark everyone else on the roster as Absent for ${date} (leaving anyone already marked Tardy or Absent untouched)?`
+      summaryMsg + `Mark everyone else on the roster as Absent for ${date}? This will override anyone currently marked Tardy or left blank, but will NOT touch anyone you've manually marked Present \u2014 the spreadsheet can confirm someone's here, but silence from it isn't proof they're not.`
     );
     if(markRestAbsent){
       students.forEach(s=>{
         ensureProfileFields(s);
-        if(!matchedIds.has(s.id) && !s.attendance[date]){
+        if(!matchedIds.has(s.id)){
+          const oldStatus = s.attendance[date];
+          if(oldStatus === 'present'){
+            return; // your manual "Present" stands - already flagged above, not overwritten
+          }
+          if(oldStatus && oldStatus !== 'absent'){
+            discrepancies.push({name:`${s.first} ${s.last}`, oldStatus, newStatus:'absent'});
+            s.attendanceDiscrepancies[date] = { old:oldStatus, new:'absent', at:new Date().toISOString() };
+          } else if(!oldStatus){
+            delete s.attendanceDiscrepancies[date];
+          }
           s.attendance[date]='absent';
-          matchedIds.add(s.id);
+          idsToSave.add(s.id);
           absentCount++;
         }
       });
     }
 
-    for(const id of matchedIds){
+    for(const id of idsToSave){
       const s = students.find(x=>x.id===id);
       if(s) await saveOne(s);
     }
     renderRollList();
-    alert(`Sync complete for ${date}. ${checkins.length} check-in(s) processed, ${absentCount} marked absent.`+
-      (fuzzyMatches.length ? ` ${fuzzyMatches.length} used a fuzzy match - worth a quick check in the student's Full profile.` : ''));
+    render();
+    alert(`Sync complete for ${date}. ${checkins.length} check-in(s) processed, ${absentCount} marked absent, ${discrepancies.length} overridden.`+
+      (presentNoCheckin.length ? ` ${presentNoCheckin.length} marked-Present student(s) have no check-in on file \u2014 flagged with a badge on their card.` : '')+
+      (fuzzyMatches.length ? ` ${fuzzyMatches.length} used a fuzzy match - worth a quick check in the student's Full profile.` : '')+
+      (discrepancies.length ? ` Overridden students show a small sync-flag badge on their card.` : ''));
   }catch(err){
     alert("Couldn't sync: "+err.message+"\n\nDouble check the Web app URL is correct and the deployment is set to \"Anyone\" access.");
   } finally {
