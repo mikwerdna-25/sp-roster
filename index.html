@@ -1057,7 +1057,7 @@
 <input type="file" id="photoInput" accept="image/*" style="display:none;">
 
 <script>
-const APP_BUILD = 'build-22-name-edit-and-range-sync';
+const APP_BUILD = 'build-24-shared-surname-token-match';
 const GRADE_COLORS = {9:'g9',10:'g10',11:'g11',12:'g12'};
 const AVATAR_HUES = ['#5b7a9d','#6f8f5b','#b8862f','#a34b3f','#7a6a9d','#4a8f8f'];
 
@@ -1871,6 +1871,7 @@ function renderRollList(){
         if(s.attendance[date]===undefined) delete s.attendance[date];
         await saveOne(s);
         renderRollList();
+        render();
       };
       btns.appendChild(b);
     });
@@ -2120,12 +2121,27 @@ function isOrderedSubsequence(smallTokens, bigTokens){
   }
   return smallTokens.length>0;
 }
+// For compound surnames: true if at least one word is shared between the two
+// name sets, even if the other word(s) genuinely differ (e.g. roster has
+// "Ambrocio Izuri" but the check-in has "Ambrocio Sanchez" - one surname word
+// matches, the other is just a different family name on file). Single-word
+// surnames still need a real match/truncation, since there's only one word
+// to compare - this only loosens things for genuinely compound names.
+function hasAnySharedToken(aTokens, bTokens){
+  for(const a of aTokens){
+    for(const b of bTokens){
+      if(tokenMatches(a,b)) return true;
+    }
+  }
+  return false;
+}
 function findPartialNameMatch(checkinFirst, checkinLast, candidates){
   const cFirstTokens = tokensOf(checkinFirst);
   const cLastTokens = tokensOf(checkinLast);
   const matches = candidates.filter(s=>{
     const firstOk = isOrderedSubsequence(cFirstTokens, tokensOf(s.first));
-    const lastOk = isOrderedSubsequence(cLastTokens, tokensOf(s.last));
+    const sLastTokens = tokensOf(s.last);
+    const lastOk = isOrderedSubsequence(cLastTokens, sLastTokens) || hasAnySharedToken(cLastTokens, sLastTokens);
     return firstOk && lastOk;
   });
   return matches.length===1 ? matches[0] : null;
