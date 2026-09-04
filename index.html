@@ -1066,7 +1066,7 @@
 <input type="file" id="photoInput" accept="image/*" style="display:none;">
 
 <script>
-const APP_BUILD = 'build-26-clarify-sync-wording';
+const APP_BUILD = 'build-27-cachebust-sync';
 const GRADE_COLORS = {9:'g9',10:'g10',11:'g11',12:'g12'};
 const AVATAR_HUES = ['#5b7a9d','#6f8f5b','#b8862f','#a34b3f','#7a6a9d','#4a8f8f'];
 
@@ -2301,7 +2301,11 @@ function applyAbsentSweep(date, matchedIds, discrepancies, idsToSave){
 }
 
 async function fetchCheckinsForDate(url, date){
-  const res = await fetch(`${url}?date=${date}`);
+  // Cache-bust every request - without this, a browser or network cache could
+  // keep serving an old snapshot from earlier in the day for the exact same
+  // URL, making it look like new check-ins never arrive.
+  const bustedUrl = `${url}?date=${date}&_=${Date.now()}`;
+  const res = await fetch(bustedUrl, { cache: 'no-store' });
   if(!res.ok) throw new Error('Request failed: '+res.status);
   const data = await res.json();
   if(data.error) throw new Error(data.error);
