@@ -986,6 +986,15 @@
       ⚠️ Keep this URL private &mdash; treat it like a password. Anyone with it can view check-in data without logging in.
     </div>
 
+    <label style="display:flex; align-items:flex-start; gap:8px; margin:10px 0 4px;">
+      <input type="checkbox" id="autoSyncToggle" style="margin-top:2px;">
+      <span>🔁 Auto-sync check-ins every 5 minutes, for today only, while this app is open on screen</span>
+    </label>
+    <div style="font-size:0.68rem;color:var(--muted);margin-bottom:6px;">
+      Only fills in confirmed Present marks and flags anything worth reviewing &mdash; never auto-marks anyone Absent, and only runs while you actually have this tab open (phones can't reliably sync in the true background).
+    </div>
+    <div style="font-size:0.72rem;color:var(--muted);margin-bottom:14px;" id="autoSyncStatus"></div>
+
     <div class="modal-actions">
       <button style="background:var(--rule);color:var(--ink);width:100%;" id="settingsCloseBtn">Close</button>
     </div>
@@ -1057,7 +1066,7 @@
 <input type="file" id="photoInput" accept="image/*" style="display:none;">
 
 <script>
-const APP_BUILD = 'build-24-shared-surname-token-match';
+const APP_BUILD = 'build-25-foreground-autosync';
 const GRADE_COLORS = {9:'g9',10:'g10',11:'g11',12:'g12'};
 const AVATAR_HUES = ['#5b7a9d','#6f8f5b','#b8862f','#a34b3f','#7a6a9d','#4a8f8f'];
 
@@ -2045,6 +2054,9 @@ document.getElementById('settingsBtn').onclick=async ()=>{
   document.getElementById('settingsBuildTag').textContent = APP_BUILD;
   const savedUrl = await storeGet('meta:checkinUrl');
   document.getElementById('settingsCheckinUrl').value = savedUrl || '';
+  const autoOn = await storeGet('meta:autoSyncEnabled');
+  document.getElementById('autoSyncToggle').checked = autoOn === 'true';
+  updateAutoSyncStatus();
   settingsOverlay.classList.add('active');
 };
 document.getElementById('settingsCloseBtn').onclick=()=>{ settingsOverlay.classList.remove('active'); };
@@ -2053,6 +2065,63 @@ document.getElementById('settingsSaveCheckinUrl').onclick=async ()=>{
   await storeSet('meta:checkinUrl', url);
   alert(url ? 'Saved.' : 'Cleared.');
 };
+
+document.getElementById('autoSyncToggle').addEventListener('change', async (e)=>{
+  await storeSet('meta:autoSyncEnabled', e.target.checked ? 'true' : 'false');
+  if(e.target.checked){ startAutoSync(); } else { stopAutoSync(); }
+  updateAutoSyncStatus();
+});
+
+function updateAutoSyncStatus(){
+  const el = document.getElementById('autoSyncStatus');
+  if(!el) return;
+  if(autoSyncTimer){
+    el.textContent = autoSyncLastRun
+      ? `Auto-sync is on. Last ran at ${autoSyncLastRun.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}.`
+      : 'Auto-sync is on. Waiting for the first run...';
+  } else {
+    el.textContent = 'Auto-sync is off.';
+  }
+}
+
+let autoSyncTimer = null;
+let autoSyncLastRun = null;
+const AUTO_SYNC_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+
+async function runAutoSyncOnce(){
+  const url = await storeGet('meta:checkinUrl');
+  if(!url) return;
+  const date = todayStr();
+  try{
+    const checkins = await fetchCheckinsForDate(url, date);
+    if(checkins.length===0) return;
+    const { idsToSave } = matchCheckinsForDate(checkins, date);
+    for(const id of idsToSave){
+      const s = students.find(x=>x.id===id);
+      if(s) await saveOne(s);
+    }
+    if(idsToSave.size>0){
+      render();
+      if(rollOverlay.classList.contains('active')) renderRollList();
+    }
+  }catch(err){
+    // Fail silently in the background - don't interrupt whatever the user is doing.
+    // They can always check manually with the Sync button if something seems off.
+  } finally {
+    autoSyncLastRun = new Date();
+    updateAutoSyncStatus();
+  }
+}
+
+function startAutoSync(){
+  if(autoSyncTimer) return;
+  runAutoSyncOnce();
+  autoSyncTimer = setInterval(runAutoSyncOnce, AUTO_SYNC_INTERVAL_MS);
+}
+function stopAutoSync(){
+  if(autoSyncTimer){ clearInterval(autoSyncTimer); autoSyncTimer=null; }
+  autoSyncLastRun = null;
+}
 
 // Check-in sheet sync
 // Name matching helpers for check-in sync: normalize away case/accent/
@@ -2683,6 +2752,7 @@ document.getElementById('compareAgainBtn').onclick=()=>{
 
 document.getElementById('buildTag').textContent = APP_BUILD;
 loadAll();
+storeGet('meta:autoSyncEnabled').then(v=>{ if(v==='true') startAutoSync(); });
 </script>
 </body>
 </html>
