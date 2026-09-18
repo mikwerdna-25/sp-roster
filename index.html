@@ -871,6 +871,11 @@
         <option value="11">Grade 11</option>
         <option value="12">Grade 12</option>
       </select>
+      <div style="display:flex; align-items:center; gap:6px; margin-top:8px;">
+        <label style="font-size:0.76rem; color:#cfd6e4;">Enrolled:</label>
+        <input type="date" id="profileEnrollmentInput" style="padding:4px 6px;border-radius:4px;border:1px solid rgba(255,255,255,0.35);background:rgba(255,255,255,0.1);color:#fff;font-family:inherit;font-size:0.78rem;">
+        <span id="profileEnrollmentUnknown" style="font-size:0.72rem; color:#9fb0cc; display:none;">not recorded &mdash; no restriction on backdating attendance</span>
+      </div>
     </div>
     <div class="profile-note">This is your own working record, not the official one &mdash; grades and attendance still need to be entered in MiSiS.</div>
 
@@ -982,8 +987,17 @@
       <input type="text" id="settingsCheckinUrl" placeholder="https://script.google.com/macros/s/.../exec" style="flex:1;">
       <button id="settingsSaveCheckinUrl" style="padding:0 12px;border:none;border-radius:3px;background:var(--navy);color:#fff;font-weight:700;cursor:pointer;">Save</button>
     </div>
-    <div style="font-size:0.68rem;color:#a34b3f;margin-bottom:14px;">
+    <div style="font-size:0.68rem;color:#a34b3f;margin-bottom:10px;">
       ⚠️ Keep this URL private &mdash; treat it like a password. Anyone with it can view check-in data without logging in.
+    </div>
+
+    <label>Sync secret (only needed if you set up the student check-in page)</label>
+    <div style="display:flex;gap:6px;margin-bottom:4px;">
+      <input type="text" id="settingsSyncSecret" placeholder="the secret word you set in Apps Script" style="flex:1;">
+      <button id="settingsSaveSyncSecret" style="padding:0 12px;border:none;border-radius:3px;background:var(--navy);color:#fff;font-weight:700;cursor:pointer;">Save</button>
+    </div>
+    <div style="font-size:0.68rem;color:var(--muted);margin-bottom:14px;">
+      Leave blank if you haven't set up SYNC_SECRET in Apps Script. If you have, this must match it exactly or syncing will fail.
     </div>
 
     <label style="display:flex; align-items:flex-start; gap:8px; margin:10px 0 4px;">
@@ -1066,7 +1080,7 @@
 <input type="file" id="photoInput" accept="image/*" style="display:none;">
 
 <script>
-const APP_BUILD = 'build-27-cachebust-sync';
+const APP_BUILD = 'build-28-enrollment-date';
 const GRADE_COLORS = {9:'g9',10:'g10',11:'g11',12:'g12'};
 const AVATAR_HUES = ['#5b7a9d','#6f8f5b','#b8862f','#a34b3f','#7a6a9d','#4a8f8f'];
 
@@ -1094,6 +1108,7 @@ function ensureProfileFields(s){
   if(typeof s.needs !== 'string') s.needs = '';
   if(!s.attendanceDiscrepancies || typeof s.attendanceDiscrepancies !== 'object') s.attendanceDiscrepancies = {};
   if(!s.attendanceNoCheckin || typeof s.attendanceNoCheckin !== 'object') s.attendanceNoCheckin = {};
+  if(typeof s.enrollmentDate !== 'string') s.enrollmentDate = null; // null = unknown/no restriction (pre-dates this feature)
   return s;
 }
 
@@ -1105,7 +1120,9 @@ const PRESENT_STREAK_THRESHOLD = 5;  // consecutive presences right now = positi
 
 function computeAttendanceStats(s){
   ensureProfileFields(s);
-  const dates = Object.keys(s.attendance).sort(); // ascending, recorded days only (not a full calendar)
+  const dates = Object.keys(s.attendance)
+    .filter(d => !s.enrollmentDate || d >= s.enrollmentDate) // never count days before enrollment
+    .sort(); // ascending, recorded days only (not a full calendar)
   const total = dates.length;
   let absentCount=0;
   dates.forEach(d=>{ if(s.attendance[d]==='absent') absentCount++; });
@@ -1630,6 +1647,8 @@ function openProfileModal(id){
   document.getElementById('profileFirstInput').value=s.first;
   document.getElementById('profileLastInput').value=s.last;
   document.getElementById('profileGradeInput').value=s.grade;
+  document.getElementById('profileEnrollmentInput').value=s.enrollmentDate || '';
+  document.getElementById('profileEnrollmentUnknown').style.display = s.enrollmentDate ? 'none' : 'inline';
   document.getElementById('strengthsBox').value=s.strengths;
   document.getElementById('needsBox').value=s.needs;
   renderAttendanceSection(s);
@@ -1649,6 +1668,14 @@ document.getElementById('profileLastInput').addEventListener('change', async (e)
 document.getElementById('profileGradeInput').addEventListener('change', async (e)=>{
   const s = students.find(x=>x.id===profileTargetId);
   if(s){ s.grade=parseInt(e.target.value,10); await saveOne(s); }
+});
+document.getElementById('profileEnrollmentInput').addEventListener('change', async (e)=>{
+  const s = students.find(x=>x.id===profileTargetId);
+  if(s){
+    s.enrollmentDate = e.target.value || null;
+    document.getElementById('profileEnrollmentUnknown').style.display = s.enrollmentDate ? 'none' : 'inline';
+    await saveOne(s);
+  }
 });
 
 document.getElementById('strengthsBox').addEventListener('change', async (e)=>{
@@ -2054,6 +2081,8 @@ document.getElementById('settingsBtn').onclick=async ()=>{
   document.getElementById('settingsBuildTag').textContent = APP_BUILD;
   const savedUrl = await storeGet('meta:checkinUrl');
   document.getElementById('settingsCheckinUrl').value = savedUrl || '';
+  const savedSecret = await storeGet('meta:syncSecret');
+  document.getElementById('settingsSyncSecret').value = savedSecret || '';
   const autoOn = await storeGet('meta:autoSyncEnabled');
   document.getElementById('autoSyncToggle').checked = autoOn === 'true';
   updateAutoSyncStatus();
@@ -2064,6 +2093,11 @@ document.getElementById('settingsSaveCheckinUrl').onclick=async ()=>{
   const url = document.getElementById('settingsCheckinUrl').value.trim();
   await storeSet('meta:checkinUrl', url);
   alert(url ? 'Saved.' : 'Cleared.');
+};
+document.getElementById('settingsSaveSyncSecret').onclick=async ()=>{
+  const secret = document.getElementById('settingsSyncSecret').value.trim();
+  await storeSet('meta:syncSecret', secret);
+  alert(secret ? 'Saved.' : 'Cleared.');
 };
 
 document.getElementById('autoSyncToggle').addEventListener('change', async (e)=>{
@@ -2278,11 +2312,15 @@ function matchCheckinsForDate(checkins, date){
 }
 
 // Optional second step: mark everyone not covered by a check-in as Absent.
-// Never overrides a manual "Present" (see build-20 note). Mutates idsToSave in place.
+// Never overrides a manual "Present" (see build-20 note), and never marks
+// someone absent for a date before they'd even enrolled - "no data" isn't
+// evidence of absence for a student who wasn't a student yet.
+// Mutates idsToSave in place.
 function applyAbsentSweep(date, matchedIds, discrepancies, idsToSave){
   let absentCount = 0;
   students.forEach(s=>{
     ensureProfileFields(s);
+    if(s.enrollmentDate && date < s.enrollmentDate) return; // not enrolled yet on this date
     if(!matchedIds.has(s.id)){
       const oldStatus = s.attendance[date];
       if(oldStatus === 'present') return;
@@ -2304,7 +2342,10 @@ async function fetchCheckinsForDate(url, date){
   // Cache-bust every request - without this, a browser or network cache could
   // keep serving an old snapshot from earlier in the day for the exact same
   // URL, making it look like new check-ins never arrive.
-  const bustedUrl = `${url}?date=${date}&_=${Date.now()}`;
+  const secret = await storeGet('meta:syncSecret');
+  const params = new URLSearchParams({ date, _: Date.now() });
+  if(secret) params.set('secret', secret);
+  const bustedUrl = `${url}?${params.toString()}`;
   const res = await fetch(bustedUrl, { cache: 'no-store' });
   if(!res.ok) throw new Error('Request failed: '+res.status);
   const data = await res.json();
@@ -2530,7 +2571,7 @@ document.getElementById('confirmAdd').onclick=async ()=>{
   const first=document.getElementById('newFirst').value.trim();
   const grade=parseInt(document.getElementById('newGrade').value,10);
   if(!last || !first){ alert('Please enter a first and last name.'); return; }
-  const s={id:uid(), last, first, grade, cue:'', photo:newStudentPhoto};
+  const s={id:uid(), last, first, grade, cue:'', photo:newStudentPhoto, enrollmentDate:todayStr()};
   students.push(s);
   students.sort((a,b)=> a.grade-b.grade || a.last.localeCompare(b.last));
   await saveOne(s);
@@ -2691,7 +2732,7 @@ document.getElementById('confirmActionBtn').onclick=async ()=>{
     const last=document.getElementById('camNewLast').value.trim();
     const grade=parseInt(document.getElementById('camNewGrade').value,10);
     if(!first || !last){ alert('Please enter a first and last name.'); return; }
-    const s={id:uid(), last, first, grade, cue:'', photo:capturedDataUrl};
+    const s={id:uid(), last, first, grade, cue:'', photo:capturedDataUrl, enrollmentDate:todayStr()};
     students.push(s);
     await saveOne(s);
     render();
