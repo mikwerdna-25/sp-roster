@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stoney Point Check-In</title>
+<style>
+  :root{
+    --navy:#1c2b4a;
+    --navy-deep:#101c33;
+    --paper:#f6f3ea;
+    --card:#fffdf7;
+    --rule:#d8cfb8;
+    --gold:#b8862f;
+    --ink:#26241d;
+    --muted:#7a7364;
+    --green:#3d5c2c;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    min-height:100vh;
+    background:var(--navy);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+    font-family:-apple-system, system-ui, sans-serif;
+  }
+  .sheet{
+    width:100%;
+    max-width:380px;
+    background:var(--card);
+    border-radius:12px;
+    padding:28px 22px;
+    box-shadow:0 10px 40px rgba(0,0,0,0.35);
+    text-align:center;
+  }
+  .school{
+    font-family:Georgia, serif;
+    font-weight:700;
+    color:var(--navy);
+    font-size:1.05rem;
+    margin-bottom:22px;
+  }
+  .state{ display:none; }
+  .state.active{ display:block; }
+
+  #loadingState .spinner{
+    width:34px;height:34px;
+    border:4px solid var(--rule);
+    border-top-color:var(--gold);
+    border-radius:50%;
+    margin:10px auto 14px;
+    animation:spin 0.9s linear infinite;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+
+  #pickerState input[type=text]{
+    width:100%;
+    padding:11px 12px;
+    border:1px solid var(--rule);
+    border-radius:8px;
+    font-size:1rem;
+    font-family:inherit;
+    box-sizing:border-box;
+    margin-bottom:12px;
+  }
+  #pickerList{
+    max-height:280px;
+    overflow-y:auto;
+    text-align:left;
+    border:1px solid var(--rule);
+    border-radius:8px;
+  }
+  .pick-row{
+    padding:12px 14px;
+    border-bottom:1px solid var(--rule);
+    cursor:pointer;
+    font-size:0.95rem;
+    color:var(--ink);
+  }
+  .pick-row:last-child{ border-bottom:none; }
+  .pick-row:active{ background:var(--paper); }
+  .pick-empty{ padding:16px; color:var(--muted); font-size:0.85rem; }
+
+  #confirmState .avatar{
+    width:64px;height:64px;
+    border-radius:50%;
+    background:var(--navy);
+    color:#fff;
+    display:flex;align-items:center;justify-content:center;
+    font-weight:800;
+    font-size:1.4rem;
+    margin:0 auto 14px;
+  }
+  #confirmName{
+    font-size:1.3rem;
+    font-weight:800;
+    color:var(--ink);
+    margin-bottom:4px;
+  }
+  #confirmSub{
+    font-size:0.85rem;
+    color:var(--muted);
+    margin-bottom:22px;
+  }
+  .btn-primary{
+    width:100%;
+    padding:14px;
+    border:none;
+    border-radius:8px;
+    background:var(--green);
+    color:#fff;
+    font-weight:800;
+    font-size:1.05rem;
+    cursor:pointer;
+    margin-bottom:10px;
+  }
+  .btn-primary:active{ opacity:0.85; }
+  .btn-secondary{
+    background:none;
+    border:none;
+    color:var(--muted);
+    font-size:0.82rem;
+    cursor:pointer;
+    text-decoration:underline;
+  }
+
+  #successState .check{
+    width:64px;height:64px;
+    border-radius:50%;
+    background:var(--green);
+    color:#fff;
+    display:flex;align-items:center;justify-content:center;
+    font-size:2rem;
+    margin:0 auto 14px;
+  }
+  #successName{
+    font-size:1.2rem;
+    font-weight:800;
+    color:var(--ink);
+    margin-bottom:4px;
+  }
+  #successTime{
+    font-size:0.85rem;
+    color:var(--muted);
+    margin-bottom:20px;
+  }
+
+  #errorState .err-icon{
+    font-size:2rem;
+    margin-bottom:10px;
+  }
+  #errorMsg{
+    font-size:0.88rem;
+    color:var(--ink);
+    margin-bottom:16px;
+    line-height:1.4;
+  }
+</style>
+</head>
+<body>
+
+<div class="sheet">
+  <div class="school">Stoney Point High School<br>Daily Check-In</div>
+
+  <div class="state active" id="loadingState">
+    <div class="spinner"></div>
+    <div style="color:var(--muted); font-size:0.9rem;">Loading...</div>
+  </div>
+
+  <div class="state" id="pickerState">
+    <div style="font-size:0.9rem; color:var(--muted); margin-bottom:12px;">Find your name</div>
+    <input type="text" id="pickerSearch" placeholder="Start typing your first or last name" autocomplete="off">
+    <div id="pickerList"></div>
+  </div>
+
+  <div class="state" id="confirmState">
+    <div class="avatar" id="confirmAvatar"></div>
+    <div id="confirmName"></div>
+    <div id="confirmSub">Is this you?</div>
+    <button class="btn-primary" id="confirmBtn">Check me in</button>
+    <button class="btn-secondary" id="notMeBtn">Not you? Switch student</button>
+  </div>
+
+  <div class="state" id="successState">
+    <div class="check">&check;</div>
+    <div id="successName"></div>
+    <div id="successTime"></div>
+    <div id="streakBadge" style="display:none; margin:14px 0; padding:12px; background:#fdf2df; border-radius:8px; border:1px solid var(--gold);">
+      <div id="streakNumber" style="font-size:1.4rem; font-weight:800; color:var(--navy);"></div>
+      <div id="streakNote" style="font-size:0.85rem; color:var(--ink); margin-top:4px;"></div>
+    </div>
+    <div style="font-size:0.72rem; color:var(--muted); margin:8px 0 4px;">Course points &amp; Wildcash coming soon!</div>
+    <button class="btn-secondary" id="switchAfterSuccessBtn">Not you? Switch student</button>
+  </div>
+
+  <div class="state" id="errorState">
+    <div class="err-icon">!</div>
+    <div id="errorMsg"></div>
+    <button class="btn-primary" id="retryBtn">Try again</button>
+  </div>
+</div>
+
+<script>
+const ROSTER_ENDPOINT_URL = 'YOUR_APPS_SCRIPT_WEB_APP_URL';
+const FORM_RESPONSE_URL = 'https://docs.google.com/forms/d/e/1FAIpQLScr6XGP_Exanw7LYCeMmBoZTBzesdzVQ7PwtJ168zoaG2vrTg/formResponse';
+const ENTRY_FIRST = 'entry.1107302922';
+const ENTRY_LAST = 'entry.132667365';
+
+const STORAGE_KEY = 'sp_checkin_identity';
+
+function showState(id){
+  document.querySelectorAll('.state').forEach(function(el){ el.classList.remove('active'); });
+  document.getElementById(id).classList.add('active');
+}
+
+function getSavedIdentity(){
+  try{
+    var raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  }catch(e){ return null; }
+}
+function saveIdentity(first, last){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({first: first, last: last})); }catch(e){}
+}
+function clearIdentity(){
+  try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
+}
+
+var rosterCache = null;
+
+function loadRoster(){
+  if(rosterCache) return Promise.resolve(rosterCache);
+  return fetch(ROSTER_ENDPOINT_URL + '?mode=roster&_=' + Date.now(), { cache:'no-store' })
+    .then(function(res){
+      if(!res.ok) throw new Error('Could not reach the roster list.');
+      return res.json();
+    })
+    .then(function(data){
+      if(data.error) throw new Error(data.error);
+      rosterCache = data.students || [];
+      return rosterCache;
+    });
+}
+
+function initialsOf(first, last){
+  return (first[0]||'').toUpperCase() + (last[0]||'').toUpperCase();
+}
+
+function renderPickerList(students, filter){
+  var list = document.getElementById('pickerList');
+  var f = filter.trim().toLowerCase();
+  var filtered = f
+    ? students.filter(function(s){ return (s.first+' '+s.last).toLowerCase().indexOf(f) !== -1; })
+    : students;
+  list.innerHTML='';
+  if(filtered.length===0){
+    list.innerHTML = '<div class="pick-empty">No names match. Check your spelling, or tell your teacher if you are not finding yourself.</div>';
+    return;
+  }
+  filtered.slice(0,50).forEach(function(s){
+    var row=document.createElement('div');
+    row.className='pick-row';
+    row.textContent = s.first + ' ' + s.last;
+    row.onclick=function(){
+      saveIdentity(s.first, s.last);
+      showConfirm(s.first, s.last);
+    };
+    list.appendChild(row);
+  });
+}
+
+function showPicker(){
+  showState('loadingState');
+  loadRoster().then(function(students){
+    var sorted = students.slice().sort(function(a,b){
+      return a.last.localeCompare(b.last) || a.first.localeCompare(b.first);
+    });
+    showState('pickerState');
+    renderPickerList(sorted, '');
+    var search = document.getElementById('pickerSearch');
+    search.value='';
+    search.oninput = function(){ renderPickerList(sorted, search.value); };
+    search.focus();
+  }).catch(function(err){
+    showError("Couldn't load the student list. Check your connection and try again.");
+  });
+}
+
+function showConfirm(first, last){
+  document.getElementById('confirmAvatar').textContent = initialsOf(first, last);
+  document.getElementById('confirmName').textContent = first + ' ' + last;
+  showState('confirmState');
+}
+
+function showError(msg){
+  document.getElementById('errorMsg').textContent = msg;
+  showState('errorState');
+}
+
+function submitCheckin(first, last){
+  var body = new URLSearchParams();
+  body.set(ENTRY_FIRST, first);
+  body.set(ENTRY_LAST, last);
+  return fetch(FORM_RESPONSE_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: body.toString()
+  });
+}
+
+// Encouraging notes by streak length - never shaming, always positive,
+// picks randomly within the matching tier so it doesn't feel repetitive.
+var STREAK_MESSAGES = [
+  { min: 1,  max: 1,  notes: ["Great start - see you tomorrow!", "You're here! That's what counts."] },
+  { min: 2,  max: 4,  notes: ["Two days and counting - keep it up!", "You're building a habit. Nice work."] },
+  { min: 5,  max: 9,  notes: ["5-day streak! You're on a roll.", "A full week almost - awesome consistency."] },
+  { min: 10, max: 19, notes: ["10+ days straight. That's real dedication.", "Double digits! Keep showing up."] },
+  { min: 20, max: 999,notes: ["20+ days! You're a Stoney Point all-star.", "Incredible streak. This is who you are now."] }
+];
+function pickStreakMessage(streak){
+  for(var i=0;i<STREAK_MESSAGES.length;i++){
+    var tier = STREAK_MESSAGES[i];
+    if(streak >= tier.min && streak <= tier.max){
+      return tier.notes[Math.floor(Math.random()*tier.notes.length)];
+    }
+  }
+  return "Nice job checking in!";
+}
+
+function fetchStreak(first, last){
+  var params = new URLSearchParams({ mode:'streak', first:first, last:last, _:Date.now() });
+  return fetch(ROSTER_ENDPOINT_URL + '?' + params.toString(), { cache:'no-store' })
+    .then(function(res){ return res.json(); })
+    .then(function(data){ return (data && typeof data.streak === 'number') ? data.streak : null; })
+    .catch(function(){ return null; });
+}
+
+document.getElementById('confirmBtn').onclick = function(){
+  var identity = getSavedIdentity();
+  if(!identity) return;
+  var btn = document.getElementById('confirmBtn');
+  btn.disabled = true;
+  btn.textContent = 'Checking in...';
+  submitCheckin(identity.first, identity.last).then(function(){
+    document.getElementById('successName').textContent = identity.first + ' ' + identity.last;
+    document.getElementById('successTime').textContent = new Date().toLocaleString([], {weekday:'short', hour:'2-digit', minute:'2-digit'});
+    document.getElementById('streakBadge').style.display = 'none';
+    showState('successState');
+    // Fetch the streak after showing success, so a slow network never delays check-in feedback.
+    fetchStreak(identity.first, identity.last).then(function(streak){
+      if(streak === null || streak < 1) return;
+      document.getElementById('streakNumber').textContent = streak + (streak===1 ? ' day' : ' days') + ' on campus in a row';
+      document.getElementById('streakNote').textContent = pickStreakMessage(streak);
+      document.getElementById('streakBadge').style.display = 'block';
+    });
+  }).catch(function(err){
+    showError("Couldn't submit your check-in. Check your connection and try again.");
+  }).finally(function(){
+    btn.disabled = false;
+    btn.textContent = 'Check me in';
+  });
+};
+
+document.getElementById('notMeBtn').onclick = function(){ clearIdentity(); showPicker(); };
+document.getElementById('switchAfterSuccessBtn').onclick = function(){ clearIdentity(); showPicker(); };
+document.getElementById('retryBtn').onclick = function(){
+  var identity = getSavedIdentity();
+  if(identity) showConfirm(identity.first, identity.last);
+  else showPicker();
+};
+
+(function init(){
+  // Individual QR codes encode ?first=X&last=Y directly - if present, use
+  // that every time (skips the picker AND overrides any remembered
+  // identity, since the code itself is the strongest signal of who this is).
+  var urlParams = new URLSearchParams(window.location.search);
+  var urlFirst = urlParams.get('first');
+  var urlLast = urlParams.get('last');
+  if(urlFirst && urlLast){
+    saveIdentity(urlFirst, urlLast);
+    showConfirm(urlFirst, urlLast);
+    return;
+  }
+  var identity = getSavedIdentity();
+  if(identity){
+    showConfirm(identity.first, identity.last);
+  } else {
+    showPicker();
+  }
+})();
+</script>
+</body>
+</html>
