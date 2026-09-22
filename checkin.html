@@ -188,6 +188,7 @@
     <div class="check">&check;</div>
     <div id="successName"></div>
     <div id="successTime"></div>
+    <div style="font-size:0.78rem; color:var(--green); font-weight:700; margin-top:4px;">&check; Saved to today's attendance sheet</div>
     <div id="streakBadge" style="display:none; margin:14px 0; padding:12px; background:#fdf2df; border-radius:8px; border:1px solid var(--gold);">
       <div id="streakNumber" style="font-size:1.4rem; font-weight:800; color:var(--navy);"></div>
       <div id="streakNote" style="font-size:0.85rem; color:var(--ink); margin-top:4px;"></div>
@@ -205,9 +206,6 @@
 
 <script>
 const ROSTER_ENDPOINT_URL = 'YOUR_APPS_SCRIPT_WEB_APP_URL';
-const FORM_RESPONSE_URL = 'https://docs.google.com/forms/d/e/1FAIpQLScr6XGP_Exanw7LYCeMmBoZTBzesdzVQ7PwtJ168zoaG2vrTg/formResponse';
-const ENTRY_FIRST = 'entry.1107302922';
-const ENTRY_LAST = 'entry.132667365';
 
 const STORAGE_KEY = 'sp_checkin_identity';
 
@@ -301,15 +299,21 @@ function showError(msg){
 }
 
 function submitCheckin(first, last){
-  var body = new URLSearchParams();
-  body.set(ENTRY_FIRST, first);
-  body.set(ENTRY_LAST, last);
-  return fetch(FORM_RESPONSE_URL, {
-    method: 'POST',
-    mode: 'no-cors',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: body.toString()
-  });
+  // This calls our own Apps Script, which writes the row directly and
+  // sends back a real confirmation - unlike the old no-cors Form POST,
+  // we can actually tell whether this succeeded or not.
+  var params = new URLSearchParams({ mode:'submit', first:first, last:last, _:Date.now() });
+  return fetch(ROSTER_ENDPOINT_URL + '?' + params.toString(), { cache:'no-store' })
+    .then(function(res){
+      if(!res.ok) throw new Error('Request failed: ' + res.status);
+      return res.json();
+    })
+    .then(function(data){
+      if(!data || data.success !== true){
+        throw new Error((data && data.error) || 'Check-in was not confirmed.');
+      }
+      return data;
+    });
 }
 
 // Encouraging notes by streak length - never shaming, always positive,
