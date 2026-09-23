@@ -205,7 +205,7 @@
 </div>
 
 <script>
-const ROSTER_ENDPOINT_URL = 'https://script.google.com/macros/s/AKfycbyMtocUhBSO_IcqIrEI4s5-C5XXWpdS9iBrfM3YqVWCgtJY1wVY8-zGpx1Pp14OPnkA/exec';
+const ROSTER_ENDPOINT_URL = 'YOUR_APPS_SCRIPT_WEB_APP_URL';
 
 const STORAGE_KEY = 'sp_checkin_identity';
 
@@ -378,6 +378,17 @@ document.getElementById('retryBtn').onclick = function(){
 };
 
 (function init(){
+  if(ROSTER_ENDPOINT_URL === 'YOUR_APPS_SCRIPT_WEB_APP_URL' || !ROSTER_ENDPOINT_URL){
+    document.getElementById('errorMsg').innerHTML =
+      '<b>This page isn\'t set up yet.</b><br><br>' +
+      'The Apps Script URL inside this file is still the placeholder text. ' +
+      'Open checkin.html, find the line starting with <code>const ROSTER_ENDPOINT_URL</code>, ' +
+      'and replace the placeholder with the real Apps Script Web app URL. ' +
+      'Then re-upload the file.';
+    document.getElementById('retryBtn').style.display = 'none';
+    showState('errorState');
+    return;
+  }
   // Individual QR codes encode ?first=X&last=Y directly - if present, use
   // that every time (skips the picker AND overrides any remembered
   // identity, since the code itself is the strongest signal of who this is).
