@@ -755,6 +755,8 @@
   <button id="settingsBtn" style="border:1px solid var(--navy);background:var(--paper);color:var(--navy);font-size:0.82rem;padding:8px 12px;border-radius:3px;cursor:pointer;">⚙️ Settings</button>
 </div>
 <div class="stats" id="statsLine"></div>
+<button id="helpTipsToggle" type="button" style="display:block;margin:8px 14px 0;padding:6px 12px;border:1px solid var(--rule);border-radius:4px;background:var(--paper);color:var(--muted);font-family:inherit;font-size:0.78rem;cursor:pointer;">ⓘ Help tips &#9662;</button>
+<div id="helpTips">
 <div class="camera-note">
   📷 <b>Camera</b> opens your phone's own camera app &mdash; use it to add a new student's photo, or to snap a student and look up who they are.
 </div>
@@ -772,6 +774,7 @@
 </div>
 <div class="camera-note" style="background:#e9f0e4; border-color:var(--gr10);">
   💾 This saves to <b>this browser only</b> and will be wiped if you clear Chrome's data. Tap <b>⬇ Backup</b> regularly (e.g. right before you clear data) to save a real file, then <b>⬆ Restore</b> to load it back in.
+</div>
 </div>
 <input type="file" id="importFileInput" accept="application/json" style="display:none;">
 
@@ -1080,7 +1083,7 @@
 <input type="file" id="photoInput" accept="image/*" style="display:none;">
 
 <script>
-const APP_BUILD = 'build-29-roll-to-profile';
+const APP_BUILD = 'build-30-collapsible-tips';
 const GRADE_COLORS = {9:'g9',10:'g10',11:'g11',12:'g12'};
 const AVATAR_HUES = ['#5b7a9d','#6f8f5b','#b8862f','#a34b3f','#7a6a9d','#4a8f8f'];
 
@@ -2814,6 +2817,18 @@ document.getElementById('compareAgainBtn').onclick=()=>{
 document.getElementById('buildTag').textContent = APP_BUILD;
 loadAll();
 storeGet('meta:autoSyncEnabled').then(v=>{ if(v==='true') startAutoSync(); });
+
+// Collapsible help tips - choice is remembered on this device.
+function applyHelpTipsState(collapsed){
+  document.getElementById('helpTips').style.display = collapsed ? 'none' : 'block';
+  document.getElementById('helpTipsToggle').innerHTML = collapsed ? '\u24D8 Help tips &#9656;' : '\u24D8 Help tips &#9662;';
+}
+document.getElementById('helpTipsToggle').onclick = async ()=>{
+  const nowCollapsed = document.getElementById('helpTips').style.display !== 'none';
+  applyHelpTipsState(nowCollapsed);
+  await storeSet('meta:tipsCollapsed', nowCollapsed ? 'true' : 'false');
+};
+storeGet('meta:tipsCollapsed').then(v=>{ if(v==='true') applyHelpTipsState(true); });
 </script>
 </body>
 </html>
