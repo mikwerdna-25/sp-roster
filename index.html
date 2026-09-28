@@ -389,7 +389,7 @@
     inset:0;
     background:rgba(16,28,51,0.85);
     display:none;
-    z-index:70;
+    z-index:75; /* above Take Roll (70) so a profile opened from the roll list shows on top */
     overflow-y:auto;
     padding:20px 14px 60px;
   }
@@ -1080,7 +1080,7 @@
 <input type="file" id="photoInput" accept="image/*" style="display:none;">
 
 <script>
-const APP_BUILD = 'build-28-enrollment-date';
+const APP_BUILD = 'build-29-roll-to-profile';
 const GRADE_COLORS = {9:'g9',10:'g10',11:'g11',12:'g12'};
 const AVATAR_HUES = ['#5b7a9d','#6f8f5b','#b8862f','#a34b3f','#7a6a9d','#4a8f8f'];
 
@@ -1655,7 +1655,7 @@ function openProfileModal(id){
   renderCoursesSection(s);
   profileOverlay.classList.add('active');
 }
-document.getElementById('profileClose').onclick=()=>{ profileOverlay.classList.remove('active'); render(); };
+document.getElementById('profileClose').onclick=()=>{ profileOverlay.classList.remove('active'); render(); if(rollOverlay.classList.contains('active')) renderRollList(); };
 
 document.getElementById('profileFirstInput').addEventListener('change', async (e)=>{
   const s = students.find(x=>x.id===profileTargetId);
@@ -1881,9 +1881,12 @@ function renderRollList(){
   pool.forEach(s=>{
     ensureProfileFields(s);
     const current = s.attendance[date];
-    if(current && counts[current]!==undefined) counts[current]++; else counts.unmarked++;
+    const notEnrolledYet = !!(s.enrollmentDate && date < s.enrollmentDate);
+    if(current && counts[current]!==undefined) counts[current]++;
+    else if(!notEnrolledYet) counts.unmarked++;
     const row=document.createElement('div');
     row.className='roll-row';
+    if(notEnrolledYet) row.style.opacity='0.55';
     const thumb=document.createElement('div');
     thumb.className='roll-thumb';
     thumb.style.background = s.photo ? 'transparent' : hueFor(s);
@@ -1896,6 +1899,18 @@ function renderRollList(){
     const name=document.createElement('div');
     name.className='roll-name';
     name.textContent = rollSortMode==='first' ? `${s.first} ${s.last}` : `${s.last}, ${s.first}`;
+    if(notEnrolledYet){
+      const note=document.createElement('div');
+      note.style.cssText='font-size:0.64rem;color:var(--muted);font-weight:400;';
+      note.textContent='Enrolled '+s.enrollmentDate;
+      name.appendChild(note);
+    }
+    // Tapping the photo or name opens the student's Full Profile.
+    [thumb, name].forEach(el=>{
+      el.style.cursor='pointer';
+      el.title='Open profile';
+      el.addEventListener('click', ()=>openProfileModal(s.id));
+    });
     const btns=document.createElement('div');
     btns.className='roll-buttons';
     [['present','P'],['absent','A'],['tardy','T']].forEach(([status,label])=>{
