@@ -56,34 +56,6 @@
   }
   @keyframes spin{ to{ transform:rotate(360deg); } }
 
-  #pickerState input[type=text]{
-    width:100%;
-    padding:11px 12px;
-    border:1px solid var(--rule);
-    border-radius:8px;
-    font-size:1rem;
-    font-family:inherit;
-    box-sizing:border-box;
-    margin-bottom:12px;
-  }
-  #pickerList{
-    max-height:280px;
-    overflow-y:auto;
-    text-align:left;
-    border:1px solid var(--rule);
-    border-radius:8px;
-  }
-  .pick-row{
-    padding:12px 14px;
-    border-bottom:1px solid var(--rule);
-    cursor:pointer;
-    font-size:0.95rem;
-    color:var(--ink);
-  }
-  .pick-row:last-child{ border-bottom:none; }
-  .pick-row:active{ background:var(--paper); }
-  .pick-empty{ padding:16px; color:var(--muted); font-size:0.85rem; }
-
   #confirmState .avatar{
     width:64px;height:64px;
     border-radius:50%;
@@ -148,6 +120,29 @@
     margin-bottom:20px;
   }
 
+  #noCodeState .nc-icon{
+    font-size:2rem;
+    margin-bottom:10px;
+  }
+  #noCodeState p{
+    font-size:0.9rem;
+    color:var(--ink);
+    line-height:1.5;
+    margin:0 0 18px;
+  }
+  #noCodeState a.form-link{
+    display:block;
+    width:100%;
+    padding:14px;
+    border-radius:8px;
+    background:var(--navy);
+    color:#fff;
+    font-weight:800;
+    font-size:1rem;
+    text-decoration:none;
+    box-sizing:border-box;
+  }
+
   #errorState .err-icon{
     font-size:2rem;
     margin-bottom:10px;
@@ -164,17 +159,18 @@
 
 <div class="sheet">
   <div class="school">Stoney Point High School<br>Daily Check-In</div>
-  <div style="text-align:center; font-size:0.65rem; color:var(--muted); margin-top:-14px; margin-bottom:14px;">v4-combined-streak</div>
+  <div style="text-align:center; font-size:0.65rem; color:var(--muted); margin-top:-14px; margin-bottom:14px;">v6-code-only-no-picker</div>
 
   <div class="state active" id="loadingState">
     <div class="spinner"></div>
     <div style="color:var(--muted); font-size:0.9rem;">Loading...</div>
   </div>
 
-  <div class="state" id="pickerState">
-    <div style="font-size:0.9rem; color:var(--muted); margin-bottom:12px;">Find your name</div>
-    <input type="text" id="pickerSearch" placeholder="Start typing your first or last name" autocomplete="off">
-    <div id="pickerList"></div>
+  <div class="state" id="noCodeState">
+    <div class="nc-icon">&#128241;</div>
+    <p>This page only works from your own personal QR code.<br><br>
+    If you don't have your code, fill out the check-in form directly instead.</p>
+    <a class="form-link" href="https://docs.google.com/forms/d/e/1FAIpQLScr6XGP_Exanw7LYCeMmBoZTBzesdzVQ7PwtJ168zoaG2vrTg/viewform" target="_blank" rel="noopener">Open check-in form</a>
   </div>
 
   <div class="state" id="confirmState">
@@ -182,7 +178,7 @@
     <div id="confirmName"></div>
     <div id="confirmSub">Is this you?</div>
     <button class="btn-primary" id="confirmBtn">Check me in</button>
-    <button class="btn-secondary" id="notMeBtn">Not you? Switch student</button>
+    <div style="font-size:0.72rem; color:var(--muted); margin-top:8px;">If this isn't your name, tell your teacher - don't check in as someone else.</div>
   </div>
 
   <div class="state" id="successState">
@@ -195,7 +191,6 @@
       <div id="streakNote" style="font-size:0.85rem; color:var(--ink); margin-top:4px;"></div>
     </div>
     <div style="font-size:0.72rem; color:var(--muted); margin:8px 0 4px;">Course points &amp; Wildcash coming soon!</div>
-    <button class="btn-secondary" id="switchAfterSuccessBtn">Not you? Switch student</button>
   </div>
 
   <div class="state" id="errorState">
@@ -228,64 +223,8 @@ function clearIdentity(){
   try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
 }
 
-var rosterCache = null;
-
-function loadRoster(){
-  if(rosterCache) return Promise.resolve(rosterCache);
-  return fetch(ROSTER_ENDPOINT_URL + '?mode=roster&_=' + Date.now(), { cache:'no-store' })
-    .then(function(res){
-      if(!res.ok) throw new Error('Could not reach the roster list.');
-      return res.json();
-    })
-    .then(function(data){
-      if(data.error) throw new Error(data.error);
-      rosterCache = data.students || [];
-      return rosterCache;
-    });
-}
-
 function initialsOf(first, last){
   return (first[0]||'').toUpperCase() + (last[0]||'').toUpperCase();
-}
-
-function renderPickerList(students, filter){
-  var list = document.getElementById('pickerList');
-  var f = filter.trim().toLowerCase();
-  var filtered = f
-    ? students.filter(function(s){ return (s.first+' '+s.last).toLowerCase().indexOf(f) !== -1; })
-    : students;
-  list.innerHTML='';
-  if(filtered.length===0){
-    list.innerHTML = '<div class="pick-empty">No names match. Check your spelling, or tell your teacher if you are not finding yourself.</div>';
-    return;
-  }
-  filtered.slice(0,50).forEach(function(s){
-    var row=document.createElement('div');
-    row.className='pick-row';
-    row.textContent = s.first + ' ' + s.last;
-    row.onclick=function(){
-      saveIdentity(s.first, s.last);
-      showConfirm(s.first, s.last);
-    };
-    list.appendChild(row);
-  });
-}
-
-function showPicker(){
-  showState('loadingState');
-  loadRoster().then(function(students){
-    var sorted = students.slice().sort(function(a,b){
-      return a.last.localeCompare(b.last) || a.first.localeCompare(b.first);
-    });
-    showState('pickerState');
-    renderPickerList(sorted, '');
-    var search = document.getElementById('pickerSearch');
-    search.value='';
-    search.oninput = function(){ renderPickerList(sorted, search.value); };
-    search.focus();
-  }).catch(function(err){
-    showError("Couldn't load the student list. Check your connection and try again.");
-  });
 }
 
 function showConfirm(first, last){
@@ -362,12 +301,10 @@ document.getElementById('confirmBtn').onclick = function(){
   });
 };
 
-document.getElementById('notMeBtn').onclick = function(){ clearIdentity(); showPicker(); };
-document.getElementById('switchAfterSuccessBtn').onclick = function(){ clearIdentity(); showPicker(); };
 document.getElementById('retryBtn').onclick = function(){
   var identity = getSavedIdentity();
   if(identity) showConfirm(identity.first, identity.last);
-  else showPicker();
+  else showState('noCodeState');
 };
 
 (function init(){
@@ -394,7 +331,7 @@ document.getElementById('retryBtn').onclick = function(){
   if(identity){
     showConfirm(identity.first, identity.last);
   } else {
-    showPicker();
+    showState('noCodeState');
   }
 })();
 </script>
