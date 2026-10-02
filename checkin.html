@@ -164,7 +164,7 @@
 
 <div class="sheet">
   <div class="school">Stoney Point High School<br>Daily Check-In</div>
-  <div style="text-align:center; font-size:0.65rem; color:var(--muted); margin-top:-14px; margin-bottom:14px;">v3-url-configured</div>
+  <div style="text-align:center; font-size:0.65rem; color:var(--muted); margin-top:-14px; margin-bottom:14px;">v4-combined-streak</div>
 
   <div class="state active" id="loadingState">
     <div class="spinner"></div>
@@ -300,9 +300,9 @@ function showError(msg){
 }
 
 function submitCheckin(first, last){
-  // This calls our own Apps Script, which writes the row directly and
-  // sends back a real confirmation - unlike the old no-cors Form POST,
-  // we can actually tell whether this succeeded or not.
+  // This calls our own Apps Script, which writes the row directly,
+  // computes the streak, and sends both back in ONE response - no
+  // second network call needed to show the streak.
   var params = new URLSearchParams({ mode:'submit', first:first, last:last, _:Date.now() });
   return fetch(ROSTER_ENDPOINT_URL + '?' + params.toString(), { cache:'no-store' })
     .then(function(res){
@@ -313,7 +313,7 @@ function submitCheckin(first, last){
       if(!data || data.success !== true){
         throw new Error((data && data.error) || 'Check-in was not confirmed.');
       }
-      return data;
+      return data; // includes data.streak
     });
 }
 
@@ -336,32 +336,24 @@ function pickStreakMessage(streak){
   return "Nice job checking in!";
 }
 
-function fetchStreak(first, last){
-  var params = new URLSearchParams({ mode:'streak', first:first, last:last, _:Date.now() });
-  return fetch(ROSTER_ENDPOINT_URL + '?' + params.toString(), { cache:'no-store' })
-    .then(function(res){ return res.json(); })
-    .then(function(data){ return (data && typeof data.streak === 'number') ? data.streak : null; })
-    .catch(function(){ return null; });
-}
-
 document.getElementById('confirmBtn').onclick = function(){
   var identity = getSavedIdentity();
   if(!identity) return;
   var btn = document.getElementById('confirmBtn');
   btn.disabled = true;
   btn.textContent = 'Checking in...';
-  submitCheckin(identity.first, identity.last).then(function(){
+  submitCheckin(identity.first, identity.last).then(function(data){
     document.getElementById('successName').textContent = identity.first + ' ' + identity.last;
     document.getElementById('successTime').textContent = new Date().toLocaleString([], {weekday:'short', hour:'2-digit', minute:'2-digit'});
-    document.getElementById('streakBadge').style.display = 'none';
-    showState('successState');
-    // Fetch the streak after showing success, so a slow network never delays check-in feedback.
-    fetchStreak(identity.first, identity.last).then(function(streak){
-      if(streak === null || streak < 1) return;
+    var streak = (data && typeof data.streak === 'number') ? data.streak : 0;
+    if(streak >= 1){
       document.getElementById('streakNumber').textContent = streak + (streak===1 ? ' day' : ' days') + ' on campus in a row';
       document.getElementById('streakNote').textContent = pickStreakMessage(streak);
       document.getElementById('streakBadge').style.display = 'block';
-    });
+    } else {
+      document.getElementById('streakBadge').style.display = 'none';
+    }
+    showState('successState');
   }).catch(function(err){
     showError("Couldn't submit your check-in. Check your connection and try again.");
   }).finally(function(){
@@ -390,9 +382,6 @@ document.getElementById('retryBtn').onclick = function(){
     showState('errorState');
     return;
   }
-  // Individual QR codes encode ?first=X&last=Y directly - if present, use
-  // that every time (skips the picker AND overrides any remembered
-  // identity, since the code itself is the strongest signal of who this is).
   var urlParams = new URLSearchParams(window.location.search);
   var urlFirst = urlParams.get('first');
   var urlLast = urlParams.get('last');
