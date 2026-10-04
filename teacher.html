@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stoney Point Teacher Points</title>
+<style>
+  :root{
+    --navy:#1c2b4a;
+    --navy-deep:#101c33;
+    --paper:#f6f3ea;
+    --card:#fffdf7;
+    --rule:#d8cfb8;
+    --gold:#b8862f;
+    --ink:#26241d;
+    --muted:#7a7364;
+    --green:#3d5c2c;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    min-height:100vh;
+    background:var(--navy);
+    font-family:-apple-system, system-ui, sans-serif;
+    color:var(--ink);
+  }
+  .wrap{
+    max-width:720px;
+    margin:0 auto;
+    padding:16px;
+  }
+  .sheet{
+    background:var(--card);
+    border-radius:12px;
+    padding:20px 18px;
+    box-shadow:0 10px 40px rgba(0,0,0,0.35);
+  }
+  .school{
+    font-family:Georgia, serif;
+    font-weight:700;
+    color:var(--navy);
+    font-size:1.05rem;
+    text-align:center;
+    margin-bottom:4px;
+  }
+  .buildtag{
+    text-align:center;
+    font-size:0.62rem;
+    color:var(--muted);
+    margin-bottom:16px;
+  }
+  .state{ display:none; }
+  .state.active{ display:block; }
+
+  input[type=text], input[type=number], select{
+    width:100%;
+    padding:11px 12px;
+    border:1px solid var(--rule);
+    border-radius:8px;
+    font-size:1rem;
+    font-family:inherit;
+    box-sizing:border-box;
+  }
+  label{
+    display:block;
+    font-size:0.78rem;
+    color:var(--muted);
+    margin:10px 0 4px;
+    font-weight:600;
+  }
+  .btn-primary{
+    width:100%;
+    padding:13px;
+    border:none;
+    border-radius:8px;
+    background:var(--navy);
+    color:#fff;
+    font-weight:800;
+    font-size:1rem;
+    cursor:pointer;
+    margin-top:14px;
+  }
+  .btn-primary:active{ opacity:0.85; }
+  .btn-secondary{
+    background:none;
+    border:none;
+    color:var(--muted);
+    font-size:0.8rem;
+    cursor:pointer;
+    text-decoration:underline;
+    padding:6px 0;
+  }
+  .error-msg{
+    color:#a34b3f;
+    font-size:0.85rem;
+    margin-top:8px;
+    display:none;
+  }
+  .error-msg.active{ display:block; }
+
+  .top-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:14px;
+  }
+  .teacher-name{
+    font-weight:800;
+    color:var(--navy);
+    font-size:1.05rem;
+  }
+  .small-link{
+    font-size:0.78rem;
+    color:var(--navy);
+    text-decoration:underline;
+    cursor:pointer;
+    background:none;
+    border:none;
+    padding:0;
+  }
+
+  .search-box{ margin-bottom:16px; }
+  .search-results{
+    border:1px solid var(--rule);
+    border-radius:8px;
+    margin-top:6px;
+    overflow:hidden;
+  }
+  .search-result-row{
+    padding:10px 12px;
+    border-bottom:1px solid var(--rule);
+    cursor:pointer;
+    font-size:0.9rem;
+  }
+  .search-result-row:last-child{ border-bottom:none; }
+  .search-result-row:active{ background:var(--paper); }
+  .search-empty{ padding:12px; color:var(--muted); font-size:0.85rem; }
+
+  .period-group{ margin-bottom:18px; }
+  .period-label{
+    font-size:0.72rem;
+    font-weight:800;
+    color:var(--gold);
+    text-transform:uppercase;
+    letter-spacing:0.05em;
+    margin-bottom:6px;
+  }
+  .class-row{
+    padding:12px 14px;
+    border:1px solid var(--rule);
+    border-radius:8px;
+    margin-bottom:8px;
+    cursor:pointer;
+    font-size:0.92rem;
+  }
+  .class-row:active{ background:var(--paper); }
+
+  .roster-header{
+    margin-bottom:10px;
+  }
+  .roster-title{
+    font-weight:800;
+    color:var(--navy);
+    font-size:1.05rem;
+    margin-bottom:2px;
+  }
+  .roster-sub{
+    font-size:0.8rem;
+    color:var(--muted);
+  }
+
+  .student-card{
+    border:1px solid var(--rule);
+    border-radius:8px;
+    padding:10px 12px;
+    margin-bottom:8px;
+  }
+  .student-card.highlight{
+    border-color:var(--gold);
+    background:#fdf6e6;
+  }
+  .student-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:8px;
+  }
+  .student-name{
+    font-weight:700;
+    font-size:0.95rem;
+  }
+  .student-total{
+    font-size:0.78rem;
+    color:var(--muted);
+    white-space:nowrap;
+  }
+  .student-entry-row{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-top:8px;
+  }
+  .student-entry-row input{
+    width:90px;
+    flex:none;
+  }
+  .save-btn{
+    padding:9px 14px;
+    border:none;
+    border-radius:6px;
+    background:var(--green);
+    color:#fff;
+    font-weight:700;
+    font-size:0.85rem;
+    cursor:pointer;
+  }
+  .save-btn:disabled{ opacity:0.5; }
+  .save-status{
+    font-size:0.75rem;
+    margin-left:4px;
+  }
+  .save-status.ok{ color:var(--green); }
+  .save-status.err{ color:#a34b3f; }
+
+  .history-toggle{
+    font-size:0.74rem;
+    color:var(--navy);
+    text-decoration:underline;
+    cursor:pointer;
+    margin-top:6px;
+    display:inline-block;
+  }
+  .history-grid{
+    display:none;
+    margin-top:8px;
+    font-size:0.72rem;
+    border-top:1px solid var(--rule);
+    padding-top:8px;
+  }
+  .history-grid.active{ display:block; }
+  .history-grid table{
+    width:100%;
+    border-collapse:collapse;
+  }
+  .history-grid th, .history-grid td{
+    padding:3px 4px;
+    text-align:center;
+    border-bottom:1px solid var(--rule);
+  }
+  .history-grid th{ color:var(--muted); font-weight:600; }
+
+  .spinner{
+    width:28px;height:28px;
+    border:4px solid var(--rule);
+    border-top-color:var(--gold);
+    border-radius:50%;
+    margin:16px auto;
+    animation:spin 0.9s linear infinite;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .loading-text{ text-align:center; color:var(--muted); font-size:0.85rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="sheet">
+    <div class="school">Stoney Point High School<br>Teacher Points Entry</div>
+    <div class="buildtag" id="buildTag">v1</div>
+
+    <!-- LOGIN -->
+    <div class="state active" id="loginState">
+      <label>Your code</label>
+      <input type="text" id="codeInput" placeholder="Enter your code" autocomplete="off">
+      <button class="btn-primary" id="loginBtn">Log in</button>
+      <div class="error-msg" id="loginError"></div>
+    </div>
+
+    <!-- LOADING -->
+    <div class="state" id="loadingState">
+      <div class="spinner"></div>
+      <div class="loading-text" id="loadingText">Loading...</div>
+    </div>
+
+    <!-- CLASS LIST -->
+    <div class="state" id="classListState">
+      <div class="top-row">
+        <div class="teacher-name" id="teacherNameLabel"></div>
+        <button class="small-link" id="changeCodeLink">Change my code</button>
+      </div>
+
+      <div class="search-box">
+        <label>Find a student (across your classes)</label>
+        <input type="text" id="studentSearchInput" placeholder="Start typing a name" autocomplete="off">
+        <div class="search-results" id="searchResults" style="display:none;"></div>
+      </div>
+
+      <div id="periodGroups"></div>
+    </div>
+
+    <!-- CLASS ROSTER / POINT ENTRY -->
+    <div class="state" id="rosterState">
+      <button class="small-link" id="backToClassesBtn" style="margin-bottom:10px;">&lt; Back to my classes</button>
+      <div class="roster-header">
+        <div class="roster-title" id="rosterTitle"></div>
+        <div class="roster-sub">Entering points for:</div>
+        <select id="weekSelect" style="margin-top:4px;"></select>
+      </div>
+      <div id="studentList"></div>
+    </div>
+
+    <!-- CHANGE CODE -->
+    <div class="state" id="changeCodeState">
+      <button class="small-link" id="backFromChangeCodeBtn" style="margin-bottom:10px;">&lt; Back</button>
+      <label>Current code</label>
+      <input type="text" id="oldCodeInput" autocomplete="off">
+      <label>New code (4+ characters)</label>
+      <input type="text" id="newCodeInput" autocomplete="off">
+      <button class="btn-primary" id="submitCodeChangeBtn">Update code</button>
+      <div class="error-msg" id="changeCodeError"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const ROSTER_ENDPOINT_URL = 'YOUR_APPS_SCRIPT_WEB_APP_URL';
+
+let myCode = '';
+let myTeacherName = '';
+let myClasses = []; // [{tab, title, period}]
+let currentTab = null;
+let currentWeek = null;
+let highlightStudentKey = null; // "first|last" to visually highlight after a search jump
+
+const WEEK_LABELS = (function(){
+  const arr = [];
+  for(let i=1;i<=20;i++) arr.push('F-Wk'+i);
+  for(let i=1;i<=20;i++) arr.push('S-Wk'+i);
+  return arr;
+})();
+
+function showState(id){
+  document.querySelectorAll('.state').forEach(function(el){ el.classList.remove('active'); });
+  document.getElementById(id).classList.add('active');
+}
+function showLoading(text){
+  document.getElementById('loadingText').textContent = text || 'Loading...';
+  showState('loadingState');
+}
+
+function apiGet(params){
+  const p = new URLSearchParams(params);
+  p.set('_', Date.now());
+  return fetch(ROSTER_ENDPOINT_URL + '?' + p.toString(), { cache:'no-store' })
+    .then(function(res){ return res.json(); });
+}
+
+function parsePeriodFromTitle(title){
+  // Title format: "COURSE NAME (P01 - Teacher)" - pull the period out.
+  const m = title.match(/\(([^-\s]+)\s*-/);
+  return m ? m[1] : 'Other';
+}
+
+// ---- Login ----
+document.getElementById('loginBtn').onclick = function(){
+  const code = document.getElementById('codeInput').value.trim();
+  if(!code) return;
+  document.getElementById('loginError').classList.remove('active');
+  showLoading('Logging in...');
+  apiGet({ mode:'teacherclasses', code: code }).then(function(data){
+    if(data.error){
+      showState('loginState');
+      document.getElementById('loginError').textContent = data.error;
+      document.getElementById('loginError').classList.add('active');
+      return;
+    }
+    myCode = code;
+    myTeacherName = data.teacherName;
+    myClasses = data.classes.map(function(c){
+      return { tab: c.tab, title: c.title, period: parsePeriodFromTitle(c.title) };
+    });
+    renderClassList();
+    showState('classListState');
+  }).catch(function(){
+    showState('loginState');
+    document.getElementById('loginError').textContent = 'Could not reach the server. Check your connection and try again.';
+    document.getElementById('loginError').classList.add('active');
+  });
+};
+
+function renderClassList(){
+  document.getElementById('teacherNameLabel').textContent = myTeacherName;
+  const container = document.getElementById('periodGroups');
+  container.innerHTML = '';
+
+  const byPeriod = {};
+  myClasses.forEach(function(c){
+    if(!byPeriod[c.period]) byPeriod[c.period] = [];
+    byPeriod[c.period].push(c);
+  });
+  const periods = Object.keys(byPeriod).sort();
+
+  periods.forEach(function(period){
+    const group = document.createElement('div');
+    group.className = 'period-group';
+    const label = document.createElement('div');
+    label.className = 'period-label';
+    label.textContent = 'Period ' + period;
+    group.appendChild(label);
+    byPeriod[period].forEach(function(c){
+      const row = document.createElement('div');
+      row.className = 'class-row';
+      row.textContent = c.title;
+      row.onclick = function(){ openClass(c.tab, null); };
+      group.appendChild(row);
+    });
+    container.appendChild(group);
+  });
+}
+
+// ---- Student search ----
+let searchDebounce = null;
+document.getElementById('studentSearchInput').addEventListener('input', function(e){
+  const q = e.target.value.trim();
+  clearTimeout(searchDebounce);
+  const resultsEl = document.getElementById('searchResults');
+  if(q.length < 2){ resultsEl.style.display = 'none'; resultsEl.innerHTML=''; return; }
+  searchDebounce = setTimeout(function(){
+    // Split on first space as a simple first/last guess; if no space, search first name only is unreliable,
+    // so just try the whole string as both - the server's matching is lenient either way.
+    const parts = q.split(' ');
+    const first = parts[0];
+    const last = parts.slice(1).join(' ') || parts[0];
+    apiGet({ mode:'findstudentclasses', code: myCode, first: first, last: last }).then(function(data){
+      resultsEl.innerHTML = '';
+      if(data.error || !data.matches || data.matches.length === 0){
+        resultsEl.innerHTML = '<div class="search-empty">No matches in your classes.</div>';
+        resultsEl.style.display = 'block';
+        return;
+      }
+      data.matches.forEach(function(m){
+        const row = document.createElement('div');
+        row.className = 'search-result-row';
+        row.textContent = m.title;
+        row.onclick = function(){
+          resultsEl.style.display = 'none';
+          document.getElementById('studentSearchInput').value = '';
+          openClass(m.tab, { first: first, last: last });
+        };
+        resultsEl.appendChild(row);
+      });
+      resultsEl.style.display = 'block';
+    });
+  }, 350);
+});
+
+// ---- Open a class roster ----
+let currentWeekLabels = WEEK_LABELS;
+
+function openClass(tab, highlightStudent){
+  currentTab = tab;
+  highlightStudentKey = highlightStudent ? (highlightStudent.first+'|'+highlightStudent.last).toLowerCase() : null;
+  showLoading('Loading class...');
+  apiGet({ mode:'classroster', code: myCode, tab: tab }).then(function(data){
+    if(data.error){
+      alert(data.error);
+      showState('classListState');
+      return;
+    }
+    renderRoster(data);
+    showState('rosterState');
+  });
+}
+
+function renderRoster(data){
+  document.getElementById('rosterTitle').textContent = data.title;
+  currentWeekLabels = (data.weekLabels && data.weekLabels.length === 40) ? data.weekLabels : WEEK_LABELS;
+
+  const weekSelect = document.getElementById('weekSelect');
+  weekSelect.innerHTML = '';
+  currentWeekLabels.forEach(function(w){
+    const opt = document.createElement('option');
+    opt.value = w; opt.textContent = w;
+    weekSelect.appendChild(opt);
+  });
+  if(!currentWeek) currentWeek = currentWeekLabels[0];
+  weekSelect.value = currentWeek;
+  weekSelect.onchange = function(){ currentWeek = weekSelect.value; renderStudentList(data.students); };
+
+  renderStudentList(data.students);
+}
+
+function renderStudentList(students){
+  const list = document.getElementById('studentList');
+  list.innerHTML = '';
+  students.forEach(function(s){
+    const key = (s.first+'|'+s.last).toLowerCase();
+    const card = document.createElement('div');
+    card.className = 'student-card' + (key === highlightStudentKey ? ' highlight' : '');
+
+    const top = document.createElement('div');
+    top.className = 'student-top';
+    const name = document.createElement('div');
+    name.className = 'student-name';
+    name.textContent = s.first + ' ' + s.last;
+    const total = document.createElement('div');
+    total.className = 'student-total';
+    total.textContent = 'Total: ' + s.total + ' / 75';
+    top.appendChild(name); top.appendChild(total);
+    card.appendChild(top);
+
+    const entryRow = document.createElement('div');
+    entryRow.className = 'student-entry-row';
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.placeholder = currentWeek;
+    const saveBtn = document.createElement('button');
+    saveBtn.className = 'save-btn';
+    saveBtn.textContent = 'Save';
+    const status = document.createElement('span');
+    status.className = 'save-status';
+
+    saveBtn.onclick = function(){
+      const val = input.value;
+      if(val === '') return;
+      saveBtn.disabled = true;
+      status.textContent = 'Saving...';
+      status.className = 'save-status';
+      apiGet({ mode:'submitpoints', code: myCode, tab: currentTab, first: s.first, last: s.last, week: currentWeek, value: val })
+        .then(function(res){
+          saveBtn.disabled = false;
+          if(res.success){
+            status.textContent = 'Saved. New total: ' + res.newTotal;
+            status.className = 'save-status ok';
+            total.textContent = 'Total: ' + res.newTotal + ' / 75';
+            s.total = res.newTotal;
+          } else {
+            status.textContent = res.error || 'Failed to save.';
+            status.className = 'save-status err';
+          }
+        }).catch(function(){
+          saveBtn.disabled = false;
+          status.textContent = 'Network error - try again.';
+          status.className = 'save-status err';
+        });
+    };
+
+    entryRow.appendChild(input);
+    entryRow.appendChild(saveBtn);
+    entryRow.appendChild(status);
+    card.appendChild(entryRow);
+
+    const histToggle = document.createElement('div');
+    histToggle.className = 'history-toggle';
+    histToggle.textContent = 'View all weeks';
+    const histGrid = document.createElement('div');
+    histGrid.className = 'history-grid';
+    histToggle.onclick = function(){
+      const isOpen = histGrid.classList.toggle('active');
+      histToggle.textContent = isOpen ? 'Hide all weeks' : 'View all weeks';
+      if(isOpen && !histGrid.dataset.loaded){
+        loadStudentHistory(s, histGrid);
+      }
+    };
+    card.appendChild(histToggle);
+    card.appendChild(histGrid);
+
+    list.appendChild(card);
+  });
+}
+
+function loadStudentHistory(student, histGrid){
+  // Real per-week history, rendered straight from the roster data already
+  // loaded when this class was opened - no extra network call needed.
+  let html = '<table><tr>';
+  currentWeekLabels.forEach(function(label){ html += '<th>' + label.replace('-Wk','&#8209;') + '</th>'; });
+  html += '</tr><tr>';
+  (student.weeks || []).forEach(function(v){
+    html += '<td>' + (v === null || v === undefined ? '&ndash;' : v) + '</td>';
+  });
+  html += '</tr></table>';
+  histGrid.innerHTML = html;
+  histGrid.dataset.loaded = '1';
+}
+
+document.getElementById('backToClassesBtn').onclick = function(){
+  renderClassList();
+  showState('classListState');
+};
+
+// ---- Change code ----
+document.getElementById('changeCodeLink').onclick = function(){
+  document.getElementById('oldCodeInput').value = '';
+  document.getElementById('newCodeInput').value = '';
+  document.getElementById('changeCodeError').classList.remove('active');
+  showState('changeCodeState');
+};
+document.getElementById('backFromChangeCodeBtn').onclick = function(){ showState('classListState'); };
+document.getElementById('submitCodeChangeBtn').onclick = function(){
+  const oldCode = document.getElementById('oldCodeInput').value.trim();
+  const newCode = document.getElementById('newCodeInput').value.trim();
+  const errEl = document.getElementById('changeCodeError');
+  errEl.classList.remove('active');
+  apiGet({ mode:'changeteachercode', oldCode: oldCode, newCode: newCode }).then(function(res){
+    if(res.success){
+      myCode = newCode;
+      alert('Code updated. Use your new code next time you log in.');
+      showState('classListState');
+    } else {
+      errEl.textContent = res.error || 'Could not update code.';
+      errEl.classList.add('active');
+    }
+  });
+};
+
+document.getElementById('buildTag').textContent = 'v1-teacher-entry';
+</script>
+</body>
+</html>
