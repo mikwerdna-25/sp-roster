@@ -582,28 +582,75 @@ function renderStudentList(students){
     gradeToggle.className = 'history-toggle';
     gradeToggle.textContent = s.total >= 75 ? 'Mark complete / enter grade' : 'Enter grade (under 75 points)';
     const gradeForm = document.createElement('div');
-    gradeForm.style.cssText = 'display:none; gap:8px; margin-top:6px; align-items:center;';
-    const gradeInput = document.createElement('input');
-    gradeInput.type = 'text';
-    gradeInput.placeholder = 'e.g. A, B+, C';
-    gradeInput.style.cssText = 'width:80px; flex:none;';
+    gradeForm.style.cssText = 'display:none; flex-direction:column; gap:6px; margin-top:6px;';
+
+    function makeSelect(labelText, options){
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'display:flex; align-items:center; gap:8px;';
+      const lbl = document.createElement('span');
+      lbl.textContent = labelText;
+      lbl.style.cssText = 'font-size:0.78rem; color:var(--muted); width:90px; flex:none;';
+      const sel = document.createElement('select');
+      sel.style.cssText = 'margin-bottom:0;';
+      const blank = document.createElement('option');
+      blank.value = ''; blank.textContent = '-- select --';
+      sel.appendChild(blank);
+      options.forEach(function(opt){
+        const o = document.createElement('option');
+        o.value = opt.value; o.textContent = opt.label;
+        sel.appendChild(o);
+      });
+      wrap.appendChild(lbl); wrap.appendChild(sel);
+      return { wrap: wrap, select: sel };
+    }
+
+    const gradeSel = makeSelect('Grade', [
+      {value:'A',label:'A'}, {value:'B',label:'B'}, {value:'C',label:'C'}, {value:'D',label:'D'}
+    ]);
+    const whSel = makeSelect('Work Habits', [
+      {value:'E',label:'(E) Excellent'}, {value:'S',label:'(S) Satisfactory'}, {value:'U',label:'(U) Unsatisfactory'}
+    ]);
+    const coopSel = makeSelect('Cooperation', [
+      {value:'E',label:'(E) Excellent'}, {value:'S',label:'(S) Satisfactory'}, {value:'U',label:'(U) Unsatisfactory'}
+    ]);
+    const notesWrap = document.createElement('div');
+    notesWrap.style.cssText = 'display:flex; align-items:center; gap:8px;';
+    const notesLbl = document.createElement('span');
+    notesLbl.textContent = 'Notes';
+    notesLbl.style.cssText = 'font-size:0.78rem; color:var(--muted); width:90px; flex:none;';
+    const notesInput = document.createElement('input');
+    notesInput.type = 'text';
+    notesInput.placeholder = 'Optional';
+    notesInput.style.cssText = 'margin-bottom:0;';
+    notesWrap.appendChild(notesLbl); notesWrap.appendChild(notesInput);
+
     const gradeSaveBtn = document.createElement('button');
     gradeSaveBtn.className = 'save-btn';
-    gradeSaveBtn.textContent = 'Save grade';
-    const gradeStatus = document.createElement('span');
+    gradeSaveBtn.textContent = 'Save completion';
+    gradeSaveBtn.style.alignSelf = 'flex-start';
+    const gradeStatus = document.createElement('div');
     gradeStatus.className = 'save-status';
+
     gradeToggle.onclick = function(){
       const isOpen = gradeForm.style.display === 'none';
       gradeForm.style.display = isOpen ? 'flex' : 'none';
     };
     gradeSaveBtn.onclick = function(){
-      const g = gradeInput.value.trim();
-      if(!g) return;
-      if(s.total < 75 && !confirm('This student has ' + s.total + '/75 points, not yet 75. Enter the grade anyway?')) return;
+      const g = gradeSel.select.value;
+      const wh = whSel.select.value;
+      const coop = coopSel.select.value;
+      const notes = notesInput.value.trim();
+      if(!g || !wh || !coop){
+        gradeStatus.textContent = 'Grade, Work Habits, and Cooperation are all required.';
+        gradeStatus.className = 'save-status err';
+        return;
+      }
+      if(s.total < 75 && !confirm('This student has ' + s.total + '/75 points, not yet 75. Enter the completion anyway?')) return;
       gradeSaveBtn.disabled = true;
       gradeStatus.textContent = 'Saving...';
       gradeStatus.className = 'save-status';
-      apiGet({ mode:'submitgrade', code: myCode, tab: currentTab, first: s.first, last: s.last, grade: g })
+      apiGet({ mode:'submitgrade', code: myCode, tab: currentTab, first: s.first, last: s.last,
+        grade: g, workHabits: wh, cooperation: coop, notes: notes })
         .then(function(res){
           gradeSaveBtn.disabled = false;
           if(res.success){
@@ -620,7 +667,11 @@ function renderStudentList(students){
           gradeStatus.className = 'save-status err';
         });
     };
-    gradeForm.appendChild(gradeInput);
+
+    gradeForm.appendChild(gradeSel.wrap);
+    gradeForm.appendChild(whSel.wrap);
+    gradeForm.appendChild(coopSel.wrap);
+    gradeForm.appendChild(notesWrap);
     gradeForm.appendChild(gradeSaveBtn);
     gradeForm.appendChild(gradeStatus);
     gradeRow.appendChild(gradeToggle);
@@ -675,7 +726,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v4-grades';
+document.getElementById('buildTag').textContent = 'v5-full-completion-form';
 </script>
 </body>
 </html>
