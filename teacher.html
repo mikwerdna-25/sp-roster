@@ -331,10 +331,13 @@ let currentTab = null;
 let currentWeek = null;
 let highlightStudentKey = null; // "first|last" to visually highlight after a search jump
 
+// Fall 2026 only for now - Spring weeks removed from the spreadsheet.
+// This is just the fallback used before real data loads; the actual
+// week list for a class comes from the server's live header row anyway,
+// so this stays correct automatically even if that changes later.
 const WEEK_LABELS = (function(){
   const arr = [];
   for(let i=1;i<=20;i++) arr.push('F-Wk'+i);
-  for(let i=1;i<=20;i++) arr.push('S-Wk'+i);
   return arr;
 })();
 
@@ -435,12 +438,10 @@ document.getElementById('studentSearchInput').addEventListener('input', function
   const resultsEl = document.getElementById('searchResults');
   if(q.length < 2){ resultsEl.style.display = 'none'; resultsEl.innerHTML=''; return; }
   searchDebounce = setTimeout(function(){
-    // Split on first space as a simple first/last guess; if no space, search first name only is unreliable,
-    // so just try the whole string as both - the server's matching is lenient either way.
-    const parts = q.split(' ');
-    const first = parts[0];
-    const last = parts.slice(1).join(' ') || parts[0];
-    apiGet({ mode:'findstudentclasses', code: myCode, first: first, last: last }).then(function(data){
+    // Single free-text query - the server matches it against each
+    // student's full name (first name alone, last name alone, full name,
+    // or a truncated version of either all work).
+    apiGet({ mode:'findstudentclasses', code: myCode, query: q }).then(function(data){
       resultsEl.innerHTML = '';
       if(data.error || !data.matches || data.matches.length === 0){
         resultsEl.innerHTML = '<div class="search-empty">No matches in your classes.</div>';
@@ -450,11 +451,11 @@ document.getElementById('studentSearchInput').addEventListener('input', function
       data.matches.forEach(function(m){
         const row = document.createElement('div');
         row.className = 'search-result-row';
-        row.textContent = m.title;
+        row.textContent = m.title + ' \u2014 ' + m.first + ' ' + m.last;
         row.onclick = function(){
           resultsEl.style.display = 'none';
           document.getElementById('studentSearchInput').value = '';
-          openClass(m.tab, { first: first, last: last });
+          openClass(m.tab, { first: m.first, last: m.last });
         };
         resultsEl.appendChild(row);
       });
@@ -622,7 +623,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v2-hardened-backend';
+document.getElementById('buildTag').textContent = 'v3-search-fix-fall-only';
 </script>
 </body>
 </html>
