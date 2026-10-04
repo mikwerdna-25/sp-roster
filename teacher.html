@@ -322,7 +322,7 @@
 </div>
 
 <script>
-const ROSTER_ENDPOINT_URL = 'YOUR_APPS_SCRIPT_WEB_APP_URL';
+const ROSTER_ENDPOINT_URL = 'https://script.google.com/macros/s/AKfycbyMtocUhBSO_IcqIrEI4s5-C5XXWpdS9iBrfM3YqVWCgtJY1wVY8-zGpx1Pp14OPnkA/exec';
 
 let myCode = '';
 let myTeacherName = '';
@@ -361,6 +361,16 @@ function parsePeriodFromTitle(title){
 }
 
 // ---- Login ----
+(function checkSetup(){
+  if(ROSTER_ENDPOINT_URL === 'YOUR_APPS_SCRIPT_WEB_APP_URL' || !ROSTER_ENDPOINT_URL){
+    document.getElementById('loginState').innerHTML =
+      '<div class="error-msg active"><b>This page isn\'t set up yet.</b><br><br>' +
+      'The Apps Script URL inside this file is still the placeholder text. ' +
+      'Open teacher.html, find the line starting with <code>const ROSTER_ENDPOINT_URL</code>, ' +
+      'and replace the placeholder with the real Apps Script Web app URL. Then re-upload the file.</div>';
+  }
+})();
+
 document.getElementById('loginBtn').onclick = function(){
   const code = document.getElementById('codeInput').value.trim();
   if(!code) return;
@@ -612,7 +622,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v1-teacher-entry';
+document.getElementById('buildTag').textContent = 'v2-hardened-backend';
 </script>
 </body>
 </html>
