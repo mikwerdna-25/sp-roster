@@ -575,6 +575,58 @@ function renderStudentList(students){
     card.appendChild(histToggle);
     card.appendChild(histGrid);
 
+    // Mark complete / enter grade - a deliberate action, not automatic at 75.
+    const gradeRow = document.createElement('div');
+    gradeRow.style.cssText = 'display:flex; align-items:center; gap:8px; margin-top:8px;';
+    const gradeToggle = document.createElement('div');
+    gradeToggle.className = 'history-toggle';
+    gradeToggle.textContent = s.total >= 75 ? 'Mark complete / enter grade' : 'Enter grade (under 75 points)';
+    const gradeForm = document.createElement('div');
+    gradeForm.style.cssText = 'display:none; gap:8px; margin-top:6px; align-items:center;';
+    const gradeInput = document.createElement('input');
+    gradeInput.type = 'text';
+    gradeInput.placeholder = 'e.g. A, B+, C';
+    gradeInput.style.cssText = 'width:80px; flex:none;';
+    const gradeSaveBtn = document.createElement('button');
+    gradeSaveBtn.className = 'save-btn';
+    gradeSaveBtn.textContent = 'Save grade';
+    const gradeStatus = document.createElement('span');
+    gradeStatus.className = 'save-status';
+    gradeToggle.onclick = function(){
+      const isOpen = gradeForm.style.display === 'none';
+      gradeForm.style.display = isOpen ? 'flex' : 'none';
+    };
+    gradeSaveBtn.onclick = function(){
+      const g = gradeInput.value.trim();
+      if(!g) return;
+      if(s.total < 75 && !confirm('This student has ' + s.total + '/75 points, not yet 75. Enter the grade anyway?')) return;
+      gradeSaveBtn.disabled = true;
+      gradeStatus.textContent = 'Saving...';
+      gradeStatus.className = 'save-status';
+      apiGet({ mode:'submitgrade', code: myCode, tab: currentTab, first: s.first, last: s.last, grade: g })
+        .then(function(res){
+          gradeSaveBtn.disabled = false;
+          if(res.success){
+            gradeStatus.textContent = 'Saved - course marked complete.';
+            gradeStatus.className = 'save-status ok';
+            gradeToggle.textContent = 'Graded: ' + g;
+          } else {
+            gradeStatus.textContent = res.error || 'Failed to save.';
+            gradeStatus.className = 'save-status err';
+          }
+        }).catch(function(){
+          gradeSaveBtn.disabled = false;
+          gradeStatus.textContent = 'Network error - try again.';
+          gradeStatus.className = 'save-status err';
+        });
+    };
+    gradeForm.appendChild(gradeInput);
+    gradeForm.appendChild(gradeSaveBtn);
+    gradeForm.appendChild(gradeStatus);
+    gradeRow.appendChild(gradeToggle);
+    card.appendChild(gradeRow);
+    card.appendChild(gradeForm);
+
     list.appendChild(card);
   });
 }
@@ -623,7 +675,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v3-search-fix-fall-only';
+document.getElementById('buildTag').textContent = 'v4-grades';
 </script>
 </body>
 </html>

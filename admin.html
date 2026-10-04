@@ -46,7 +46,7 @@
 <div class="wrap">
   <div class="sheet">
     <div class="school">Stoney Point High School<br>Counselor / Admin</div>
-    <div class="buildtag" id="buildTag">v1-admin-launch</div>
+    <div class="buildtag" id="buildTag">v2-view-student-grades</div>
 
     <div class="state active" id="loginState">
       <label>Your code</label>
@@ -65,7 +65,22 @@
         <div class="admin-name" id="adminNameLabel"></div>
       </div>
       <button class="btn-primary" id="newCourseBtn">+ New course</button>
+      <label>View a student</label>
+      <div style="display:flex; gap:8px;">
+        <input type="text" id="viewStudentFirst" placeholder="First name" style="margin-bottom:0;">
+        <input type="text" id="viewStudentLast" placeholder="Last name" style="margin-bottom:0;">
+      </div>
+      <button class="btn-primary" id="viewStudentBtn">View student</button>
       <div id="courseList" style="margin-top:14px;"></div>
+    </div>
+
+    <div class="state" id="studentViewState">
+      <button class="btn-secondary" id="backFromStudentViewBtn" style="margin-bottom:10px;">&lt; Back</button>
+      <div style="font-weight:800; color:var(--navy); margin-bottom:14px;" id="studentViewName"></div>
+      <label>In progress</label>
+      <div id="inProgressList"></div>
+      <label style="margin-top:16px;">Completed</label>
+      <div id="completedList"></div>
     </div>
 
     <div class="state" id="courseFormState">
@@ -322,6 +337,49 @@ document.getElementById('addStudentBtn').onclick = function(){
     }
   });
 };
+
+// ---- View student: in-progress courses (live points) + completed (with grade) ----
+document.getElementById('viewStudentBtn').onclick = function(){
+  const first = document.getElementById('viewStudentFirst').value.trim();
+  const last = document.getElementById('viewStudentLast').value.trim();
+  if(!first || !last) return;
+  showLoading('Loading student...');
+  apiGet({ mode:'adminviewstudent', code: myCode, first: first, last: last }).then(function(data){
+    if(data.error){
+      showState('courseListState');
+      alert(data.error);
+      return;
+    }
+    document.getElementById('studentViewName').textContent = first + ' ' + last;
+
+    const inProgressEl = document.getElementById('inProgressList');
+    inProgressEl.innerHTML = '';
+    if(data.inProgress.length === 0){
+      inProgressEl.innerHTML = '<div class="loading-text">No courses in progress.</div>';
+    }
+    data.inProgress.forEach(function(c){
+      const row = document.createElement('div');
+      row.className = 'student-row';
+      row.innerHTML = '<span>' + c.courseTitle + '</span><span>' + c.total + ' / 75</span>';
+      inProgressEl.appendChild(row);
+    });
+
+    const completedEl = document.getElementById('completedList');
+    completedEl.innerHTML = '';
+    if(data.completed.length === 0){
+      completedEl.innerHTML = '<div class="loading-text">No completed courses yet.</div>';
+    }
+    data.completed.forEach(function(c){
+      const row = document.createElement('div');
+      row.className = 'student-row';
+      row.innerHTML = '<span>' + c.courseTitle + '</span><span>Grade: ' + c.grade + '</span>';
+      completedEl.appendChild(row);
+    });
+
+    showState('studentViewState');
+  });
+};
+document.getElementById('backFromStudentViewBtn').onclick = function(){ showState('courseListState'); };
 </script>
 </body>
 </html>
