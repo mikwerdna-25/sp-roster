@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stoney Point Admin</title>
+<style>
+  :root{
+    --navy:#1c2b4a; --navy-deep:#101c33; --paper:#f6f3ea; --card:#fffdf7;
+    --rule:#d8cfb8; --gold:#b8862f; --ink:#26241d; --muted:#7a7364; --green:#3d5c2c;
+  }
+  *{box-sizing:border-box;}
+  body{ margin:0; min-height:100vh; background:var(--navy); font-family:-apple-system, system-ui, sans-serif; color:var(--ink); }
+  .wrap{ max-width:720px; margin:0 auto; padding:16px; }
+  .sheet{ background:var(--card); border-radius:12px; padding:20px 18px; box-shadow:0 10px 40px rgba(0,0,0,0.35); }
+  .school{ font-family:Georgia, serif; font-weight:700; color:var(--navy); font-size:1.05rem; text-align:center; margin-bottom:4px; }
+  .buildtag{ text-align:center; font-size:0.62rem; color:var(--muted); margin-bottom:16px; }
+  .state{ display:none; } .state.active{ display:block; }
+  input[type=text], input[type=number], select{
+    width:100%; padding:11px 12px; border:1px solid var(--rule); border-radius:8px;
+    font-size:1rem; font-family:inherit; box-sizing:border-box; margin-bottom:10px;
+  }
+  label{ display:block; font-size:0.78rem; color:var(--muted); margin:10px 0 4px; font-weight:600; }
+  .btn-primary{ width:100%; padding:13px; border:none; border-radius:8px; background:var(--navy); color:#fff; font-weight:800; font-size:1rem; cursor:pointer; margin-top:8px; }
+  .btn-primary:active{ opacity:0.85; }
+  .btn-danger{ background:#a34b3f; }
+  .btn-secondary{ background:none; border:none; color:var(--muted); font-size:0.8rem; cursor:pointer; text-decoration:underline; padding:6px 0; }
+  .error-msg{ color:#a34b3f; font-size:0.85rem; margin-top:8px; display:none; } .error-msg.active{ display:block; }
+  .ok-msg{ color:var(--green); font-size:0.85rem; margin-top:8px; display:none; } .ok-msg.active{ display:block; }
+  .top-row{ display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
+  .admin-name{ font-weight:800; color:var(--navy); font-size:1.05rem; }
+  .course-row{ padding:12px 14px; border:1px solid var(--rule); border-radius:8px; margin-bottom:8px; }
+  .course-title{ font-weight:700; font-size:0.92rem; }
+  .course-sub{ font-size:0.78rem; color:var(--muted); margin-top:2px; }
+  .course-actions{ display:flex; gap:10px; margin-top:8px; }
+  .course-actions button{ font-size:0.78rem; padding:6px 10px; border-radius:6px; border:1px solid var(--rule); background:var(--paper); cursor:pointer; }
+  .student-row{ display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border:1px solid var(--rule); border-radius:6px; margin-bottom:6px; font-size:0.88rem; }
+  .student-row button{ font-size:0.74rem; padding:4px 8px; border-radius:5px; border:1px solid var(--rule); background:var(--paper); cursor:pointer; }
+  .spinner{ width:28px;height:28px; border:4px solid var(--rule); border-top-color:var(--gold); border-radius:50%; margin:16px auto; animation:spin 0.9s linear infinite; }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .loading-text{ text-align:center; color:var(--muted); font-size:0.85rem; }
+  .hint{ font-size:0.72rem; color:var(--muted); margin-top:-6px; margin-bottom:8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="sheet">
+    <div class="school">Stoney Point High School<br>Counselor / Admin</div>
+    <div class="buildtag" id="buildTag">v1-admin-launch</div>
+
+    <div class="state active" id="loginState">
+      <label>Your code</label>
+      <input type="text" id="codeInput" placeholder="Enter your code" autocomplete="off">
+      <button class="btn-primary" id="loginBtn">Log in</button>
+      <div class="error-msg" id="loginError"></div>
+    </div>
+
+    <div class="state" id="loadingState">
+      <div class="spinner"></div>
+      <div class="loading-text" id="loadingText">Loading...</div>
+    </div>
+
+    <div class="state" id="courseListState">
+      <div class="top-row">
+        <div class="admin-name" id="adminNameLabel"></div>
+      </div>
+      <button class="btn-primary" id="newCourseBtn">+ New course</button>
+      <div id="courseList" style="margin-top:14px;"></div>
+    </div>
+
+    <div class="state" id="courseFormState">
+      <button class="btn-secondary" id="backFromFormBtn" style="margin-bottom:10px;">&lt; Back</button>
+      <div style="font-weight:800; color:var(--navy); margin-bottom:10px;" id="formHeading">New course</div>
+      <label>Course title</label>
+      <input type="text" id="formTitle" placeholder="e.g. Creative Writing">
+      <label>Period</label>
+      <input type="text" id="formPeriod" placeholder="e.g. P03, or Edgenuity / Virtual">
+      <div class="hint">For online/async courses not tied to a normal period, just type the program name (e.g. Edgenuity).</div>
+      <label>Teacher(s) - one or two, separated by a comma</label>
+      <input type="text" id="formTeachers" placeholder="e.g. Appel, or Appel, Thomas">
+      <button class="btn-primary" id="saveCourseBtn">Save course</button>
+      <div class="error-msg" id="formError"></div>
+      <div class="ok-msg" id="formOk"></div>
+    </div>
+
+    <div class="state" id="courseDetailState">
+      <button class="btn-secondary" id="backFromDetailBtn" style="margin-bottom:10px;">&lt; Back to courses</button>
+      <div style="font-weight:800; color:var(--navy); margin-bottom:4px;" id="detailTitle"></div>
+      <div style="display:flex; gap:10px; margin-bottom:14px;">
+        <button class="btn-secondary" id="editCourseBtn">Edit course</button>
+        <button class="btn-secondary" id="archiveCourseBtn" style="color:#a34b3f;">Archive course</button>
+      </div>
+
+      <label>Add a student</label>
+      <div style="display:flex; gap:8px;">
+        <input type="text" id="addStudentFirst" placeholder="First name" style="margin-bottom:0;">
+        <input type="text" id="addStudentLast" placeholder="Last name" style="margin-bottom:0;">
+      </div>
+      <button class="btn-primary" id="addStudentBtn">Add student</button>
+      <div class="error-msg" id="detailError"></div>
+      <div class="ok-msg" id="detailOk"></div>
+
+      <label style="margin-top:18px;">Current students</label>
+      <div id="studentList"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const ROSTER_ENDPOINT_URL = 'https://script.google.com/macros/s/AKfycbyMtocUhBSO_IcqIrEI4s5-C5XXWpdS9iBrfM3YqVWCgtJY1wVY8-zGpx1Pp14OPnkA/exec';
+
+let myCode = '';
+let myName = '';
+let myCourses = [];
+let editingTab = null; // null = creating new, otherwise editing this tab
+
+function showState(id){
+  document.querySelectorAll('.state').forEach(function(el){ el.classList.remove('active'); });
+  document.getElementById(id).classList.add('active');
+}
+function showLoading(text){
+  document.getElementById('loadingText').textContent = text || 'Loading...';
+  showState('loadingState');
+}
+function apiGet(params){
+  const p = new URLSearchParams(params);
+  p.set('_', Date.now());
+  return fetch(ROSTER_ENDPOINT_URL + '?' + p.toString(), { cache:'no-store' })
+    .then(function(res){ return res.json(); });
+}
+
+document.getElementById('loginBtn').onclick = function(){
+  const code = document.getElementById('codeInput').value.trim();
+  if(!code) return;
+  document.getElementById('loginError').classList.remove('active');
+  showLoading('Logging in...');
+  apiGet({ mode:'adminlistcourses', code: code }).then(function(data){
+    if(data.error){
+      showState('loginState');
+      document.getElementById('loginError').textContent = data.error;
+      document.getElementById('loginError').classList.add('active');
+      return;
+    }
+    myCode = code;
+    myName = data.adminName;
+    myCourses = data.courses;
+    renderCourseList();
+    showState('courseListState');
+  }).catch(function(){
+    showState('loginState');
+    document.getElementById('loginError').textContent = 'Could not reach the server. Check your connection and try again.';
+    document.getElementById('loginError').classList.add('active');
+  });
+};
+
+function renderCourseList(){
+  document.getElementById('adminNameLabel').textContent = myName;
+  const list = document.getElementById('courseList');
+  list.innerHTML = '';
+  myCourses.slice().sort(function(a,b){ return a.title.localeCompare(b.title); }).forEach(function(c){
+    const row = document.createElement('div');
+    row.className = 'course-row';
+    const title = document.createElement('div');
+    title.className = 'course-title';
+    title.textContent = c.title;
+    const sub = document.createElement('div');
+    sub.className = 'course-sub';
+    sub.textContent = (c.teachers||[]).join(' & ') || 'No teacher assigned';
+    row.appendChild(title); row.appendChild(sub);
+    const actions = document.createElement('div');
+    actions.className = 'course-actions';
+    const manageBtn = document.createElement('button');
+    manageBtn.textContent = 'Manage students';
+    manageBtn.onclick = function(){ openCourseDetail(c); };
+    actions.appendChild(manageBtn);
+    row.appendChild(actions);
+    list.appendChild(row);
+  });
+}
+
+// ---- Create / edit course ----
+document.getElementById('newCourseBtn').onclick = function(){
+  editingTab = null;
+  document.getElementById('formHeading').textContent = 'New course';
+  document.getElementById('formTitle').value = '';
+  document.getElementById('formPeriod').value = '';
+  document.getElementById('formTeachers').value = '';
+  document.getElementById('formError').classList.remove('active');
+  document.getElementById('formOk').classList.remove('active');
+  showState('courseFormState');
+};
+document.getElementById('backFromFormBtn').onclick = function(){ showState('courseListState'); };
+
+document.getElementById('saveCourseBtn').onclick = function(){
+  const title = document.getElementById('formTitle').value.trim();
+  const period = document.getElementById('formPeriod').value.trim();
+  const teachers = document.getElementById('formTeachers').value.trim();
+  const errEl = document.getElementById('formError');
+  const okEl = document.getElementById('formOk');
+  errEl.classList.remove('active'); okEl.classList.remove('active');
+  if(!title || !period || !teachers){
+    errEl.textContent = 'All fields are required.';
+    errEl.classList.add('active');
+    return;
+  }
+  const params = { code: myCode, title: title, period: period, teachers: teachers };
+  const mode = editingTab ? 'admineditcourse' : 'admincreatecourse';
+  if(editingTab) params.tab = editingTab;
+  apiGet(Object.assign({ mode: mode }, params)).then(function(res){
+    if(res.success){
+      okEl.textContent = editingTab ? 'Course updated.' : 'Course created.';
+      okEl.classList.add('active');
+      // Refresh the course list in the background
+      apiGet({ mode:'adminlistcourses', code: myCode }).then(function(data){
+        if(!data.error) myCourses = data.courses;
+      });
+      setTimeout(function(){ showState('courseListState'); renderCourseList(); }, 900);
+    } else {
+      errEl.textContent = res.error || 'Could not save.';
+      errEl.classList.add('active');
+    }
+  });
+};
+
+// ---- Course detail: manage students ----
+let currentDetailCourse = null;
+
+function openCourseDetail(course){
+  currentDetailCourse = course;
+  document.getElementById('detailTitle').textContent = course.title;
+  document.getElementById('addStudentFirst').value = '';
+  document.getElementById('addStudentLast').value = '';
+  document.getElementById('detailError').classList.remove('active');
+  document.getElementById('detailOk').classList.remove('active');
+  showLoading('Loading students...');
+  apiGet({ mode:'classroster', code: myCode, tab: course.tab }).then(function(data){
+    if(data.error){
+      showState('courseDetailState');
+      document.getElementById('studentList').innerHTML =
+        '<div class="loading-text">' + data.error + '</div>';
+      return;
+    }
+    renderStudentList(data.students || []);
+    showState('courseDetailState');
+  });
+}
+
+function renderStudentList(students){
+  const list = document.getElementById('studentList');
+  list.innerHTML = '';
+  students.forEach(function(s){
+    const row = document.createElement('div');
+    row.className = 'student-row';
+    const name = document.createElement('span');
+    name.textContent = s.first + ' ' + s.last + ' (Total: ' + s.total + ')';
+    const removeBtn = document.createElement('button');
+    removeBtn.textContent = 'Remove';
+    removeBtn.onclick = function(){
+      if(!confirm('Remove ' + s.first + ' ' + s.last + ' from this class? Their existing points stay on record.')) return;
+      apiGet({ mode:'adminremovestudent', code: myCode, tab: currentDetailCourse.tab, first: s.first, last: s.last }).then(function(res){
+        if(res.success){
+          openCourseDetail(currentDetailCourse);
+        } else {
+          alert(res.error || 'Could not remove student.');
+        }
+      });
+    };
+    row.appendChild(name); row.appendChild(removeBtn);
+    list.appendChild(row);
+  });
+}
+
+document.getElementById('backFromDetailBtn').onclick = function(){ showState('courseListState'); };
+
+document.getElementById('editCourseBtn').onclick = function(){
+  editingTab = currentDetailCourse.tab;
+  document.getElementById('formHeading').textContent = 'Edit course';
+  // Pre-fill as best as possible from the stored title string
+  document.getElementById('formTitle').value = currentDetailCourse.title.replace(/\\s*\\([^)]*\\)\\s*$/,'');
+  document.getElementById('formPeriod').value = '';
+  document.getElementById('formTeachers').value = (currentDetailCourse.teachers||[]).join(', ');
+  document.getElementById('formError').classList.remove('active');
+  document.getElementById('formOk').classList.remove('active');
+  showState('courseFormState');
+};
+
+document.getElementById('archiveCourseBtn').onclick = function(){
+  if(!confirm('Archive "' + currentDetailCourse.title + '"? Student points stay on record, but this class will no longer be active for teachers or students.')) return;
+  apiGet({ mode:'adminarchivecourse', code: myCode, tab: currentDetailCourse.tab }).then(function(res){
+    if(res.success){
+      alert('Course archived.');
+      apiGet({ mode:'adminlistcourses', code: myCode }).then(function(data){
+        if(!data.error) myCourses = data.courses;
+        renderCourseList();
+        showState('courseListState');
+      });
+    } else {
+      alert(res.error || 'Could not archive course.');
+    }
+  });
+};
+
+document.getElementById('addStudentBtn').onclick = function(){
+  const first = document.getElementById('addStudentFirst').value.trim();
+  const last = document.getElementById('addStudentLast').value.trim();
+  const errEl = document.getElementById('detailError');
+  const okEl = document.getElementById('detailOk');
+  errEl.classList.remove('active'); okEl.classList.remove('active');
+  if(!first || !last){
+    errEl.textContent = 'First and last name are both required.';
+    errEl.classList.add('active');
+    return;
+  }
+  apiGet({ mode:'adminaddstudent', code: myCode, tab: currentDetailCourse.tab, first: first, last: last }).then(function(res){
+    if(res.success){
+      okEl.textContent = 'Student added.';
+      okEl.classList.add('active');
+      openCourseDetail(currentDetailCourse);
+    } else {
+      errEl.textContent = res.error || 'Could not add student.';
+      errEl.classList.add('active');
+    }
+  });
+};
+</script>
+</body>
+</html>
