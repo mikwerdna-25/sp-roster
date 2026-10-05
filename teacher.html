@@ -493,7 +493,14 @@ function renderRoster(data){
     opt.value = w; opt.textContent = w;
     weekSelect.appendChild(opt);
   });
-  if(!currentWeek) currentWeek = currentWeekLabels[0];
+  // Default to the server's computed current week, falling back to the
+  // first week only if that's ever unavailable (e.g. before the semester
+  // has started, or no match found for some reason).
+  if(!currentWeek){
+    currentWeek = (data.currentWeekLabel && currentWeekLabels.indexOf(data.currentWeekLabel) !== -1)
+      ? data.currentWeekLabel
+      : currentWeekLabels[0];
+  }
   weekSelect.value = currentWeek;
   weekSelect.onchange = function(){ currentWeek = weekSelect.value; renderStudentList(data.students); };
 
@@ -727,7 +734,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v6-form-link';
+document.getElementById('buildTag').textContent = 'v7-current-week-default';
 </script>
 </body>
 </html>
