@@ -530,7 +530,7 @@ function openClass(tab, highlightStudent){
 
 function renderRoster(data){
   document.getElementById('rosterTitle').textContent = data.title;
-  currentWeekLabels = (data.weekLabels && data.weekLabels.length === 40) ? data.weekLabels : WEEK_LABELS;
+  currentWeekLabels = (data.weekLabels && data.weekLabels.length > 0) ? data.weekLabels : WEEK_LABELS;
 
   const weekSelect = document.getElementById('weekSelect');
   weekSelect.innerHTML = '';
@@ -646,7 +646,11 @@ function renderStudentList(students){
     gradeRow.style.cssText = 'display:flex; align-items:center; gap:8px; margin-top:8px;';
     const gradeToggle = document.createElement('div');
     gradeToggle.className = 'history-toggle';
-    gradeToggle.textContent = s.total >= 75 ? 'Mark complete / enter grade' : 'Enter grade (under 75 points)';
+    function toggleLabel(){
+      if(s.grade) return 'Graded: ' + s.grade + ' (tap to change or undo)';
+      return s.total >= 75 ? 'Mark complete / enter grade' : 'Enter grade (under 75 points)';
+    }
+    gradeToggle.textContent = toggleLabel();
     const gradeForm = document.createElement('div');
     gradeForm.style.cssText = 'display:none; flex-direction:column; gap:6px; margin-top:6px;';
 
@@ -696,6 +700,11 @@ function renderStudentList(students){
     gradeSaveBtn.style.alignSelf = 'flex-start';
     const gradeStatus = document.createElement('div');
     gradeStatus.className = 'save-status';
+    const undoBtn = document.createElement('button');
+    undoBtn.className = 'save-btn';
+    undoBtn.textContent = 'Undo completion';
+    undoBtn.style.cssText = 'align-self:flex-start; background:#a34b3f;';
+    undoBtn.style.display = s.grade ? '' : 'none';
 
     gradeToggle.onclick = function(){
       const isOpen = gradeForm.style.display === 'none';
@@ -711,7 +720,13 @@ function renderStudentList(students){
         gradeStatus.className = 'save-status err';
         return;
       }
-      if(s.total < 75 && !confirm('This student has ' + s.total + '/75 points, not yet 75. Enter the completion anyway?')) return;
+      let msg = s.grade
+        ? ('This student is already graded ' + s.grade + '. Replace it with the new grade?')
+        : ('Mark ' + s.first + ' ' + s.last + ' complete in this course?');
+      msg += '\n\nGrade: ' + g + '     Work Habits: ' + wh + '     Cooperation: ' + coop;
+      if(s.total < 75) msg += '\n\nNote: this student has only ' + s.total + ' / 75 points.';
+      msg += '\n\nYou can undo this from the same card for 24 hours.';
+      if(!confirm(msg)) return;
       gradeSaveBtn.disabled = true;
       gradeStatus.textContent = 'Saving...';
       gradeStatus.className = 'save-status';
@@ -720,10 +735,13 @@ function renderStudentList(students){
         .then(function(res){
           gradeSaveBtn.disabled = false;
           if(res.success){
-            gradeStatus.innerHTML = 'Saved - course marked complete.<br>' +
-              '<a href="https://docs.google.com/forms/d/e/1FAIpQLSc_AUhfsFpno8a4J7nqtqHiNVQqoy2F-S2bK-uhMIVI17dkFg/viewform" target="_blank" rel="noopener" style="color:var(--navy); font-weight:700;">Open the official Course Completion Form &#8594;</a>';
+            s.grade = g;
+            gradeStatus.innerHTML = (res.corrected ? 'Saved - grade corrected.' : 'Saved - course marked complete.') + '<br>' +
+              '<a href="https://docs.google.com/forms/d/e/1FAIpQLSc_AUhfsFpno8a4J7nqtqHiNVQqoy2F-S2bK-uhMIVI17dkFg/viewform" target="_blank" rel="noopener" style="color:var(--navy); font-weight:700;">Open the official Course Completion Form &#8594;</a>' +
+              '<br>Made a mistake? Use Undo completion (available for 24 hours).';
             gradeStatus.className = 'save-status ok';
-            gradeToggle.textContent = 'Graded: ' + g;
+            gradeToggle.textContent = toggleLabel();
+            undoBtn.style.display = '';
           } else {
             gradeStatus.textContent = res.error || 'Failed to save.';
             gradeStatus.className = 'save-status err';
@@ -739,7 +757,33 @@ function renderStudentList(students){
     gradeForm.appendChild(whSel.wrap);
     gradeForm.appendChild(coopSel.wrap);
     gradeForm.appendChild(notesWrap);
+    undoBtn.onclick = function(){
+      if(!confirm('Undo the completion for ' + s.first + ' ' + s.last + ' (grade ' + s.grade + ')?\n\nThe course goes back to in progress. Both the entry and this undo stay in the permanent record.')) return;
+      undoBtn.disabled = true;
+      gradeStatus.textContent = 'Undoing...';
+      gradeStatus.className = 'save-status';
+      apiGet({ mode:'undocompletion', code: myCode, tab: currentTab, first: s.first, last: s.last })
+        .then(function(res){
+          undoBtn.disabled = false;
+          if(res.success){
+            s.grade = '';
+            undoBtn.style.display = 'none';
+            gradeToggle.textContent = toggleLabel();
+            gradeStatus.textContent = 'Completion undone. This course is back to in progress.';
+            gradeStatus.className = 'save-status ok';
+          } else {
+            gradeStatus.textContent = res.error || 'Could not undo.';
+            gradeStatus.className = 'save-status err';
+          }
+        }).catch(function(){
+          undoBtn.disabled = false;
+          gradeStatus.textContent = 'Network error - try again.';
+          gradeStatus.className = 'save-status err';
+        });
+    };
+
     gradeForm.appendChild(gradeSaveBtn);
+    gradeForm.appendChild(undoBtn);
     gradeForm.appendChild(gradeStatus);
     gradeRow.appendChild(gradeToggle);
     card.appendChild(gradeRow);
@@ -806,7 +850,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v11-logo';
+document.getElementById('buildTag').textContent = 'v13';
 </script>
 </body>
-</html> 
+</html>
