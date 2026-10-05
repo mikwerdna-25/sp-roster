@@ -259,6 +259,44 @@
   }
   @keyframes spin{ to{ transform:rotate(360deg); } }
   .loading-text{ text-align:center; color:var(--muted); font-size:0.85rem; }
+
+  /* ===== Layout for different screens =====
+     Chosen by screen width and pointer type (CSS media queries), not by
+     guessing the device from its name - that is more reliable, and it adapts
+     when a window is resized or a tablet is rotated. */
+  .history-grid{ overflow-x:auto; }
+  .desktop-only{ display:none; }
+  .hint-tip{ font-size:0.74rem; color:var(--muted); margin:6px 0 10px; }
+
+  /* Phones and touch screens: bigger tap targets */
+  @media (pointer:coarse){
+    .save-btn{ padding:12px 16px; min-height:44px; }
+    .student-entry-row input{ min-height:44px; }
+    .class-row{ padding:15px 14px; }
+    select{ min-height:44px; }
+  }
+
+  /* Computers and large tablets: use the width */
+  @media (min-width:900px){
+    .wrap{ max-width:1100px; }
+    .sheet{ padding:24px 28px; }
+    #weekSelect{ max-width:240px; }
+    .search-box{ max-width:420px; }
+    #periodGroups{ display:grid; grid-template-columns:repeat(auto-fill, minmax(320px, 1fr)); gap:4px 22px; align-items:start; }
+    #studentList{ display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px 14px; align-items:start; }
+    #studentList .student-card{ margin-bottom:0; }
+    .class-row:hover, .search-result-row:hover{ background:var(--paper); }
+  }
+  @media (min-width:1350px){
+    #studentList{ grid-template-columns:repeat(3, minmax(0, 1fr)); }
+  }
+
+  /* Mouse + keyboard devices only */
+  @media (hover:hover) and (pointer:fine){
+    .desktop-only{ display:block; }
+    .save-btn:hover{ filter:brightness(1.1); }
+    .small-link:hover, .history-toggle:hover{ color:var(--gold); }
+  }
 </style>
 </head>
 <body>
@@ -304,6 +342,7 @@
         <div class="roster-title" id="rosterTitle"></div>
         <div class="roster-sub">Entering points for:</div>
         <select id="weekSelect" style="margin-top:4px;"></select>
+        <div class="hint-tip desktop-only">Tip: type a number and press Enter to save and jump to the next student.</div>
       </div>
       <div id="studentList"></div>
     </div>
@@ -479,6 +518,7 @@ function openClass(tab, highlightStudent){
     }
     renderRoster(data);
     showState('rosterState');
+    focusFirstEntry();
   });
 }
 
@@ -514,6 +554,7 @@ function renderStudentList(students){
   });
   const list = document.getElementById('studentList');
   list.innerHTML = '';
+  const entryInputs = [];
   students.forEach(function(s){
     const key = (s.first+'|'+s.last).toLowerCase();
     const card = document.createElement('div');
@@ -535,6 +576,14 @@ function renderStudentList(students){
     const input = document.createElement('input');
     input.type = 'number';
     input.placeholder = currentWeek;
+    entryInputs.push(input);
+    input.addEventListener('keydown', function(ev){
+      if(ev.key !== 'Enter') return;
+      ev.preventDefault();
+      saveBtn.click();
+      const idx = entryInputs.indexOf(input);
+      if(entryInputs[idx+1]) entryInputs[idx+1].focus();
+    });
     const saveBtn = document.createElement('button');
     saveBtn.className = 'save-btn';
     saveBtn.textContent = 'Save';
@@ -692,6 +741,19 @@ function renderStudentList(students){
 
     list.appendChild(card);
   });
+  focusFirstEntry();
+}
+
+// Computers only (mouse + keyboard): put the cursor in the first points box
+// so a teacher can start typing right away. Skipped on phones/tablets, where
+// it would pop up the on-screen keyboard unasked. Must run AFTER the roster
+// screen is visible - browsers ignore focus on hidden elements.
+function focusFirstEntry(){
+  if(!window.matchMedia('(hover:hover) and (pointer:fine)').matches) return;
+  const list = document.getElementById('studentList');
+  const hl = list.querySelector('.student-card.highlight input');
+  const first = hl || list.querySelector('input');
+  if(first) first.focus();
 }
 
 function loadStudentHistory(student, histGrid){
@@ -738,7 +800,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v9-student-id';
+document.getElementById('buildTag').textContent = 'v10-responsive';
 </script>
 </body>
 </html>
