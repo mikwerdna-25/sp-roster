@@ -34,6 +34,23 @@
   .course-sub{ font-size:0.78rem; color:var(--muted); margin-top:2px; }
   .course-actions{ display:flex; gap:10px; margin-top:8px; }
   .course-actions button{ font-size:0.78rem; padding:6px 10px; border-radius:6px; border:1px solid var(--rule); background:var(--paper); cursor:pointer; }
+  .igp-header{ border:2px solid var(--navy); border-radius:10px; padding:12px 14px; margin-bottom:14px; background:var(--paper); }
+  .igp-title{ font-family:Georgia, serif; font-weight:700; color:var(--navy); font-size:0.78rem; letter-spacing:0.06em; text-transform:uppercase; }
+  .igp-name{ font-weight:800; color:var(--navy); font-size:1.1rem; margin:2px 0 8px; }
+  .igp-credit-line{ display:flex; justify-content:space-between; font-size:0.85rem; font-weight:700; color:var(--ink); }
+  .igp-bar{ height:8px; background:var(--rule); border-radius:6px; overflow:hidden; margin-top:6px; }
+  .igp-bar > div{ height:100%; background:var(--green); }
+  .igp-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(290px, 1fr)); gap:10px; margin-bottom:6px; }
+  .igp-card{ border:1px solid var(--navy); border-radius:8px; overflow:hidden; background:#fff; }
+  .igp-card-head{ display:flex; justify-content:space-between; align-items:center; background:var(--navy); color:#fff; padding:6px 10px; font-size:0.74rem; font-weight:800; letter-spacing:0.04em; text-transform:uppercase; }
+  .igp-card-head .req{ font-weight:600; opacity:0.85; text-transform:none; letter-spacing:0; }
+  .igp-row{ display:grid; grid-template-columns:1fr 40px 54px; gap:6px; padding:5px 10px; border-bottom:1px solid var(--rule); font-size:0.8rem; align-items:baseline; }
+  .igp-row.colhead{ font-size:0.66rem; color:var(--muted); font-weight:700; text-transform:uppercase; background:var(--paper); }
+  .igp-row .sub{ display:block; font-size:0.66rem; color:var(--muted); }
+  .igp-row.failed{ color:var(--muted); }
+  .igp-row .mk, .igp-row .cr{ text-align:center; font-weight:700; }
+  .igp-foot{ display:flex; justify-content:space-between; padding:6px 10px; font-size:0.78rem; font-weight:800; background:var(--paper); }
+  .igp-sect{ font-size:0.78rem; font-weight:800; color:var(--navy); text-transform:uppercase; letter-spacing:0.05em; margin:18px 0 6px; }
   .student-row{ display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border:1px solid var(--rule); border-radius:6px; margin-bottom:6px; font-size:0.88rem; }
   .student-row button{ font-size:0.74rem; padding:4px 8px; border-radius:5px; border:1px solid var(--rule); background:var(--paper); cursor:pointer; }
   .spinner{ width:28px;height:28px; border:4px solid var(--rule); border-top-color:var(--gold); border-radius:50%; margin:16px auto; animation:spin 0.9s linear infinite; }
@@ -46,7 +63,7 @@
 <div class="wrap">
   <div class="sheet">
     <div class="school">Stoney Point High School<br>Counselor / Admin</div>
-    <div class="buildtag" id="buildTag">v6-igp-dashboard</div>
+    <div class="buildtag" id="buildTag">v7-igp-form</div>
 
     <div class="state active" id="loginState">
       <label>Your code</label>
@@ -115,18 +132,21 @@
 
     <div class="state" id="igpDetailState">
       <button class="btn-secondary" id="backFromIgpDetailBtn" style="margin-bottom:10px;">&lt; Back to student list</button>
-      <div style="font-weight:800; color:var(--navy); margin-bottom:14px;" id="igpStudentName"></div>
+      <div class="igp-header">
+        <div class="igp-title">Individual Graduation Plan (IGP)</div>
+        <div class="igp-name" id="igpStudentName"></div>
+        <div class="igp-credit-line"><span>CSU A-G + CDE/LAUSD Requirements</span><span id="igpCreditText"></span></div>
+        <div class="igp-bar"><div id="igpCreditBar" style="width:0%"></div></div>
+      </div>
 
-      <label>Courses In Progress</label>
+      <div id="igpTranscriptNote" class="hint" style="display:none; margin-bottom:8px;"></div>
+      <div class="igp-grid" id="igpCategoryGrid"></div>
+
+      <div class="igp-sect">Courses In Progress</div>
       <div id="igpInProgressList"></div>
 
-      <label style="margin-top:16px;">Completed Courses</label>
+      <div class="igp-sect">Completed at Stoney Point (points system)</div>
       <div id="igpCompletedList"></div>
-
-      <label style="margin-top:16px;">Transcript / Prior Courses</label>
-      <div id="igpTranscriptList">
-        <div class="loading-text">No transcript data loaded yet for this student.</div>
-      </div>
     </div>
 
     <div class="state" id="courseFormState">
@@ -504,46 +524,115 @@ function renderIgpStudentList(){
   });
 }
 
+// Requirements stated on the official IGP form (years x 10 credits). Health and
+// Ethnic Studies have no year count on the form, so no target is shown for them.
+const IGP_CATEGORY_META = {
+  'English':               { req: 40, label: 'English', years: '4 yrs', code: 'B' },
+  'Social Science':        { req: 20, label: 'Social Science', years: '2 yrs', code: 'A' },
+  'Math':                  { req: 30, label: 'Math', years: '3 yrs', code: 'C' },
+  'Lab Science':           { req: 20, label: 'Lab Science', years: '2 yrs', code: 'D' },
+  'Language (LOTE)':       { req: 20, label: 'Language (LOTE)', years: '2 yrs', code: 'E' },
+  'Visual/Performing Art': { req: 10, label: 'Visual/Perf Art', years: '1 yr', code: 'F' },
+  'College Prep Elective': { req: 10, label: 'College Prep Elective', years: '1 yr', code: 'G' },
+  'Physical Education':    { req: 20, label: 'Physical Education', years: '2 yrs', code: '' },
+  'Health':                { req: null, label: 'Health', years: '', code: '' },
+  'Ethnic Studies':        { req: null, label: 'Ethnic Studies', years: '', code: '' },
+  'General Elective':      { req: null, label: 'Electives', years: '', code: '' }
+};
+const IGP_TOTAL_CREDITS = 210;
+
+function mk(tag, cls, text){
+  const e = document.createElement(tag);
+  if(cls) e.className = cls;
+  if(text !== undefined) e.textContent = text;
+  return e;
+}
+
+function renderIgpCategories(tr){
+  const grid = document.getElementById('igpCategoryGrid');
+  const note = document.getElementById('igpTranscriptNote');
+  grid.innerHTML = '';
+  if(!tr || tr.error || !tr.hasData){
+    note.style.display = 'block';
+    note.textContent = (tr && tr.error) ? tr.error : 'No transcript data loaded yet for this student - category boxes will fill in once their transcript is imported.';
+    document.getElementById('igpCreditText').textContent = '- / ' + IGP_TOTAL_CREDITS;
+    document.getElementById('igpCreditBar').style.width = '0%';
+    return;
+  }
+  note.style.display = 'none';
+  const earned = tr.overallCredits;
+  document.getElementById('igpCreditText').textContent = 'Total Credits: ' + earned + ' / ' + IGP_TOTAL_CREDITS;
+  document.getElementById('igpCreditBar').style.width = Math.min(100, Math.round(earned / IGP_TOTAL_CREDITS * 100)) + '%';
+
+  tr.categories.forEach(function(cat){
+    const meta = IGP_CATEGORY_META[cat.category] || { req: null, label: cat.category, years: '', code: '' };
+    const card = mk('div', 'igp-card');
+    const head = mk('div', 'igp-card-head');
+    const left = mk('span', null, meta.label + (meta.years ? ' ' + meta.years : '') + (meta.code ? ' "' + meta.code + '"' : ''));
+    const right = mk('span', 'req', meta.req ? (cat.totalCredits + ' / ' + meta.req) : (cat.totalCredits + ' cr'));
+    head.appendChild(left); head.appendChild(right);
+    card.appendChild(head);
+
+    const colhead = mk('div', 'igp-row colhead');
+    colhead.appendChild(mk('span', null, 'Course'));
+    colhead.appendChild(mk('span', 'mk', 'Mark'));
+    colhead.appendChild(mk('span', 'cr', 'Credits'));
+    card.appendChild(colhead);
+
+    if(cat.courses.length === 0){
+      card.appendChild(mk('div', 'igp-row failed', 'No courses on record yet'));
+    }
+    cat.courses.forEach(function(r){
+      const row = mk('div', 'igp-row' + ((r.credit === 0) ? ' failed' : ''));
+      const t = mk('span', null, r.title);
+      t.appendChild(mk('span', 'sub', r.school + ' \u00b7 ' + r.termEnd));
+      row.appendChild(t);
+      row.appendChild(mk('span', 'mk', r.mark));
+      row.appendChild(mk('span', 'cr', String(r.credit)));
+      card.appendChild(row);
+    });
+
+    const foot = mk('div', 'igp-foot');
+    foot.appendChild(mk('span', null, 'Total Credits'));
+    foot.appendChild(mk('span', null, String(cat.totalCredits)));
+    card.appendChild(foot);
+    grid.appendChild(card);
+  });
+}
+
+function renderCourseRows(containerId, items, emptyText, rightFn){
+  const el = document.getElementById(containerId);
+  el.innerHTML = '';
+  if(items.length === 0){ el.appendChild(mk('div', 'loading-text', emptyText)); return; }
+  items.forEach(function(c){
+    const row = mk('div', 'student-row');
+    row.appendChild(mk('span', null, c.courseTitle));
+    row.appendChild(mk('span', null, rightFn(c)));
+    el.appendChild(row);
+  });
+}
+
 function openIgpDetail(student){
   showLoading('Loading IGP...');
-  apiGet({ mode:'adminviewstudent', code: myCode, first: student.first, last: student.last }).then(function(data){
+  Promise.all([
+    apiGet({ mode:'adminviewstudent', code: myCode, first: student.first, last: student.last }),
+    apiGet({ mode:'admingettranscript', code: myCode, studentId: student.id })
+  ]).then(function(results){
+    const data = results[0];
+    const tr = results[1];
     if(data.error){
       alert(data.error);
       showState('igpStudentListState');
       return;
     }
     document.getElementById('igpStudentName').textContent = student.first + ' ' + student.last + ' (' + student.id + ')';
-
-    const inProgressEl = document.getElementById('igpInProgressList');
-    inProgressEl.innerHTML = '';
-    if(data.inProgress.length === 0){
-      inProgressEl.innerHTML = '<div class="loading-text">No courses in progress.</div>';
-    }
-    data.inProgress.forEach(function(c){
-      const row = document.createElement('div');
-      row.className = 'student-row';
-      row.innerHTML = '<span>' + c.courseTitle + '</span><span>' + c.total + ' / 75</span>';
-      inProgressEl.appendChild(row);
-    });
-
-    const completedEl = document.getElementById('igpCompletedList');
-    completedEl.innerHTML = '';
-    if(data.completed.length === 0){
-      completedEl.innerHTML = '<div class="loading-text">No completed courses yet.</div>';
-    }
-    data.completed.forEach(function(c){
-      const row = document.createElement('div');
-      row.className = 'student-row';
-      row.innerHTML = '<span>' + c.courseTitle + '</span><span>Grade: ' + c.grade + '</span>';
-      completedEl.appendChild(row);
-    });
-
-    // Transcript / prior courses: no data source yet - stays as the
-    // placeholder already in the HTML until transcript data is provided.
-    document.getElementById('igpTranscriptList').innerHTML =
-      '<div class="loading-text">No transcript data loaded yet for this student.</div>';
-
+    renderIgpCategories(tr);
+    renderCourseRows('igpInProgressList', data.inProgress, 'No courses in progress.', function(c){ return c.total + ' / 75'; });
+    renderCourseRows('igpCompletedList', data.completed, 'No completed courses yet.', function(c){ return 'Grade: ' + c.grade; });
     showState('igpDetailState');
+  }).catch(function(){
+    alert('Could not load this IGP. Check your connection and try again.');
+    showState('igpStudentListState');
   });
 }
 
