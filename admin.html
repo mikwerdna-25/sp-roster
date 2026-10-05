@@ -46,7 +46,7 @@
 <div class="wrap">
   <div class="sheet">
     <div class="school">Stoney Point High School<br>Counselor / Admin</div>
-    <div class="buildtag" id="buildTag">v2-view-student-grades</div>
+    <div class="buildtag" id="buildTag">v3-archive-student</div>
 
     <div class="state active" id="loginState">
       <label>Your code</label>
@@ -71,6 +71,15 @@
         <input type="text" id="viewStudentLast" placeholder="Last name" style="margin-bottom:0;">
       </div>
       <button class="btn-primary" id="viewStudentBtn">View student</button>
+
+      <label>Archive a student (disenrolled)</label>
+      <div style="display:flex; gap:8px;">
+        <input type="text" id="archiveStudentFirst" placeholder="First name" style="margin-bottom:0;">
+        <input type="text" id="archiveStudentLast" placeholder="Last name" style="margin-bottom:0;">
+      </div>
+      <button class="btn-primary btn-danger" id="archiveStudentBtn">Archive student from all classes</button>
+      <div class="hint">Removes them from every current class at once. Their point history is always kept, never deleted.</div>
+
       <div id="courseList" style="margin-top:14px;"></div>
     </div>
 
@@ -380,6 +389,23 @@ document.getElementById('viewStudentBtn').onclick = function(){
   });
 };
 document.getElementById('backFromStudentViewBtn').onclick = function(){ showState('courseListState'); };
+
+// ---- Archive a student entirely (disenrolled) ----
+document.getElementById('archiveStudentBtn').onclick = function(){
+  const first = document.getElementById('archiveStudentFirst').value.trim();
+  const last = document.getElementById('archiveStudentLast').value.trim();
+  if(!first || !last) return;
+  if(!confirm('Archive ' + first + ' ' + last + ' from ALL their current classes? Their point history stays on record, but they will no longer appear as actively enrolled anywhere.')) return;
+  apiGet({ mode:'adminarchivestudent', code: myCode, first: first, last: last }).then(function(res){
+    if(res.success){
+      alert('Archived from ' + res.archivedFrom.length + ' class(es):\n' + res.archivedFrom.join('\n'));
+      document.getElementById('archiveStudentFirst').value = '';
+      document.getElementById('archiveStudentLast').value = '';
+    } else {
+      alert(res.error || 'Could not archive student.');
+    }
+  });
+};
 </script>
 </body>
 </html>
