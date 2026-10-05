@@ -654,7 +654,8 @@ function renderStudentList(students){
         .then(function(res){
           gradeSaveBtn.disabled = false;
           if(res.success){
-            gradeStatus.textContent = 'Saved - course marked complete.';
+            gradeStatus.innerHTML = 'Saved - course marked complete.<br>' +
+              '<a href="https://docs.google.com/forms/d/e/1FAIpQLSc_AUhfsFpno8a4J7nqtqHiNVQqoy2F-S2bK-uhMIVI17dkFg/viewform" target="_blank" rel="noopener" style="color:var(--navy); font-weight:700;">Open the official Course Completion Form &#8594;</a>';
             gradeStatus.className = 'save-status ok';
             gradeToggle.textContent = 'Graded: ' + g;
           } else {
@@ -726,7 +727,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v5-full-completion-form';
+document.getElementById('buildTag').textContent = 'v6-form-link';
 </script>
 </body>
 </html>
