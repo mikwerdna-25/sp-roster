@@ -508,6 +508,10 @@ function renderRoster(data){
 }
 
 function renderStudentList(students){
+  students = students.slice().sort(function(a,b){
+    const lastCmp = a.last.localeCompare(b.last);
+    return lastCmp !== 0 ? lastCmp : a.first.localeCompare(b.first);
+  });
   const list = document.getElementById('studentList');
   list.innerHTML = '';
   students.forEach(function(s){
@@ -519,7 +523,7 @@ function renderStudentList(students){
     top.className = 'student-top';
     const name = document.createElement('div');
     name.className = 'student-name';
-    name.textContent = s.first + ' ' + s.last;
+    name.textContent = s.first + ' ' + s.last + (s.studentId ? ' (' + s.studentId + ')' : '');
     const total = document.createElement('div');
     total.className = 'student-total';
     total.textContent = 'Total: ' + s.total + ' / 75';
@@ -734,7 +738,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v7-current-week-default';
+document.getElementById('buildTag').textContent = 'v9-student-id';
 </script>
 </body>
 </html>
