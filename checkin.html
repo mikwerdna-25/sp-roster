@@ -159,7 +159,7 @@
 
 <div class="sheet">
   <div class="school">Stoney Point High School<br>Daily Check-In</div>
-  <div style="text-align:center; font-size:0.65rem; color:var(--muted); margin-top:-14px; margin-bottom:14px;">v9-onsite-only</div>
+  <div style="text-align:center; font-size:0.65rem; color:var(--muted); margin-top:-14px; margin-bottom:14px;">v8-no-double-checkin</div>
 
   <div class="state active" id="loadingState">
     <div class="spinner"></div>
@@ -177,7 +177,6 @@
     <div class="avatar" id="confirmAvatar"></div>
     <div id="confirmName"></div>
     <div id="confirmSub">Is this you?</div>
-    <div style="font-size:0.72rem; color:var(--muted); margin:6px 0 10px;">Your phone will ask to share your location once, just to confirm you're at school. It is not saved.</div>
     <button class="btn-primary" id="confirmBtn">Check me in</button>
     <div style="font-size:0.72rem; color:var(--muted); margin-top:8px;">If this isn't your name, tell your teacher - don't check in as someone else.</div>
   </div>
@@ -235,46 +234,22 @@ function showConfirm(first, last){
   showState('confirmState');
 }
 
-function showError(msg, hideRetry){
+function showError(msg){
   document.getElementById('errorMsg').textContent = msg;
-  document.getElementById('retryBtn').style.display = hideRetry ? 'none' : '';
   showState('errorState');
 }
 
-// Asks the phone where it is, once. Resolves with {lat,lng,acc} or {} if it can't/won't say.
-// Coordinates are rounded to about 100 m before they leave the phone, and the server only uses
-// them to compare against the school's location - they are not saved anywhere.
-function getLocation(){
-  return new Promise(function(resolve){
-    if(!navigator.geolocation){ resolve({}); return; }
-    navigator.geolocation.getCurrentPosition(function(pos){
-      resolve({
-        lat: (Math.round(pos.coords.latitude * 1000) / 1000).toString(),
-        lng: (Math.round(pos.coords.longitude * 1000) / 1000).toString(),
-        acc: Math.round(pos.coords.accuracy || 0).toString()
-      });
-    }, function(){ resolve({}); }, { enableHighAccuracy:true, timeout:12000, maximumAge:30000 });
-  });
-}
-
 function submitCheckin(first, last){
-  // The Apps Script checks the time and the distance from school, writes the row,
-  // computes the streak, and sends everything back in ONE response.
-  return getLocation().then(function(loc){
-    var q = { mode:'submit', first:first, last:last, _:Date.now() };
-    if(loc.lat){ q.lat = loc.lat; q.lng = loc.lng; q.acc = loc.acc; }
-    var params = new URLSearchParams(q);
-    return fetch(ROSTER_ENDPOINT_URL + '?' + params.toString(), { cache:'no-store' });
-  }).then(function(res){
+  // This calls our own Apps Script, which writes the row directly,
+  // computes the streak, and sends both back in ONE response - no
+  // second network call needed to show the streak.
+  var params = new URLSearchParams({ mode:'submit', first:first, last:last, _:Date.now() });
+  return fetch(ROSTER_ENDPOINT_URL + '?' + params.toString(), { cache:'no-store' })
+    .then(function(res){
       if(!res.ok) throw new Error('Request failed: ' + res.status);
       return res.json();
     })
     .then(function(data){
-      if(data && data.rejected){
-        var e = new Error(data.error || 'Check-in was not allowed.');
-        e.rejected = true; e.code = data.code;
-        throw e;
-      }
       if(!data || data.success !== true){
         throw new Error((data && data.error) || 'Check-in was not confirmed.');
       }
@@ -306,7 +281,7 @@ document.getElementById('confirmBtn').onclick = function(){
   if(!identity) return;
   var btn = document.getElementById('confirmBtn');
   btn.disabled = true;
-  btn.textContent = 'Checking your location...';
+  btn.textContent = 'Checking in...';
   submitCheckin(identity.first, identity.last).then(function(data){
     document.getElementById('successName').textContent = identity.first + ' ' + identity.last;
     var when = new Date();
@@ -332,11 +307,7 @@ document.getElementById('confirmBtn').onclick = function(){
     }
     showState('successState');
   }).catch(function(err){
-    if(err && err.rejected){
-      showError(err.message, err.code === 'closed'); // closed hours: nothing to retry
-    } else {
-      showError("Couldn't submit your check-in. Check your connection and try again.");
-    }
+    showError("Couldn't submit your check-in. Check your connection and try again.");
   }).finally(function(){
     btn.disabled = false;
     btn.textContent = 'Check me in';
