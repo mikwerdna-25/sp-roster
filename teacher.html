@@ -137,6 +137,8 @@
   .search-empty{ padding:12px; color:var(--muted); font-size:0.85rem; }
 
   .period-group{ margin-bottom:18px; }
+  .class-row.all-students{ font-weight:700; background:var(--paper); border-style:dashed; }
+  .student-course{ font-size:0.78rem; color:var(--muted); margin:-2px 0 6px; }
   .period-label{
     font-size:0.72rem;
     font-weight:800;
@@ -501,6 +503,14 @@ function renderClassList(){
     label.className = 'period-label';
     label.textContent = 'Period ' + period;
     group.appendChild(label);
+    if(byPeriod[period].length > 1){
+      // A period with several courses also gets one alphabetical list of everyone in it.
+      const allRow = document.createElement('div');
+      allRow.className = 'class-row all-students';
+      allRow.textContent = 'All students in Period ' + period + ' (A\u2013Z)';
+      allRow.onclick = function(){ openPeriod(period); };
+      group.appendChild(allRow);
+    }
     byPeriod[period].forEach(function(c){
       const row = document.createElement('div');
       row.className = 'class-row';
@@ -565,6 +575,46 @@ function openClass(tab, highlightStudent){
   });
 }
 
+// ---- Whole period, alphabetical: every student from every course in one period ----
+function openPeriod(period){
+  const classes = myClasses.filter(function(c){ return c.period === period; });
+  currentTab = null;
+  highlightStudentKey = null;
+  showLoading('Loading Period ' + period + '...');
+  Promise.all(classes.map(function(c){
+    return apiGet({ mode:'classroster', code: myCode, tab: c.tab }).then(function(d){ return { c: c, d: d }; })
+      .catch(function(){ return { c: c, d: { error: 'Could not reach the server.' } }; });
+  })).then(function(results){
+    const ok = results.filter(function(r){ return !r.d.error; });
+    const failed = results.filter(function(r){ return r.d.error; });
+    if(ok.length === 0){
+      alert(failed[0] ? failed[0].d.error : 'Could not load this period.');
+      showState('classListState');
+      return;
+    }
+    if(failed.length){
+      alert('Some courses in this period could not be loaded and are not shown: ' + failed.map(function(r){ return r.c.title; }).join(', ') + '. Go back and try again.');
+    }
+    const merged = [];
+    ok.forEach(function(r){
+      const courseName = String(r.d.title || r.c.title).replace(/\s*\([^)]*\)\s*$/, '');
+      (r.d.students || []).forEach(function(s){
+        s._tab = r.c.tab;
+        s._course = courseName;
+        merged.push(s);
+      });
+    });
+    renderRoster({
+      title: 'Period ' + period + ' \u2014 all students (A\u2013Z)',
+      weekLabels: ok[0].d.weekLabels,
+      currentWeekLabel: ok[0].d.currentWeekLabel,
+      students: merged
+    });
+    showState('rosterState');
+    focusFirstEntry();
+  });
+}
+
 function renderRoster(data){
   document.getElementById('rosterTitle').textContent = data.title;
   currentWeekLabels = (data.weekLabels && data.weekLabels.length > 0) ? data.weekLabels : WEEK_LABELS;
@@ -613,6 +663,13 @@ function renderStudentList(students){
     total.textContent = 'Total: ' + s.total + ' / 75';
     top.appendChild(name); top.appendChild(total);
     card.appendChild(top);
+    if(s._course){
+      // Shown in the whole-period view so you can tell which course each student is in.
+      const courseLine = document.createElement('div');
+      courseLine.className = 'student-course';
+      courseLine.textContent = s._course;
+      card.appendChild(courseLine);
+    }
 
     const entryRow = document.createElement('div');
     entryRow.className = 'student-entry-row';
@@ -639,7 +696,7 @@ function renderStudentList(students){
       saveBtn.disabled = true;
       status.textContent = 'Saving...';
       status.className = 'save-status';
-      apiGet({ mode:'submitpoints', code: myCode, tab: currentTab, first: s.first, last: s.last, week: currentWeek, value: val })
+      apiGet({ mode:'submitpoints', code: myCode, tab: (s._tab || currentTab), first: s.first, last: s.last, week: currentWeek, value: val })
         .then(function(res){
           saveBtn.disabled = false;
           if(res.success){
@@ -775,7 +832,7 @@ function renderStudentList(students){
       gradeSaveBtn.disabled = true;
       gradeStatus.textContent = 'Saving...';
       gradeStatus.className = 'save-status';
-      apiGet({ mode:'submitgrade', code: myCode, tab: currentTab, first: s.first, last: s.last,
+      apiGet({ mode:'submitgrade', code: myCode, tab: (s._tab || currentTab), first: s.first, last: s.last,
         grade: g, workHabits: wh, cooperation: coop, notes: notes })
         .then(function(res){
           gradeSaveBtn.disabled = false;
@@ -807,7 +864,7 @@ function renderStudentList(students){
       undoBtn.disabled = true;
       gradeStatus.textContent = 'Undoing...';
       gradeStatus.className = 'save-status';
-      apiGet({ mode:'undocompletion', code: myCode, tab: currentTab, first: s.first, last: s.last })
+      apiGet({ mode:'undocompletion', code: myCode, tab: (s._tab || currentTab), first: s.first, last: s.last })
         .then(function(res){
           undoBtn.disabled = false;
           if(res.success){
@@ -960,7 +1017,7 @@ let igpReturnScroll = 0;
 function openStudentIgp(s){
   igpReturnScroll = window.scrollY || 0;
   showLoading('Loading IGP...');
-  apiGet({ mode:'teachergetigp', code: myCode, tab: currentTab, studentId: s.studentId || '', first: s.first, last: s.last })
+  apiGet({ mode:'teachergetigp', code: myCode, tab: (s._tab || currentTab), studentId: s.studentId || '', first: s.first, last: s.last })
     .then(function(d){
       if(d.error){ alert(d.error); showState('rosterState'); window.scrollTo(0, igpReturnScroll); return; }
       document.getElementById('igpStudentName').textContent =
@@ -1011,7 +1068,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v14';
+document.getElementById('buildTag').textContent = 'v15';
 </script>
 </body>
 </html>
