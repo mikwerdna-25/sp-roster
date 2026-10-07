@@ -767,7 +767,7 @@
   🏷️ Badges next to a student's name flag attendance patterns: <b style="color:#a34b3f;">!! chronic</b> (10%+ absent), <b style="color:#d97706;">! streak</b> (3+ absences in a row), <b style="color:#2f5c2c;">&check; streak</b> (5+ present in a row). Tap-and-hold a badge to see the exact numbers.
 </div>
 <div class="camera-note" style="background:#eef2fa; border-color:#5b7a9d;">
-  🔄 A small blue ring + arrow on today's attendance circle means <b>the spreadsheet sync overrode</b> what was there before. The spreadsheet always wins on sync &mdash; tap the circle to change it manually if the sync got it wrong.
+  🔄 A small blue ring + arrow on today's attendance circle means <b>the spreadsheet sync overrode</b> what was there before. The spreadsheet wins on sync <i>unless you marked them by hand after their check-in</i> &mdash; if you mark someone Absent after they checked in (say, a remote check-in), your mark stays. Tap the circle any time to change it.
 </div>
 <div class="camera-note" style="background:#fef6ea; border-color:#d97706;">
   ❓ A small orange dashed ring + ? means <b>you marked them Present but the spreadsheet has no check-in for them</b> &mdash; your mark is kept as-is, this is just a nudge to double check. Tap the circle to clear it once you've confirmed.
@@ -1083,7 +1083,7 @@
 <input type="file" id="photoInput" accept="image/*" style="display:none;">
 
 <script>
-const APP_BUILD = 'build-30-collapsible-tips';
+const APP_BUILD = 'build-31-manual-marks-win';
 const GRADE_COLORS = {9:'g9',10:'g10',11:'g11',12:'g12'};
 const AVATAR_HUES = ['#5b7a9d','#6f8f5b','#b8862f','#a34b3f','#7a6a9d','#4a8f8f'];
 
@@ -1111,9 +1111,15 @@ function ensureProfileFields(s){
   if(typeof s.needs !== 'string') s.needs = '';
   if(!s.attendanceDiscrepancies || typeof s.attendanceDiscrepancies !== 'object') s.attendanceDiscrepancies = {};
   if(!s.attendanceNoCheckin || typeof s.attendanceNoCheckin !== 'object') s.attendanceNoCheckin = {};
+  if(!s.attendanceManual || typeof s.attendanceManual !== 'object') s.attendanceManual = {}; // date -> ISO time you last set it by hand
   if(typeof s.enrollmentDate !== 'string') s.enrollmentDate = null; // null = unknown/no restriction (pre-dates this feature)
   return s;
 }
+
+// Remembers WHEN a person marked a date by hand. A sheet sync only overrides that mark if the
+// student checked in AFTER it (new information) - an earlier check-in can't undo your decision.
+function markManual(s, date){ ensureProfileFields(s); s.attendanceManual[date] = new Date().toISOString(); }
+function clearManual(s, date){ ensureProfileFields(s); delete s.attendanceManual[date]; }
 
 // Attendance pattern thresholds - adjustable if these don't fit your needs.
 const CHRONIC_ABSENCE_RATE = 0.10;   // California's own chronic-absenteeism threshold: 10%+ of days
@@ -1410,8 +1416,8 @@ function render(){
       const order = ['present','absent','tardy',undefined];
       const current = s.attendance[todayStr()];
       const next = order[(order.indexOf(current)+1) % order.length];
-      if(next===undefined) delete s.attendance[todayStr()];
-      else s.attendance[todayStr()] = next;
+      if(next===undefined){ delete s.attendance[todayStr()]; clearManual(s, todayStr()); }
+      else { s.attendance[todayStr()] = next; markManual(s, todayStr()); }
       delete s.attendanceDiscrepancies[todayStr()]; // manual edit clears the sync-override flag
       delete s.attendanceNoCheckin[todayStr()]; // and clears the no-checkin flag too
       await saveOne(s);
@@ -1732,6 +1738,7 @@ function renderAttendanceSection(s){
       }
       b.onclick=async ()=>{
         s.attendance[d]=status;
+        markManual(s, d);
         delete s.attendanceDiscrepancies[d];
         await saveOne(s);
         renderAttendanceSection(s);
@@ -1744,6 +1751,7 @@ function renderAttendanceSection(s){
     delBtn.style.cssText='font-family:inherit;font-size:0.75rem;padding:2px 7px;border-radius:3px;cursor:pointer;border:1px solid var(--rule);background:#fff;color:#a34b3f;';
     delBtn.onclick=async ()=>{
       delete s.attendance[d];
+      clearManual(s, d);
       delete s.attendanceDiscrepancies[d];
       await saveOne(s);
       renderAttendanceSection(s);
@@ -1922,7 +1930,8 @@ function renderRollList(){
       if(current===status) b.classList.add('active-'+status);
       b.onclick=async ()=>{
         s.attendance[date] = (s.attendance[date]===status) ? undefined : status;
-        if(s.attendance[date]===undefined) delete s.attendance[date];
+        if(s.attendance[date]===undefined){ delete s.attendance[date]; clearManual(s, date); }
+        else markManual(s, date);
         await saveOne(s);
         renderRollList();
         render();
@@ -2271,11 +2280,21 @@ function findPartialNameMatch(checkinFirst, checkinLast, candidates){
 // Core matching step for one date's check-ins - no dialogs, safe to call in a loop.
 // Applies 'present' status + discrepancy/no-checkin tracking. Does NOT do the
 // "mark rest absent" sweep - that's a separate, optional step (see applyAbsentSweep).
+// When a check-in row happened, in ms. Unknown time counts as 'later than any manual mark',
+// i.e. the old behaviour (the sheet wins), so a parsing problem can never block a real check-in.
+function checkinMs(c){
+  if(typeof c.ms === 'number' && isFinite(c.ms)) return c.ms;
+  const t = Date.parse(c.timestamp);
+  return isNaN(t) ? Infinity : t;
+}
+
 function matchCheckinsForDate(checkins, date){
   const byName = new Map();
   students.forEach(s=>{ ensureProfileFields(s); byName.set(normalizeName(s.first)+'|'+normalizeName(s.last), s); });
 
   const matchedIds = new Set();
+  const matchedStudents = new Map();   // student id -> student
+  const latestMs = new Map();          // student id -> time of their most recent check-in row
   const unmatchedNames = [];
   const fuzzyMatches = [];
   const surnameMatches = [];
@@ -2287,7 +2306,8 @@ function matchCheckinsForDate(checkins, date){
     if(oldStatus && oldStatus !== newStatus){
       discrepancies.push({name:`${s.first} ${s.last}`, oldStatus, newStatus});
       s.attendanceDiscrepancies[date] = { old:oldStatus, new:newStatus, at:new Date().toISOString() };
-    } else {
+      delete s.attendanceManual[date]; // the sheet had newer information than your mark
+    } else if(!oldStatus){
       delete s.attendanceDiscrepancies[date];
     }
     s.attendance[date] = newStatus;
@@ -2307,9 +2327,26 @@ function matchCheckinsForDate(checkins, date){
       const fuzzy = findBestFuzzyMatch(c.first, c.last, remaining);
       if(fuzzy){ s = fuzzy.student; fuzzyMatches.push({checkinName:`${c.first} ${c.last}`, matchedName:`${s.first} ${s.last}`, distance:fuzzy.distance}); }
     }
-    if(s){ applyStatus(s, 'present'); matchedIds.add(s.id); }
+    if(s){
+      matchedIds.add(s.id); matchedStudents.set(s.id, s);
+      const t = checkinMs(c);
+      latestMs.set(s.id, latestMs.has(s.id) ? Math.max(latestMs.get(s.id), t) : t);
+    }
     else unmatchedNames.push(`${c.first} ${c.last}`);
   }
+
+  // Apply Present - except where you marked someone Absent/Tardy by hand AFTER their last
+  // check-in on the sheet. That mark stands (they're listed in heldBack so you can see it).
+  const heldBack = [];
+  matchedStudents.forEach((s, id)=>{
+    const manualAt = Date.parse(s.attendanceManual[date] || '');
+    const cur = s.attendance[date];
+    if(!isNaN(manualAt) && cur && cur !== 'present' && !(latestMs.get(id) > manualAt)){
+      heldBack.push({ name:`${s.first} ${s.last}`, status:cur });
+      return;
+    }
+    applyStatus(s, 'present');
+  });
 
   const presentNoCheckin = [];
   students.forEach(s=>{
@@ -2326,7 +2363,7 @@ function matchCheckinsForDate(checkins, date){
     }
   });
 
-  return { matchedIds, unmatchedNames, fuzzyMatches, surnameMatches, discrepancies, presentNoCheckin, idsToSave };
+  return { matchedIds, unmatchedNames, fuzzyMatches, surnameMatches, discrepancies, presentNoCheckin, idsToSave, heldBack };
 }
 
 // Optional second step: mark everyone not covered by a check-in as Absent.
@@ -2386,9 +2423,9 @@ document.getElementById('syncCheckinBtn').onclick=async ()=>{
       return;
     }
 
-    const { matchedIds, unmatchedNames, fuzzyMatches, surnameMatches, discrepancies, presentNoCheckin, idsToSave } = matchCheckinsForDate(checkins, date);
+    const { matchedIds, unmatchedNames, fuzzyMatches, surnameMatches, discrepancies, presentNoCheckin, idsToSave, heldBack } = matchCheckinsForDate(checkins, date);
 
-    let summaryMsg = `Found ${checkins.length} check-in row(s) on the sheet for ${date}, matching ${matchedIds.size} unique student(s) on your roster (some students may have submitted more than once). The spreadsheet will override any conflicting entry you already had.\n\n`;
+    let summaryMsg = `Found ${checkins.length} check-in row(s) on the sheet for ${date}, matching ${matchedIds.size} unique student(s) on your roster (some students may have submitted more than once). The spreadsheet will override a conflicting entry only if the check-in came after you marked it.\n\n`;
     if(surnameMatches.length){
       summaryMsg += `Matched by partial name (first or last name shortened):\n` +
         surnameMatches.map(f=>`  "${f.checkinName}" \u2192 ${f.matchedName}`).join('\n') + '\n\n';
@@ -2400,6 +2437,10 @@ document.getElementById('syncCheckinBtn').onclick=async ()=>{
     if(discrepancies.length){
       summaryMsg += `\u26A0\uFE0E Overrode ${discrepancies.length} existing entr${discrepancies.length===1?'y':'ies'} (spreadsheet took priority):\n` +
         discrepancies.map(d=>`  ${d.name}: was ${d.oldStatus} \u2192 now ${d.newStatus}`).join('\n') + '\n\n';
+    }
+    if(heldBack.length){
+      summaryMsg += `Kept YOUR mark (the sheet's check-in came before you changed it):\n` +
+        heldBack.map(h=>`  ${h.name}: stays ${h.status}`).join('\n') + '\n\n';
     }
     if(presentNoCheckin.length){
       summaryMsg += `Marked Present but no check-in found for them today:\n` +
