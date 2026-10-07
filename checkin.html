@@ -159,7 +159,7 @@
 
 <div class="sheet">
   <div class="school">Stoney Point High School<br>Daily Check-In</div>
-  <div style="text-align:center; font-size:0.65rem; color:var(--muted); margin-top:-14px; margin-bottom:14px;">v6-code-only-no-picker</div>
+  <div style="text-align:center; font-size:0.65rem; color:var(--muted); margin-top:-14px; margin-bottom:14px;">v7-no-double-checkin</div>
 
   <div class="state active" id="loadingState">
     <div class="spinner"></div>
@@ -185,7 +185,8 @@
     <div class="check">&check;</div>
     <div id="successName"></div>
     <div id="successTime"></div>
-    <div style="font-size:0.78rem; color:var(--green); font-weight:700; margin-top:4px;">&check; Saved to today's attendance sheet</div>
+    <div id="alreadyNote" style="display:none; margin-top:8px; font-size:0.9rem; font-weight:700; color:var(--navy);"></div>
+    <div id="savedNote" style="font-size:0.78rem; color:var(--green); font-weight:700; margin-top:4px;">&check; Saved to today's attendance sheet</div>
     <div id="streakBadge" style="display:none; margin:14px 0; padding:12px; background:#fdf2df; border-radius:8px; border:1px solid var(--gold);">
       <div id="streakNumber" style="font-size:1.4rem; font-weight:800; color:var(--navy);"></div>
       <div id="streakNote" style="font-size:0.85rem; color:var(--ink); margin-top:4px;"></div>
@@ -283,7 +284,17 @@ document.getElementById('confirmBtn').onclick = function(){
   btn.textContent = 'Checking in...';
   submitCheckin(identity.first, identity.last).then(function(data){
     document.getElementById('successName').textContent = identity.first + ' ' + identity.last;
-    document.getElementById('successTime').textContent = new Date().toLocaleString([], {weekday:'short', hour:'2-digit', minute:'2-digit'});
+    var when = new Date();
+    if(data && data.alreadyCheckedIn && data.timestamp){
+      var parsed = new Date(data.timestamp);
+      if(!isNaN(parsed.getTime())) when = parsed;
+    }
+    document.getElementById('successTime').textContent = when.toLocaleString([], {weekday:'short', hour:'2-digit', minute:'2-digit'});
+    var already = !!(data && data.alreadyCheckedIn);
+    var note = document.getElementById('alreadyNote');
+    note.style.display = already ? 'block' : 'none';
+    note.textContent = already ? "You're already checked in today - no need to scan again." : '';
+    document.getElementById('savedNote').style.display = already ? 'none' : 'block';
     var streak = (data && typeof data.streak === 'number') ? data.streak : 0;
     if(streak >= 1){
       document.getElementById('streakNumber').textContent = streak + (streak===1 ? ' day' : ' days') + ' on campus in a row';
