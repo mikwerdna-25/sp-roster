@@ -325,6 +325,16 @@
   .igp-sect{ font-size:0.78rem; font-weight:800; color:var(--navy); text-transform:uppercase; letter-spacing:0.05em; margin:18px 0 6px; }
   .student-row{ display:flex; justify-content:space-between; align-items:center; gap:8px; padding:8px 10px; border:1px solid var(--rule); border-radius:6px; margin-bottom:6px; font-size:0.88rem; }
   #studentPick{ width:100%; padding:11px 12px; border:1px solid var(--rule); border-radius:8px; font-size:1rem; font-family:inherit; background:#fff; }
+  .student-card-ro{ padding:12px 14px; }
+  .ro-sub{ font-size:0.76rem; color:var(--muted); }
+  .ro-head{ font-size:0.74rem; font-weight:800; text-transform:uppercase; letter-spacing:0.05em; color:var(--navy); margin:12px 0 4px; }
+  .ro-class{ display:flex; gap:10px; align-items:center; padding:6px 0; border-bottom:1px solid var(--rule); font-size:0.88rem; }
+  .mine-tag{ font-size:0.66rem; background:var(--gold); color:#fff; border-radius:4px; padding:1px 5px; vertical-align:middle; }
+  .wk-chips{ display:flex; gap:6px; flex-wrap:wrap; }
+  .wk-chip{ border-radius:8px; padding:6px 8px; min-width:62px; text-align:center; border:1px solid var(--rule); }
+  .wk-chip .wk-l{ font-size:0.68rem; color:var(--muted); } .wk-chip .wk-v{ font-weight:800; font-size:1rem; } .wk-chip .wk-s{ font-size:0.62rem; }
+  .chip-hr{ background:#e8f0e2; border-color:#9bb88a; } .chip-hr .wk-s{ color:var(--green); font-weight:700; }
+  .chip-p{ background:#f7e9e6; border-color:#d9a69c; } .chip-p .wk-s{ color:#a34b3f; font-weight:700; }
 </style>
 </head>
 <body>
@@ -541,36 +551,62 @@ function loadStudentPick(){
     });
   }).catch(function(){ sel.innerHTML = '<option value="">Could not load students - check your connection</option>'; });
 }
+function hEsc(t){ return String(t == null ? '' : t).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function ptsFmt(v){ return (Math.round(v * 100) / 100).toString(); }
+// Read-only student card: any student in the school. Editing stays limited to your own classes.
+function renderStudentCard(el, d, pickEl){
+  const st = d.student;
+  let html = '<div class="student-card-ro"><div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;">' +
+    '<div style="font-weight:800;color:var(--navy);">' + hEsc(st.first + ' ' + st.last) + '</div>' +
+    '<button class="small-link" id="closeStudentCard">Close</button></div>' +
+    (st.id ? '<div class="ro-sub">Student ID ' + hEsc(st.id) + '</div>' : '') +
+    '<div class="ro-sub" style="margin-bottom:8px;">View only &mdash; you can enter points only in your own classes.</div>';
+  // weekly points across all classes, last 5 weeks up to the current one
+  const cw = Math.max(1, Math.min(d.weeks.length, d.currentWeek || 1));
+  const from = Math.max(1, cw - 4);
+  let chips = '';
+  for(let w = from; w <= cw; w++){
+    const v = d.weeks[w - 1];
+    const live = w === d.currentWeek;
+    const cls = v === null ? 'chip-none' : (v >= d.honorMin ? 'chip-hr' : 'chip-p');
+    chips += '<div class="wk-chip ' + cls + '"><div class="wk-l">Wk ' + w + (live ? '*' : '') + '</div><div class="wk-v">' + (v === null ? '&ndash;' : ptsFmt(v)) + '</div><div class="wk-s">' +
+      (v === null ? '' : (v >= d.honorMin ? 'Honor Roll' : 'Probation')) + '</div></div>';
+  }
+  html += '<div class="ro-head">Weekly points (all classes)</div><div class="wk-chips">' + chips + '</div>' +
+    (cw === d.currentWeek ? '<div class="ro-sub">* this week is still in progress</div>' : '');
+  const cur = d.classes.filter(function(c){ return !c.completed; }), done = d.classes.filter(function(c){ return c.completed; });
+  const row = function(c, i){
+    return '<div class="ro-class"><div style="flex:1;"><div><b>' + hEsc(c.period || '') + '</b> ' + hEsc(c.course) + (c.mine ? ' <span class="mine-tag">your class</span>' : '') + '</div>' +
+      '<div class="ro-sub">' + hEsc(c.teacher || 'Teacher not listed') + ' &middot; ' + (c.completed ? 'Completed' + (c.grade ? ' (' + hEsc(c.grade) + ')' : '') : ptsFmt(c.total) + ' / 75 points') + '</div></div>' +
+      (c.mine && c.tab ? '<button class="save-btn open-mine" data-i="' + i + '">Open</button>' : '') + '</div>';
+  };
+  html += '<div class="ro-head">Current classes</div>' + (cur.length ? cur.map(function(c){ return row(c, d.classes.indexOf(c)); }).join('') : '<div class="ro-sub">No current classes on record.</div>');
+  if(done.length) html += '<div class="ro-head">Completed this term</div>' + done.map(function(c){ return row(c, d.classes.indexOf(c)); }).join('');
+  html += '</div>';
+  el.innerHTML = html; el.style.display = 'block';
+  el.querySelectorAll('.open-mine').forEach(function(btn){
+    btn.onclick = function(){
+      const c = d.classes[Number(btn.getAttribute('data-i'))];
+      el.style.display = 'none'; pickEl.value = '';
+      openClass(c.tab, { first: c.rowFirst, last: c.rowLast });
+    };
+  });
+  const cl = document.getElementById('closeStudentCard');
+  if(cl) cl.onclick = function(){ el.style.display = 'none'; el.innerHTML = ''; pickEl.value = ''; };
+}
 document.getElementById('studentPick').addEventListener('change', function(e){
   const resultsEl = document.getElementById('searchResults');
   resultsEl.innerHTML = ''; resultsEl.style.display = 'none';
   if(e.target.value === '') return;
   const st = schoolStudents[Number(e.target.value)];
   if(!st) return;
-  resultsEl.innerHTML = '<div class="search-empty">Looking in your classes...</div>'; resultsEl.style.display = 'block';
-  apiGet({ mode:'findstudentclasses', code: myCode, id: st.id || '', first: st.first, last: st.last }).then(function(data){
-    resultsEl.innerHTML = '';
-    if(data.error || !data.matches || data.matches.length === 0){
-      resultsEl.innerHTML = '<div class="search-empty">' + (st.first + ' ' + st.last).replace(/[<>&]/g, '') + ' is not in any of your classes.</div>';
-      return;
-    }
-    if(data.matches.length === 1){                    // only one class: go straight there
-      const m = data.matches[0];
-      resultsEl.style.display = 'none'; e.target.value = '';
-      openClass(m.tab, { first: m.first, last: m.last });
-      return;
-    }
-    data.matches.forEach(function(m){
-      const row = document.createElement('div');
-      row.className = 'search-result-row';
-      row.textContent = m.title + ' \u2014 ' + m.first + ' ' + m.last;
-      row.onclick = function(){
-        resultsEl.style.display = 'none'; e.target.value = '';
-        openClass(m.tab, { first: m.first, last: m.last });
-      };
-      resultsEl.appendChild(row);
-    });
-  });
+  resultsEl.innerHTML = '<div class="search-empty">Loading ' + hEsc(st.first + ' ' + st.last) + '...</div>'; resultsEl.style.display = 'block';
+  const want = e.target.value;
+  apiGet({ mode:'teacherviewstudent', code: myCode, id: st.id || '', first: st.first, last: st.last }).then(function(d){
+    if(e.target.value !== want) return;               // they picked someone else meanwhile
+    if(!d || !d.success){ resultsEl.innerHTML = '<div class="search-empty">' + hEsc((d && d.error) || 'Could not load this student.') + '</div>'; return; }
+    renderStudentCard(resultsEl, d, e.target);
+  }).catch(function(){ resultsEl.innerHTML = '<div class="search-empty">Could not reach the server.</div>'; });
 });
 
 // ---- Open a class roster ----
@@ -1085,7 +1121,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v16';
+document.getElementById('buildTag').textContent = 'v17';
 </script>
 </body>
 </html>
