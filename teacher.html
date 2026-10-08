@@ -749,7 +749,8 @@ function renderStudentList(students){
       saveBtn.disabled = true;
       status.textContent = 'Saving...';
       status.className = 'save-status';
-      apiGet({ mode:'submitpoints', code: myCode, tab: (s._tab || currentTab), first: s.first, last: s.last, week: currentWeek, value: val })
+      const savedWeek = currentWeek, savedVal = val;   // the week shown when Save was pressed
+      apiGet({ mode:'submitpoints', code: myCode, tab: (s._tab || currentTab), first: s.first, last: s.last, week: savedWeek, value: val })
         .then(function(res){
           saveBtn.disabled = false;
           if(res.success){
@@ -757,6 +758,14 @@ function renderStudentList(students){
             status.className = 'save-status ok';
             total.textContent = 'Total: ' + res.newTotal + ' / 75';
             s.total = res.newTotal;
+            // keep "View all weeks" in step with what was just saved
+            const wi = currentWeekLabels.indexOf(savedWeek);
+            if(wi !== -1){
+              if(!s.weeks) s.weeks = [];
+              while(s.weeks.length <= wi) s.weeks.push(null);
+              s.weeks[wi] = Number(savedVal);
+              if(histGrid.dataset.loaded) loadStudentHistory(s, histGrid);
+            }
           } else {
             status.textContent = res.error || 'Failed to save.';
             status.className = 'save-status err';
@@ -1121,7 +1130,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v17';
+document.getElementById('buildTag').textContent = 'v18';
 </script>
 </body>
 </html>
