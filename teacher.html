@@ -324,6 +324,7 @@
   .igp-foot{ display:flex; justify-content:space-between; padding:6px 10px; font-size:0.78rem; font-weight:800; background:var(--paper); }
   .igp-sect{ font-size:0.78rem; font-weight:800; color:var(--navy); text-transform:uppercase; letter-spacing:0.05em; margin:18px 0 6px; }
   .student-row{ display:flex; justify-content:space-between; align-items:center; gap:8px; padding:8px 10px; border:1px solid var(--rule); border-radius:6px; margin-bottom:6px; font-size:0.88rem; }
+  #studentPick{ width:100%; padding:11px 12px; border:1px solid var(--rule); border-radius:8px; font-size:1rem; font-family:inherit; background:#fff; }
 </style>
 </head>
 <body>
@@ -355,8 +356,8 @@
       </div>
 
       <div class="search-box">
-        <label>Find a student (across your classes)</label>
-        <input type="text" id="studentSearchInput" placeholder="Start typing a name" autocomplete="off">
+        <label>Find a student</label>
+        <select id="studentPick"><option value="">Loading students...</option></select>
         <div class="search-results" id="searchResults" style="display:none;"></div>
       </div>
 
@@ -477,6 +478,7 @@ document.getElementById('loginBtn').onclick = function(){
     });
     renderClassList();
     showState('classListState');
+    loadStudentPick();
   }).catch(function(){
     showState('loginState');
     document.getElementById('loginError').textContent = 'Could not reach the server. Check your connection and try again.';
@@ -522,38 +524,53 @@ function renderClassList(){
   });
 }
 
-// ---- Student search ----
-let searchDebounce = null;
-document.getElementById('studentSearchInput').addEventListener('input', function(e){
-  const q = e.target.value.trim();
-  clearTimeout(searchDebounce);
-  const resultsEl = document.getElementById('searchResults');
-  if(q.length < 2){ resultsEl.style.display = 'none'; resultsEl.innerHTML=''; return; }
-  searchDebounce = setTimeout(function(){
-    // Single free-text query - the server matches it against each
-    // student's full name (first name alone, last name alone, full name,
-    // or a truncated version of either all work).
-    apiGet({ mode:'findstudentclasses', code: myCode, query: q }).then(function(data){
-      resultsEl.innerHTML = '';
-      if(data.error || !data.matches || data.matches.length === 0){
-        resultsEl.innerHTML = '<div class="search-empty">No matches in your classes.</div>';
-        resultsEl.style.display = 'block';
-        return;
-      }
-      data.matches.forEach(function(m){
-        const row = document.createElement('div');
-        row.className = 'search-result-row';
-        row.textContent = m.title + ' \u2014 ' + m.first + ' ' + m.last;
-        row.onclick = function(){
-          resultsEl.style.display = 'none';
-          document.getElementById('studentSearchInput').value = '';
-          openClass(m.tab, { first: m.first, last: m.last });
-        };
-        resultsEl.appendChild(row);
-      });
-      resultsEl.style.display = 'block';
+// ---- Find a student: drop-down of every student in the school ----
+let schoolStudents = [];
+function loadStudentPick(){
+  const sel = document.getElementById('studentPick');
+  apiGet({ mode:'schoolstudents', code: myCode }).then(function(data){
+    sel.innerHTML = '';
+    const first = document.createElement('option');
+    first.value = ''; first.textContent = (data && data.students) ? 'Choose a student (' + data.students.length + ')' : 'Could not load students';
+    sel.appendChild(first);
+    schoolStudents = (data && data.students) || [];
+    schoolStudents.forEach(function(st, i){
+      const o = document.createElement('option');
+      o.value = String(i); o.textContent = st.last + ', ' + st.first;
+      sel.appendChild(o);
     });
-  }, 350);
+  }).catch(function(){ sel.innerHTML = '<option value="">Could not load students - check your connection</option>'; });
+}
+document.getElementById('studentPick').addEventListener('change', function(e){
+  const resultsEl = document.getElementById('searchResults');
+  resultsEl.innerHTML = ''; resultsEl.style.display = 'none';
+  if(e.target.value === '') return;
+  const st = schoolStudents[Number(e.target.value)];
+  if(!st) return;
+  resultsEl.innerHTML = '<div class="search-empty">Looking in your classes...</div>'; resultsEl.style.display = 'block';
+  apiGet({ mode:'findstudentclasses', code: myCode, id: st.id || '', first: st.first, last: st.last }).then(function(data){
+    resultsEl.innerHTML = '';
+    if(data.error || !data.matches || data.matches.length === 0){
+      resultsEl.innerHTML = '<div class="search-empty">' + (st.first + ' ' + st.last).replace(/[<>&]/g, '') + ' is not in any of your classes.</div>';
+      return;
+    }
+    if(data.matches.length === 1){                    // only one class: go straight there
+      const m = data.matches[0];
+      resultsEl.style.display = 'none'; e.target.value = '';
+      openClass(m.tab, { first: m.first, last: m.last });
+      return;
+    }
+    data.matches.forEach(function(m){
+      const row = document.createElement('div');
+      row.className = 'search-result-row';
+      row.textContent = m.title + ' \u2014 ' + m.first + ' ' + m.last;
+      row.onclick = function(){
+        resultsEl.style.display = 'none'; e.target.value = '';
+        openClass(m.tab, { first: m.first, last: m.last });
+      };
+      resultsEl.appendChild(row);
+    });
+  });
 });
 
 // ---- Open a class roster ----
@@ -1068,7 +1085,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v15';
+document.getElementById('buildTag').textContent = 'v16';
 </script>
 </body>
 </html>
