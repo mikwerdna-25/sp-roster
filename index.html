@@ -883,6 +883,11 @@
     <div class="profile-note">This is your own working record, not the official one &mdash; grades and attendance still need to be entered in MiSiS.</div>
 
     <div class="profile-section">
+      <h4>Schedule</h4>
+      <div id="scheduleBox" style="font-size:0.85rem;"></div>
+    </div>
+
+    <div class="profile-section">
       <h4>Attendance</h4>
       <div class="attendance-summary" id="attSummary"></div>
       <div class="att-log" id="attLog"></div>
@@ -1083,7 +1088,7 @@
 <input type="file" id="photoInput" accept="image/*" style="display:none;">
 
 <script>
-const APP_BUILD = 'build-31-manual-marks-win';
+const APP_BUILD = 'build-32-schedule';
 const GRADE_COLORS = {9:'g9',10:'g10',11:'g11',12:'g12'};
 const AVATAR_HUES = ['#5b7a9d','#6f8f5b','#b8862f','#a34b3f','#7a6a9d','#4a8f8f'];
 
@@ -1662,7 +1667,46 @@ function openProfileModal(id){
   document.getElementById('needsBox').value=s.needs;
   renderAttendanceSection(s);
   renderCoursesSection(s);
+  loadScheduleSection(s);
   profileOverlay.classList.add('active');
+}
+
+// Schedule: read from the points spreadsheet through the Apps Script (needs the web app URL and
+// sync secret from Settings). Cached for 10 minutes so reopening a profile is instant.
+const scheduleCache = {};
+function escHtml(t){ return String(t==null?'':t).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function drawSchedule(box, courses){
+  if(!courses.length){ box.innerHTML='<div style="color:var(--muted);">No classes found for this student in the points sheet.</div>'; return; }
+  const row = c => `<div style="display:flex;gap:10px;padding:5px 0;border-bottom:1px solid #e3e6ec;${c.completed?'opacity:.6;':''}">
+      <div style="min-width:48px;font-weight:800;">${escHtml(c.period)||'&ndash;'}</div>
+      <div style="flex:1;"><div style="font-weight:600;">${escHtml(c.course)}</div>
+        <div style="color:var(--muted);font-size:0.78rem;">${escHtml(c.teacher)||'Teacher not listed'}${c.completed?' &middot; Completed'+(c.grade?' ('+escHtml(c.grade)+')':''):' &middot; '+escHtml(c.total)+' pts'}</div></div></div>`;
+  box.innerHTML = courses.map(row).join('');
+}
+async function loadScheduleSection(s){
+  const box = document.getElementById('scheduleBox');
+  const id = s.id;
+  const key = (s.first+'|'+s.last).toLowerCase();
+  const hit = scheduleCache[key];
+  if(hit && Date.now()-hit.at < 600000){ drawSchedule(box, hit.courses); return; }
+  box.innerHTML = '<div style="color:var(--muted);">Loading schedule\u2026</div>';
+  try{
+    const url = await storeGet('meta:checkinUrl');
+    const secret = await storeGet('meta:syncSecret');
+    if(!url){ box.innerHTML='<div style="color:var(--muted);">Set your Apps Script Web app URL in \u2699\ufe0f Settings to see schedules.</div>'; return; }
+    const params = new URLSearchParams({ mode:'schedule', first:s.first, last:s.last, _:Date.now() });
+    if(secret) params.set('secret', secret);
+    const res = await fetch(url+'?'+params.toString(), { cache:'no-store' });
+    if(!res.ok) throw new Error('Request failed: '+res.status);
+    const data = await res.json();
+    if(!data.success) throw new Error(data.error || 'No schedule returned.');
+    scheduleCache[key] = { at: Date.now(), courses: data.courses };
+    if(profileTargetId!==id) return;          // they moved on to another student
+    drawSchedule(box, data.courses);
+  }catch(err){
+    if(profileTargetId!==id) return;
+    box.innerHTML = '<div style="color:#b3261e;">Couldn\'t load the schedule: '+escHtml(err.message)+'</div>';
+  }
 }
 document.getElementById('profileClose').onclick=()=>{ profileOverlay.classList.remove('active'); render(); if(rollOverlay.classList.contains('active')) renderRollList(); };
 
