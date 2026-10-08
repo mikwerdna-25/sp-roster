@@ -159,7 +159,7 @@
 
 <div class="sheet">
   <div class="school">Stoney Point High School<br>Daily Check-In</div>
-  <div style="text-align:center; font-size:0.65rem; color:var(--muted); margin-top:-14px; margin-bottom:14px;">v8-no-double-checkin</div>
+  <div style="text-align:center; font-size:0.65rem; color:var(--muted); margin-top:-14px; margin-bottom:14px;">v10-auto-retry</div>
 
   <div class="state active" id="loadingState">
     <div class="spinner"></div>
@@ -239,22 +239,49 @@ function showError(msg){
   showState('errorState');
 }
 
-function submitCheckin(first, last){
-  // This calls our own Apps Script, which writes the row directly,
-  // computes the streak, and sends both back in ONE response - no
-  // second network call needed to show the streak.
+function submitOnce(first, last){
+  // One attempt, with a 20-second limit so a stalled request can't hang the screen.
   var params = new URLSearchParams({ mode:'submit', first:first, last:last, _:Date.now() });
-  return fetch(ROSTER_ENDPOINT_URL + '?' + params.toString(), { cache:'no-store' })
+  var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+  var timer = ctrl ? setTimeout(function(){ ctrl.abort(); }, 20000) : null;
+  return fetch(ROSTER_ENDPOINT_URL + '?' + params.toString(), { cache:'no-store', signal: ctrl ? ctrl.signal : undefined })
     .then(function(res){
-      if(!res.ok) throw new Error('Request failed: ' + res.status);
-      return res.json();
+      if(!res.ok){ var e = new Error('HTTP ' + res.status); e.retry = true; e.code = 'http-' + res.status; throw e; }
+      return res.text();
     })
-    .then(function(data){
+    .then(function(txt){
+      var data;
+      try{ data = JSON.parse(txt); }
+      catch(x){ var e = new Error('Not JSON'); e.retry = true; e.code = 'bad-response'; throw e; }
       if(!data || data.success !== true){
-        throw new Error((data && data.error) || 'Check-in was not confirmed.');
+        var msg = (data && data.error) || 'Check-in was not confirmed.';
+        var e2 = new Error(msg);
+        e2.code = 'server: ' + msg;
+        e2.retry = /busy|unexpected|could not save|timed out|too many|service/i.test(msg); // worth another try
+        throw e2;
       }
-      return data; // includes data.streak
-    });
+      return data;
+    })
+    .catch(function(err){
+      if(err && err.name === 'AbortError'){ err.retry = true; err.code = 'timeout'; }
+      else if(err && err.retry === undefined){ err.retry = true; err.code = err.code || 'network'; } // fetch itself failed
+      throw err;
+    })
+    .finally(function(){ if(timer) clearTimeout(timer); });
+}
+
+// Up to 3 tries. Safe to repeat: the server keeps only ONE check-in per student per day.
+function submitCheckin(first, last){
+  var delays = [0, 1500, 3500];
+  function attempt(i){
+    return new Promise(function(r){ setTimeout(r, delays[i]); })
+      .then(function(){ return submitOnce(first, last); })
+      .catch(function(err){
+        if(i < delays.length - 1 && err && err.retry) return attempt(i + 1);
+        throw err;
+      });
+  }
+  return attempt(0);
 }
 
 // Encouraging notes by streak length - never shaming, always positive,
@@ -307,7 +334,8 @@ document.getElementById('confirmBtn').onclick = function(){
     }
     showState('successState');
   }).catch(function(err){
-    showError("Couldn't submit your check-in. Check your connection and try again.");
+    var code = (err && err.code) ? err.code : 'unknown';
+    showError("Couldn't submit your check-in. Check your connection and try again. If it keeps happening, tell the office (code: " + code + ").");
   }).finally(function(){
     btn.disabled = false;
     btn.textContent = 'Check me in';
