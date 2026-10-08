@@ -683,19 +683,15 @@ function renderRoster(data){
 
   const weekSelect = document.getElementById('weekSelect');
   weekSelect.innerHTML = '';
+  const thisWeek = (data.currentWeekLabel && currentWeekLabels.indexOf(data.currentWeekLabel) !== -1) ? data.currentWeekLabel : null;
   currentWeekLabels.forEach(function(w){
     const opt = document.createElement('option');
-    opt.value = w; opt.textContent = w;
+    opt.value = w; opt.textContent = w + (w === thisWeek ? ' (this week)' : '');
     weekSelect.appendChild(opt);
   });
-  // Default to the server's computed current week, falling back to the
-  // first week only if that's ever unavailable (e.g. before the semester
-  // has started, or no match found for some reason).
-  if(!currentWeek){
-    currentWeek = (data.currentWeekLabel && currentWeekLabels.indexOf(data.currentWeekLabel) !== -1)
-      ? data.currentWeekLabel
-      : currentWeekLabels[0];
-  }
+  // Every time a class is opened, start on THIS week (the server works it out from today's date).
+  // A teacher who switched to an earlier week to fix something is back on this week next time.
+  currentWeek = thisWeek || currentWeekLabels[0];
   weekSelect.value = currentWeek;
   weekSelect.onchange = function(){ currentWeek = weekSelect.value; renderStudentList(data.students); };
 
@@ -1143,7 +1139,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v19';
+document.getElementById('buildTag').textContent = 'v20';
 </script>
 </body>
 </html>
