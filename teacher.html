@@ -324,7 +324,7 @@
   .igp-foot{ display:flex; justify-content:space-between; padding:6px 10px; font-size:0.78rem; font-weight:800; background:var(--paper); }
   .igp-sect{ font-size:0.78rem; font-weight:800; color:var(--navy); text-transform:uppercase; letter-spacing:0.05em; margin:18px 0 6px; }
   .student-row{ display:flex; justify-content:space-between; align-items:center; gap:8px; padding:8px 10px; border:1px solid var(--rule); border-radius:6px; margin-bottom:6px; font-size:0.88rem; }
-  #studentPick{ width:100%; padding:11px 12px; border:1px solid var(--rule); border-radius:8px; font-size:1rem; font-family:inherit; background:#fff; }
+  #igpPick, #studentPick{ width:100%; padding:11px 12px; border:1px solid var(--rule); border-radius:8px; font-size:1rem; font-family:inherit; background:#fff; }
   .student-card-ro{ padding:12px 14px; }
   .ro-sub{ font-size:0.76rem; color:var(--muted); }
   .ro-head{ font-size:0.74rem; font-weight:800; text-transform:uppercase; letter-spacing:0.05em; color:var(--navy); margin:12px 0 4px; }
@@ -369,6 +369,11 @@
         <label>Find a student</label>
         <select id="studentPick"><option value="">Loading students...</option></select>
         <div class="search-results" id="searchResults" style="display:none;"></div>
+      </div>
+
+      <div class="search-box">
+        <label>View a student's IGP</label>
+        <select id="igpPick"><option value="">Loading students...</option></select>
       </div>
 
       <div id="periodGroups"></div>
@@ -549,6 +554,10 @@ function loadStudentPick(){
       o.value = String(i); o.textContent = st.last + ', ' + st.first;
       sel.appendChild(o);
     });
+    const ip = document.getElementById('igpPick');
+    ip.innerHTML = '';
+    const i0 = document.createElement('option'); i0.value = ''; i0.textContent = schoolStudents.length ? 'Choose a student (' + schoolStudents.length + ')' : 'Could not load students'; ip.appendChild(i0);
+    schoolStudents.forEach(function(st, i){ const o = document.createElement('option'); o.value = String(i); o.textContent = st.last + ', ' + st.first; ip.appendChild(o); });
   }).catch(function(){ sel.innerHTML = '<option value="">Could not load students - check your connection</option>'; });
 }
 function hEsc(t){ return String(t == null ? '' : t).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
@@ -794,14 +803,9 @@ function renderStudentList(students){
         loadStudentHistory(s, histGrid);
       }
     };
-    const igpLink = document.createElement('div');
-    igpLink.className = 'history-toggle';
-    igpLink.textContent = 'View IGP';
-    igpLink.onclick = function(){ openStudentIgp(s); };
     const linksRow = document.createElement('div');
     linksRow.style.cssText = 'display:flex; gap:16px; flex-wrap:wrap;';
     linksRow.appendChild(histToggle);
-    linksRow.appendChild(igpLink);
     card.appendChild(linksRow);
     card.appendChild(histGrid);
 
@@ -1076,12 +1080,15 @@ let igpReturnScroll = 0;
 
 // Opens a read-only IGP for a student on the class that is currently open.
 // The server only answers for students on a class this teacher teaches.
+let igpReturnState = 'classListState';
 function openStudentIgp(s){
   igpReturnScroll = window.scrollY || 0;
+  igpReturnState = 'classListState';
+  document.getElementById('backFromIgpBtn').innerHTML = '&lt; Back';
   showLoading('Loading IGP...');
-  apiGet({ mode:'teachergetigp', code: myCode, tab: (s._tab || currentTab), studentId: s.studentId || '', first: s.first, last: s.last })
+  apiGet({ mode:'teacherigpany', code: myCode, id: s.id || s.studentId || '', first: s.first, last: s.last })
     .then(function(d){
-      if(d.error){ alert(d.error); showState('rosterState'); window.scrollTo(0, igpReturnScroll); return; }
+      if(d.error){ alert(d.error); showState(igpReturnState); window.scrollTo(0, igpReturnScroll); return; }
       document.getElementById('igpStudentName').textContent =
         d.first + ' ' + d.last + (d.studentId ? ' (' + d.studentId + ')' : '') + (d.gradYear ? ' \u00b7 Class of ' + d.gradYear : '');
       renderIgpCategories(d.transcript);
@@ -1091,12 +1098,18 @@ function openStudentIgp(s){
       window.scrollTo(0, 0);
     }).catch(function(){
       alert('Could not load this IGP. Check your connection and try again.');
-      showState('rosterState');
+      showState(igpReturnState);
       window.scrollTo(0, igpReturnScroll);
     });
 }
+document.getElementById('igpPick').addEventListener('change', function(e){
+  if(e.target.value === '') return;
+  const st = schoolStudents[Number(e.target.value)];
+  e.target.value = '';
+  if(st) openStudentIgp(st);
+});
 document.getElementById('backFromIgpBtn').onclick = function(){
-  showState('rosterState');
+  showState(igpReturnState);
   window.scrollTo(0, igpReturnScroll);
 };
 
@@ -1130,7 +1143,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v18';
+document.getElementById('buildTag').textContent = 'v19';
 </script>
 </body>
 </html>
