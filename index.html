@@ -888,6 +888,11 @@
     </div>
 
     <div class="profile-section">
+      <h4>Official attendance (MiSiS)</h4>
+      <div id="finalAttBox" style="font-size:0.85rem;"></div>
+    </div>
+
+    <div class="profile-section">
       <h4>Attendance</h4>
       <div class="attendance-summary" id="attSummary"></div>
       <div class="att-log" id="attLog"></div>
@@ -1088,7 +1093,7 @@
 <input type="file" id="photoInput" accept="image/*" style="display:none;">
 
 <script>
-const APP_BUILD = 'build-32-schedule';
+const APP_BUILD = 'build-34-advisory';
 const GRADE_COLORS = {9:'g9',10:'g10',11:'g11',12:'g12'};
 const AVATAR_HUES = ['#5b7a9d','#6f8f5b','#b8862f','#a34b3f','#7a6a9d','#4a8f8f'];
 
@@ -1668,7 +1673,49 @@ function openProfileModal(id){
   renderAttendanceSection(s);
   renderCoursesSection(s);
   loadScheduleSection(s);
+  loadFinalAttendance(s);
   profileOverlay.classList.add('active');
+}
+
+// Official attendance: the MiSiS record, as imported into the AttendanceFinal tab of the check-in sheet.
+const finalAttCache = {};
+function drawFinalAttendance(box, data){
+  if(!data.rows || !data.rows.length){ box.innerHTML='<div style="color:var(--muted);">'+escHtml(data.note||'No MiSiS attendance imported for this student yet.')+'</div>'; return; }
+  const c = data.counts||{};
+  const label = {present:'Present',tardy:'Tardy',absent:'Absent',partial:'Partial day',ans:'Review in MiSiS'};
+  const color = {absent:'#b3261e',tardy:'#9a6a00',partial:'#9a6a00',present:'var(--muted)',ans:'#9a6a00'};
+  const when = data.lastImported ? new Date(data.lastImported).toLocaleDateString([], {month:'short', day:'numeric'}) : '';
+  let h = '<div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:6px;"><div><b>'+(c.attendanceRate==null?'-':c.attendanceRate+'%')+'</b> attendance</div><div><b>'+(c.absent||0)+'</b> absent</div><div><b>'+(c.tardy||0)+'</b> tardy</div></div>';
+  h += data.rows.filter(r=>r.status!=='present').slice(0,12).map(r=>{
+    const d = new Date(r.date+'T12:00:00').toLocaleDateString([], {weekday:'short', month:'numeric', day:'numeric'});
+    return '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #e3e6ec;"><span>'+escHtml(d)+'</span><span style="color:'+(color[r.status]||'inherit')+';font-weight:600;">'+escHtml(label[r.status]||r.status)+(r.reason&&r.status==='absent'?' ('+escHtml(r.reason)+')':'')+'</span></div>';
+  }).join('') || '<div style="color:var(--muted);">No absences or tardies on record.</div>';
+  h += '<div style="color:var(--muted);font-size:0.72rem;margin-top:6px;">From MiSiS'+(when?', last imported '+escHtml(when):'')+'. MiSiS is the official record.</div>';
+  box.innerHTML = h;
+}
+async function loadFinalAttendance(s){
+  const box = document.getElementById('finalAttBox');
+  const id = s.id, key = (s.first+'|'+s.last).toLowerCase();
+  const hit = finalAttCache[key];
+  if(hit && Date.now()-hit.at < 600000){ drawFinalAttendance(box, hit.data); return; }
+  box.innerHTML = '<div style="color:var(--muted);">Loading\u2026</div>';
+  try{
+    const url = await storeGet('meta:checkinUrl');
+    const secret = await storeGet('meta:syncSecret');
+    if(!url){ box.innerHTML='<div style="color:var(--muted);">Set your Apps Script Web app URL in \u2699\ufe0f Settings to see MiSiS attendance.</div>'; return; }
+    const params = new URLSearchParams({ mode:'finalattendance', first:s.first, last:s.last, _:Date.now() });
+    if(secret) params.set('secret', secret);
+    const res = await fetch(url+'?'+params.toString(), { cache:'no-store' });
+    if(!res.ok) throw new Error('Request failed: '+res.status);
+    const data = await res.json();
+    if(!data.success) throw new Error(data.error || 'No attendance returned.');
+    finalAttCache[key] = { at: Date.now(), data: data };
+    if(profileTargetId!==id) return;
+    drawFinalAttendance(box, data);
+  }catch(err){
+    if(profileTargetId!==id) return;
+    box.innerHTML = '<div style="color:#b3261e;">Couldn\'t load MiSiS attendance: '+escHtml(err.message)+'</div>';
+  }
 }
 
 // Schedule: read from the points spreadsheet through the Apps Script (needs the web app URL and
@@ -1680,7 +1727,7 @@ function drawSchedule(box, courses){
   const row = c => `<div style="display:flex;gap:10px;padding:5px 0;border-bottom:1px solid #e3e6ec;${c.completed?'opacity:.6;':''}">
       <div style="min-width:48px;font-weight:800;">${escHtml(c.period)||'&ndash;'}</div>
       <div style="flex:1;"><div style="font-weight:600;">${escHtml(c.course)}</div>
-        <div style="color:var(--muted);font-size:0.78rem;">${escHtml(c.teacher)||'Teacher not listed'}${c.completed?' &middot; Completed'+(c.grade?' ('+escHtml(c.grade)+')':''):' &middot; '+escHtml(c.total)+' pts'}</div></div></div>`;
+        <div style="color:var(--muted);font-size:0.78rem;">${escHtml(c.teacher)||'Teacher not listed'}${c.completed?' &middot; Completed'+(c.grade?' ('+escHtml(c.grade)+')':''):' &middot; '+escHtml(c.total)+' pts'+(c.advisory?' (to College &amp; Career)':'')}</div></div></div>`;
   box.innerHTML = courses.map(row).join('');
 }
 async function loadScheduleSection(s){

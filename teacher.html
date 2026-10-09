@@ -334,7 +334,10 @@
   .wk-chip{ border-radius:8px; padding:6px 8px; min-width:62px; text-align:center; border:1px solid var(--rule); }
   .wk-chip .wk-l{ font-size:0.68rem; color:var(--muted); } .wk-chip .wk-v{ font-weight:800; font-size:1rem; } .wk-chip .wk-s{ font-size:0.62rem; }
   .chip-hr{ background:#e8f0e2; border-color:#9bb88a; } .chip-hr .wk-s{ color:var(--green); font-weight:700; }
+  .chip-ok{ background:#f4f1e6; border-color:#cfc6a3; } .chip-ok .wk-s{ color:var(--muted); font-weight:700; }
   .chip-p{ background:#f7e9e6; border-color:#d9a69c; } .chip-p .wk-s{ color:#a34b3f; font-weight:700; }
+  .igp-need{ padding:5px 10px; font-size:0.76rem; background:#fbeeea; color:#8a3b30; border-top:1px solid var(--rule); }
+  .igp-ip{ padding:5px 10px; font-size:0.76rem; background:#fbf4e3; color:#7a5a12; border-top:1px solid var(--rule); }
 </style>
 </head>
 <body>
@@ -577,16 +580,17 @@ function renderStudentCard(el, d, pickEl){
   for(let w = from; w <= cw; w++){
     const v = d.weeks[w - 1];
     const live = w === d.currentWeek;
-    const cls = v === null ? 'chip-none' : (v >= d.honorMin ? 'chip-hr' : 'chip-p');
+    const below = d.probationBelow || 20;
+    const cls = v === null ? 'chip-none' : (v >= d.honorMin ? 'chip-hr' : (v >= below ? 'chip-ok' : 'chip-p'));
     chips += '<div class="wk-chip ' + cls + '"><div class="wk-l">Wk ' + w + (live ? '*' : '') + '</div><div class="wk-v">' + (v === null ? '&ndash;' : ptsFmt(v)) + '</div><div class="wk-s">' +
-      (v === null ? '' : (v >= d.honorMin ? 'Honor Roll' : 'Probation')) + '</div></div>';
+      (v === null ? '' : (v >= d.honorMin ? 'Honor Roll' : (v >= below ? 'Good standing' : 'Probation'))) + '</div></div>';
   }
   html += '<div class="ro-head">Weekly points (all classes)</div><div class="wk-chips">' + chips + '</div>' +
     (cw === d.currentWeek ? '<div class="ro-sub">* this week is still in progress</div>' : '');
   const cur = d.classes.filter(function(c){ return !c.completed; }), done = d.classes.filter(function(c){ return c.completed; });
   const row = function(c, i){
     return '<div class="ro-class"><div style="flex:1;"><div><b>' + hEsc(c.period || '') + '</b> ' + hEsc(c.course) + (c.mine ? ' <span class="mine-tag">your class</span>' : '') + '</div>' +
-      '<div class="ro-sub">' + hEsc(c.teacher || 'Teacher not listed') + ' &middot; ' + (c.completed ? 'Completed' + (c.grade ? ' (' + hEsc(c.grade) + ')' : '') : ptsFmt(c.total) + ' / 75 points') + '</div></div>' +
+      '<div class="ro-sub">' + hEsc(c.teacher || 'Teacher not listed') + ' &middot; ' + (c.completed ? 'Completed' + (c.grade ? ' (' + hEsc(c.grade) + ')' : '') : ptsFmt(c.total) + (c.advisory ? ' points (go to College & Career)' : ' / 75 points')) + '</div></div>' +
       (c.mine && c.tab ? '<button class="save-btn open-mine" data-i="' + i + '">Open</button>' : '') + '</div>';
   };
   html += '<div class="ro-head">Current classes</div>' + (cur.length ? cur.map(function(c){ return row(c, d.classes.indexOf(c)); }).join('') : '<div class="ro-sub">No current classes on record.</div>');
@@ -718,7 +722,9 @@ function renderStudentList(students){
     name.textContent = s.first + ' ' + s.last + (s.studentId ? ' (' + s.studentId + ')' : '');
     const total = document.createElement('div');
     total.className = 'student-total';
-    total.textContent = 'Total: ' + s.total + ' / 75';
+    const isAdv = /^Advisory-PH-/.test(s._tab || currentTab);   // advisory: no 75-point completion, points go to College & Career
+    function totalText(t){ return isAdv ? 'Total: ' + t + ' pts (to College & Career)' : 'Total: ' + t + ' / 75' + (s.advisoryPts ? ' (incl. ' + s.advisoryPts + ' advisory)' : ''); }
+    total.textContent = totalText(s.total);
     top.appendChild(name); top.appendChild(total);
     card.appendChild(top);
     if(s._course){
@@ -761,7 +767,7 @@ function renderStudentList(students){
           if(res.success){
             status.textContent = 'Saved. New total: ' + res.newTotal;
             status.className = 'save-status ok';
-            total.textContent = 'Total: ' + res.newTotal + ' / 75';
+            total.textContent = totalText(res.newTotal);
             s.total = res.newTotal;
             // keep "View all weeks" in step with what was just saved
             const wi = currentWeekLabels.indexOf(savedWeek);
@@ -950,8 +956,7 @@ function renderStudentList(students){
     gradeForm.appendChild(undoBtn);
     gradeForm.appendChild(gradeStatus);
     gradeRow.appendChild(gradeToggle);
-    card.appendChild(gradeRow);
-    card.appendChild(gradeForm);
+    if(!isAdv){ card.appendChild(gradeRow); card.appendChild(gradeForm); }
 
     list.appendChild(card);
   });
@@ -1052,6 +1057,9 @@ function renderIgpCategories(tr){
       card.appendChild(row);
     });
 
+    if(cat.inProgressFor && cat.inProgressFor.length) card.appendChild(mk('div', 'igp-ip', 'In progress: ' + cat.inProgressFor.join(', ')));
+    if(cat.needed && cat.needed.length) card.appendChild(mk('div', 'igp-need', 'Still needed: ' + cat.needed.join(', ')));
+    else if(cat.needed && !(cat.inProgressFor && cat.inProgressFor.length) && IGP_CATEGORY_META[cat.category] && (IGP_CATEGORY_META[cat.category].req || ['Health','Ethnic Studies'].indexOf(cat.category) !== -1)) card.appendChild(mk('div', 'igp-ip', 'Requirement met'));
     const foot = mk('div', 'igp-foot');
     foot.appendChild(mk('span', null, 'Total Credits'));
     foot.appendChild(mk('span', null, String(cat.totalCredits)));
@@ -1088,7 +1096,7 @@ function openStudentIgp(s){
       document.getElementById('igpStudentName').textContent =
         d.first + ' ' + d.last + (d.studentId ? ' (' + d.studentId + ')' : '') + (d.gradYear ? ' \u00b7 Class of ' + d.gradYear : '');
       renderIgpCategories(d.transcript);
-      renderCourseRows('igpInProgressList', d.inProgress, 'No courses in progress.', function(c){ return c.total + ' / 75'; });
+      renderCourseRows('igpInProgressList', d.inProgress, 'No courses in progress.', function(c){ return c.advisory ? c.total + ' pts to C&C' : c.total + ' / 75'; });
       renderCourseRows('igpCompletedList', d.completed, 'No completed courses yet.', function(c){ return 'Grade: ' + c.grade; });
       showState('igpState');
       window.scrollTo(0, 0);
@@ -1139,7 +1147,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v20';
+document.getElementById('buildTag').textContent = 'v23';
 </script>
 </body>
 </html>
