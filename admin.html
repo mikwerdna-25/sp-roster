@@ -102,6 +102,14 @@
     details{ display:block; } details > *{ display:block; }
   }
   .student-pick{ width:100%; margin-bottom:10px; }
+  .menu-sect{ font-size:0.72rem; font-weight:800; letter-spacing:0.07em; text-transform:uppercase; color:var(--muted); margin:18px 0 -4px; }
+  .menu-sect:first-of-type{ margin-top:4px; }
+  .cat-head{ grid-column:1 / -1; font-size:0.78rem; font-weight:800; color:var(--navy); text-transform:uppercase; letter-spacing:0.05em; margin:14px 0 6px; border-bottom:2px solid var(--navy); padding-bottom:3px; display:flex; justify-content:space-between; }
+  .igp-need{ padding:5px 10px; font-size:0.76rem; background:#fbeeea; color:#8a3b30; border-top:1px solid var(--rule); }
+  .igp-ip{ padding:5px 10px; font-size:0.76rem; background:#fbf4e3; color:#7a5a12; border-top:1px solid var(--rule); }
+  .tr-table{ width:100%; border-collapse:collapse; font-size:0.8rem; }
+  .tr-table td, .tr-table th{ border-bottom:1px solid var(--rule); padding:5px 4px; text-align:left; vertical-align:top; }
+  .tr-table select{ width:auto; margin:0; padding:5px 6px; font-size:0.8rem; }
 </style>
 </head>
 <body>
@@ -109,7 +117,7 @@
   <div class="sheet">
     <img class="logo" alt="Stoney Point High School" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAeAAAAEiCAMAAAAWKvEYAAAA/1BMVEUAAAAAAAD+/v7LKS+xJCouBwgVFxfo6OhvFho1NzcmJyfX19eOHSG2t7fHx8dUEhRVV1dHSEeHh4dJCg0AAACWl5d1d3enp6dnZ2eYICUAAAAAAAAAAAAAAACGGR0AAAAbIyJoDBA7Q0NbY2N7g4N8HCCgnp7aMDbg3t6jHiMpGBmdoqLjMTjAvr6Afn69wcE4QD/f4ODiLjUYIB9VYF9gX18fHyA9P0BAPz9CP0B3f4CZoJ8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAVe1pqAAAAQHRSTlMA/v///////////////////////y7//////9BOb4//rv////////////////////////////////////8AAAAAIPz4TAAAPy9JREFUeNrtfYd220i2rUGikDOIQFIiKTm2O83MvS///3+9SgBOJaAgWW5JRq01a9wUiVC7Tk4fPmxrW9va1ra2ta1tbWtb29rWtra1rW1ta1vb2ta2trWtbW1rW9va1ra2ta1tbWtb29rWtrb1cut8d389kXW93t8dtv14X+vu6kjrfsP43azDvaNb99vOvI+lhxev00bEeoKg60m/PN/d3bN1d3f+Odt7PjnmtSGsKCrXcb9Oq3SVw929utOnl1d37p3ZtSEM0b1qduh6d7b45f0cGV1fEOTrPL7OaYN1XlFhdDiL0GEWXX6J+/OLPPXyna9vG5W7HyTqzouUYML4cO9YrhfA+GRx2/NbBvh+JLFnwXxns1GYCg/PgJedkp+P79tm0nB7T6cnKjR28Grp+M5Zu36k++Fqd8u7NwzwWRU59ytp+XxahxDA+KDbYc8L8Yo8M8Q/SX9+HyRsUCysUT5cnfWL61zK6fKKtst2fGVNH70oSZ2tn/ctS+HrU1VfIxF4URgyGvRm6fgsseewzfydtNLCcEIOL3a29crD4Hvh6zys128lLwjBeVKWuLMX9k2axQNMfpx1VRFZbWHUZjvtiouX8j88hfW8QRvqYHN+DaR8FQkw9fUQdf0SyGW3M69U/+uXYdAFPqFZ10bviHlfbcXmeWaHwjbeza20n2HXUTf7251f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">
     <div class="school">Counselor / Admin</div>
-    <div class="buildtag" id="buildTag">v19-archived-label</div>
+    <div class="buildtag" id="buildTag">v21-restore</div>
 
     <div class="state active" id="loginState">
       <label>Your code</label>
@@ -127,14 +135,19 @@
       <div class="top-row">
         <div class="admin-name" id="adminNameLabel"></div>
       </div>
-      <button class="btn-primary" id="menuCoursesBtn">Manage Courses</button>
+      <div class="menu-sect">Students</div>
       <button class="btn-primary" id="menuViewStudentBtn">View a Student</button>
-      <button class="btn-primary" id="menuArchiveStudentBtn">Archive a Student</button>
-      <button class="btn-primary" id="menuReverseBtn">Reverse a Completion</button>
-      <button class="btn-primary" id="menuIgpBtn">IGP</button>
-      <button class="btn-primary" id="menuMisisBtn">Import MiSiS Attendance</button>
-      <button class="btn-primary" id="menuFmBtn">Import FileMaker Points</button>
+      <button class="btn-primary" id="menuIgpBtn">IGP (Graduation Plans)</button>
       <button class="btn-primary" id="menuHonorBtn">Honor Roll &amp; Intervention</button>
+      <div class="menu-sect">Courses &amp; Points</div>
+      <button class="btn-primary" id="menuCoursesBtn">Manage Courses</button>
+      <button class="btn-primary" id="menuReverseBtn">Reverse a Completion</button>
+      <div class="menu-sect">Uploads &amp; Imports</div>
+      <button class="btn-primary" id="menuTranscriptBtn">Upload Transcripts</button>
+      <button class="btn-primary" id="menuFmBtn">Import FileMaker Points</button>
+      <button class="btn-primary" id="menuMisisBtn">Import MiSiS Attendance</button>
+      <div class="menu-sect">Enrollment</div>
+      <button class="btn-primary" id="menuArchiveStudentBtn">Archive a Student</button>
     </div>
 
 
@@ -183,6 +196,20 @@
         <div id="honorBlockOut"></div>
       </div>
       <button class="btn-primary no-print" id="honorPrintBtn">Print this list</button>
+    </div>
+
+
+    <div class="state" id="transcriptState">
+      <button class="btn-secondary" id="backFromTranscriptBtn" style="margin-bottom:10px;">&lt; Back to menu</button>
+      <div style="font-weight:800; color:var(--navy); margin-bottom:6px;">Upload Transcripts</div>
+      <div class="hint" style="margin-top:0;">Choose the MiSiS <b>Transcript Report</b> (.xlsx, one sheet per student, named by Student ID). Every term is checked against the report's own credit totals. Review the courses that need a category, then save. Uploading a student again replaces their transcript.</div>
+      <input type="file" id="trFiles" accept=".xlsx,.xls" multiple style="margin:8px 0;">
+      <button class="btn-primary" id="trReadBtn">Read file</button>
+      <div id="trProgress" class="hint" style="margin-top:10px;"></div>
+      <div id="trSummary" style="margin-top:12px;"></div>
+      <div id="trCheck"></div>
+      <div id="trStudents"></div>
+      <button class="btn-primary btn-danger" id="trSaveBtn" style="display:none;">Save transcripts</button>
     </div>
 
     <div class="state" id="courseListState">
@@ -362,24 +389,37 @@ function renderCourseList(){
   document.getElementById('adminNameLabel').textContent = myName;
   const list = document.getElementById('courseList');
   list.innerHTML = '';
-  myCourses.slice().sort(function(a,b){ return a.title.localeCompare(b.title); }).forEach(function(c){
-    const row = document.createElement('div');
-    row.className = 'course-row';
-    const title = document.createElement('div');
-    title.className = 'course-title';
-    title.textContent = c.title;
-    const sub = document.createElement('div');
-    sub.className = 'course-sub';
-    sub.textContent = (c.teachers||[]).join(' & ') || 'No teacher assigned';
-    row.appendChild(title); row.appendChild(sub);
-    const actions = document.createElement('div');
-    actions.className = 'course-actions';
-    const manageBtn = document.createElement('button');
-    manageBtn.textContent = 'Manage students';
-    manageBtn.onclick = function(){ openCourseDetail(c); };
-    actions.appendChild(manageBtn);
-    row.appendChild(actions);
-    list.appendChild(row);
+  // Grouped by IGP / A-G box, in the order of the IGP, then A-Z within each box.
+  const ORDER = ['English','Social Science','Math','Lab Science','Ethnic Studies','College Prep Elective','Visual/Performing Art','Language (LOTE)','Health','Physical Education','General Elective'];
+  const LABEL = { 'English':'English "B"', 'Social Science':'Social Science "A"', 'Math':'Math "C"', 'Lab Science':'Lab Science "D"', 'Language (LOTE)':'Language (LOTE) "E"',
+                  'Visual/Performing Art':'Visual / Performing Art "F"', 'College Prep Elective':'College Prep Elective "G"', 'General Elective':'Electives' };
+  const groups = {};
+  myCourses.forEach(function(c){ const k = categorizeTitle(c.title); (groups[k] = groups[k] || []).push(c); });
+  ORDER.forEach(function(k){
+    if(!groups[k]) return;
+    const h = document.createElement('div');
+    h.className = 'cat-head';
+    h.innerHTML = '<span>' + (LABEL[k] || k) + '</span><span>' + groups[k].length + '</span>';
+    list.appendChild(h);
+    groups[k].sort(function(a,b){ return a.title.localeCompare(b.title); }).forEach(function(c){
+      const row = document.createElement('div');
+      row.className = 'course-row';
+      const title = document.createElement('div');
+      title.className = 'course-title';
+      title.textContent = c.title;
+      const sub = document.createElement('div');
+      sub.className = 'course-sub';
+      sub.textContent = (c.teachers||[]).join(' & ') || 'No teacher assigned';
+      row.appendChild(title); row.appendChild(sub);
+      const actions = document.createElement('div');
+      actions.className = 'course-actions';
+      const manageBtn = document.createElement('button');
+      manageBtn.textContent = 'Manage students';
+      manageBtn.onclick = function(){ openCourseDetail(c); };
+      actions.appendChild(manageBtn);
+      row.appendChild(actions);
+      list.appendChild(row);
+    });
   });
 }
 
@@ -445,12 +485,12 @@ function openCourseDetail(course){
         '<div class="loading-text">' + data.error + '</div>';
       return;
     }
-    renderStudentList(data.students || []);
+    renderStudentList(data.students || [], data.removed || []);
     showState('courseDetailState');
   });
 }
 
-function renderStudentList(students){
+function renderStudentList(students, removed){
   students = students.slice().sort(function(a,b){
     const lastCmp = a.last.localeCompare(b.last);
     return lastCmp !== 0 ? lastCmp : a.first.localeCompare(b.first);
@@ -465,7 +505,7 @@ function renderStudentList(students){
     const removeBtn = document.createElement('button');
     removeBtn.textContent = 'Remove';
     removeBtn.onclick = function(){
-      if(!confirm('Remove ' + s.first + ' ' + s.last + ' from this class? Their existing points stay on record.')) return;
+      if(!confirm('Remove ' + s.first + ' ' + s.last + ' from this class? Their points are kept, and they come back if you add them again or press Restore.')) return;
       apiGet({ mode:'adminremovestudent', code: myCode, tab: currentDetailCourse.tab, first: s.first, last: s.last }).then(function(res){
         if(res.success){
           openCourseDetail(currentDetailCourse);
@@ -477,6 +517,31 @@ function renderStudentList(students){
     row.appendChild(name); row.appendChild(removeBtn);
     list.appendChild(row);
   });
+  // Students removed from this class: their points are still on the tab and come back if they return.
+  if(removed && removed.length){
+    const h = document.createElement('div');
+    h.className = 'cat-head';
+    h.innerHTML = '<span>Removed &mdash; points kept</span><span>' + removed.length + '</span>';
+    list.appendChild(h);
+    removed.slice().sort(function(a,b){ return a.last.localeCompare(b.last) || a.first.localeCompare(b.first); }).forEach(function(s){
+      const row = document.createElement('div');
+      row.className = 'student-row';
+      row.style.opacity = '0.8';
+      const name = document.createElement('span');
+      name.textContent = s.first + ' ' + s.last + (s.studentId ? ' [' + s.studentId + ']' : '') + ' (Total kept: ' + s.total + ')';
+      const btn = document.createElement('button');
+      btn.textContent = 'Restore';
+      btn.onclick = function(){
+        if(!confirm('Put ' + s.first + ' ' + s.last + ' back in this class with their ' + s.total + ' points?')) return;
+        apiGet({ mode:'adminrestorestudent', code: myCode, tab: currentDetailCourse.tab, first: s.first, last: s.last }).then(function(res){
+          if(res.success) openCourseDetail(currentDetailCourse);
+          else alert(res.error || 'Could not restore student.');
+        });
+      };
+      row.appendChild(name); row.appendChild(btn);
+      list.appendChild(row);
+    });
+  }
 }
 
 document.getElementById('backFromDetailBtn').onclick = function(){ showState('courseListState'); };
@@ -522,7 +587,7 @@ document.getElementById('addStudentBtn').onclick = function(){
   }
   apiGet({ mode:'adminaddstudent', code: myCode, tab: currentDetailCourse.tab, first: first, last: last }).then(function(res){
     if(res.success){
-      okEl.textContent = 'Student added.';
+      okEl.textContent = res.restored ? ('Welcome back: ' + res.first + ' ' + res.last + ' is back in this class with their earlier points (total ' + res.total + ').') : 'Student added.';
       okEl.classList.add('active');
       openCourseDetail(currentDetailCourse);
     } else {
@@ -777,6 +842,9 @@ function renderIgpCategories(tr){
       card.appendChild(row);
     });
 
+    if(cat.inProgressFor && cat.inProgressFor.length) card.appendChild(mk('div', 'igp-ip', 'In progress: ' + cat.inProgressFor.join(', ')));
+    if(cat.needed && cat.needed.length) card.appendChild(mk('div', 'igp-need', 'Still needed: ' + cat.needed.join(', ')));
+    else if(cat.needed && !(cat.inProgressFor && cat.inProgressFor.length) && IGP_CATEGORY_META[cat.category] && (IGP_CATEGORY_META[cat.category].req || ['Health','Ethnic Studies'].indexOf(cat.category) !== -1)) card.appendChild(mk('div', 'igp-ip', 'Requirement met'));
     const foot = mk('div', 'igp-foot');
     foot.appendChild(mk('span', null, 'Total Credits'));
     foot.appendChild(mk('span', null, String(cat.totalCredits)));
@@ -1465,6 +1533,300 @@ function loadStudentPicks(){
 ['menuViewStudentBtn','menuArchiveStudentBtn','menuReverseBtn'].forEach(function(id){
   document.getElementById(id).addEventListener('click', loadStudentPicks);
 });
+
+// ===================== Upload Transcripts =====================
+// Sorts a transcript course into its IGP box, from the LAUSD course number (first 6 digits)
+// and the title, following this school's IGP template:
+//   English "B" | Social Science "A" (World + US History) | Math "C" | Lab Science "D" |
+//   Language "E" | Visual/Performing Art "F" | College Prep Elective "G" (Prin Am Democracy +
+//   Economics, and other college-prep social science) | Health | PE | Ethnic Studies | Electives.
+// School rules: College & Career = Elective, Interactions A/B = Lab Science, Homeroom is left off.
+// Returns { category, sure }  (sure:false = worth a second look) or { exclude:true }.
+// overrides: { '230617': 'Visual/Performing Art', ... } chosen on the admin page win over the rules.
+function categorizeCourse(crsId, title, overrides){
+  const id = String(crsId || '').trim().slice(0, 6);
+  const t = String(title || '').toUpperCase();
+  if(overrides && overrides[id]) return overrides[id] === 'Exclude' ? { exclude: true, category: 'Exclude', sure: true } : { category: overrides[id], sure: true };
+  const p2 = id.slice(0, 2), p3 = id.slice(0, 3), p4 = id.slice(0, 4);
+  const R = function(category, sure){ return { category: category, sure: sure !== false }; };
+  if(/HOMEROOM ADVISORY/.test(t) || id === '420109') return R('General Elective');   // earns 2.5 credits
+  if(/HOMEROOM/.test(t) || id === '420103') return { exclude: true, category: 'Exclude', sure: true };
+
+  if(p2 === '23'){
+    if(/JOURNAL|YEARBOOK|SPEECH/.test(t)) return R('General Elective', false);
+    if(/FILM/.test(t)) return R('Visual/Performing Art', false);
+    if(/HUMANITIES/.test(t)) return R('English', false);
+    return R('English');
+  }
+  if(p2 === '17') return R('General Elective', false);                 // ELD
+  if(p2 === '18') return R('College Prep Elective', false);            // computer science
+  if(p2 === '20' || p2 === '32' || p2 === '38') return R('Visual/Performing Art');
+  if(p2 === '25') return R('Language (LOTE)');
+  if(p2 === '26') return R('Health');
+  if(p2 === '31'){
+    if(/TUT LAB|DEV MATH/.test(t)) return R('General Elective', false);
+    return R('Math');
+  }
+  if(p2 === '33') return R('Physical Education');
+  if(p2 === '35') return R('General Elective');                        // reading
+  if(p2 === '36'){
+    if(/HEALTH/.test(t)) return R('Health');
+    if(/ENV/.test(t) || /UNDERSTANDING/.test(t)) return R('Lab Science', false);
+    return R('Lab Science');
+  }
+  if(p2 === '37'){
+    if(id === '370733' || /ETHNIC|CULTURAL ROOTS/.test(t)) return R('Ethnic Studies');
+    if(p4 === '3701' || /WHG|WORLD HIST|US HIST|UNITED STATES HIST/.test(t) || p3 === '379') return R('Social Science');
+    if(id === '370603' || id === '370905' || /PRIN AM|ECONOMICS/.test(t)) return R('College Prep Elective');
+    if(/MATH/.test(t)) return R('Math', false);
+    return R('College Prep Elective', false);                         // geography, psychology, sociology...
+  }
+  if(p2 === '42' || p2 === '21' || p2 === '46') return R('General Elective');
+  if(p2 === '10'){
+    if(/ALGEBRA|GEOM|MATH/.test(t)) return R('Math', false);
+    if(/SCIENCE/.test(t)) return R('Lab Science', false);
+    return R('General Elective', false);
+  }
+  if(p2 === '60' || p2 === '61' || p2 === '62' || p2 === '64' || p2 === '65' || p2 === '67'){
+    if(/AP COMP SCI/.test(t)) return R('College Prep Elective', false);
+    if(/THEAT|PERF ARTS|GRAPHIC|VID PRD|DESIGN/.test(t)) return R('Visual/Performing Art', false);
+    return R('General Elective');                                     // career technical education
+  }
+  return R('General Elective', false);
+}
+
+// Sorts a course TITLE with no course number (the points-system course tabs) into the same boxes.
+function categorizeTitle(title){
+  const t = ' ' + String(title || '').toUpperCase().replace(/\(.*?\)/g, ' ') + ' ';
+  const has = function(re){ return re.test(t); };
+  if(has(/HOMEROOM/)) return 'General Elective';
+  if(has(/ETHNIC|CULTURAL ROOTS/)) return 'Ethnic Studies';
+  if(has(/PRIN\w* AM|AM\w* DEM|ECONOMIC/)) return 'College Prep Elective';
+  if(has(/WHG|WORLD HIST|US HIST|U\.S\. HIST|UNITED STATES HIST|MOD WLD/)) return 'Social Science';
+  if(has(/ELD|ENGLISH LANG DEV/)) return 'General Elective';
+  if(has(/ENGLISH|\bENG\b|LIT\b|LITERATURE|\bCOMP\b|COMPOSITION|EXPOS|CONTEMP|WRIT|HUMANITIES/)) return 'English';
+  if(has(/ALGEBRA|\bALG\b|GEOMETRY|\bGEOM|CALC|STATISTIC|\bMATH/)) return 'Math';
+  if(has(/BIOLOG|\bBIO\b|CHEM|PHYSIC|INTERACTIONS|EARTH|SCIENCE|\bENV\b|ENVIRON/)) return 'Lab Science';
+  if(has(/SPANISH|FRENCH|KOREAN|JAPAN|ARMENIAN|SIGN L|\bLOTE\b|\bSPAN\b/)) return 'Language (LOTE)';
+  if(has(/HEALTH/)) return 'Health';
+  if(has(/\bPE\b|PHYS\w* ED|FITNESS|ATHLET|SPORT|GARDENING B \(PE/)) return 'Physical Education';
+  if(has(/\bART\b|ARTS\b|IMAGE|DRAW|PAINT|DESIGN|MUSIC|BAND|THEAT|DRAMA|FILM|CINEMA|KEYBOARD|ANIMAT|PHOTO|CERAMIC/)) return 'Visual/Performing Art';
+  if(has(/PSYCH|SOCIO|ANTHRO|GEOG|COMPUTER SCI|COMP SCI/)) return 'College Prep Elective';
+  return 'General Elective';
+}
+
+// Reads one MiSiS "Transcript Report" sheet (one student per sheet; the sheet name is the
+// Student ID) given as an array of rows (array of arrays, empty cells = null).
+// The report is laid out like a newspaper: terms run down a left column block and continue in a
+// right column block. Each block has its own "Crs ID / Course Title / Mark / Credit" headers and
+// term headers ("School----TermEndDt:6/11/2026---Gr Lvl:12"). "Courses In Progress" is a term
+// header too, with no Mark/Credit. Every finished term ends with "Cmp: 15.0" (credits completed
+// that term), and each term is checked against it.
+// Returns { id, completed:[{school, termEnd, grade, crsId, title, mark, credit}],
+//           inProgress:[{crsId, title, termEnd}], problems:[], checkedTerms }
+function parseTranscriptSheet(id, rows){
+  const problems = [];
+  const S = function(v){ return v === null || v === undefined ? '' : String(v).trim(); };
+  const clean = function(t){ return S(t).replace(/^[*ᵖ\s]+/, ''); };
+  const blocks = {};   // start column -> { title, mark, credit, school, termEnd, grade, inProgress, sum, key }
+  const completed = [], inProgress = [];
+  let checkedTerms = 0;
+  function blockFor(j){ if(!blocks[j]) blocks[j] = { title: -1, mark: -1, credit: -1, school: '', termEnd: '', grade: '', inProgress: false, sum: 0, key: '', open: false }; return blocks[j]; }
+
+  rows.forEach(function(r){
+    if(!r) return;
+    for(let j = 0; j < r.length; j++){
+      const v = S(r[j]);
+      if(!v) continue;
+      const th = v.match(/^(.*?)----TermEndDt:([\d\/]+)(?:---Gr Lvl:(\S+))?/);
+      if(th){
+        const b = blockFor(j);
+        b.school = th[1].trim(); b.termEnd = th[2]; b.grade = th[3] || '';
+        b.inProgress = /^Courses In Progress/i.test(b.school);
+        b.sum = 0; b.key = b.school + ' ' + b.termEnd; b.open = true;
+        continue;
+      }
+      if(v === 'Crs ID'){
+        const b = blockFor(j);
+        b.title = -1; b.mark = -1; b.credit = -1;
+        for(let k = j + 1; k < Math.min(r.length, j + 8); k++){
+          const w = S(r[k]);
+          if(w === 'Crs ID' || /TermEndDt/.test(w)) break;
+          if(w === 'Course Title' && b.title === -1) b.title = k;
+          else if(w === 'Mark' && b.mark === -1) b.mark = k;
+          else if(w === 'Credit' && b.credit === -1) b.credit = k;
+        }
+        continue;
+      }
+      const b = blocks[j];
+      if(b && b.title !== -1 && /^\d{6}[A-Z0-9]*$/.test(v) && S(r[b.title])){
+        if(b.inProgress){
+          inProgress.push({ crsId: v, title: clean(r[b.title]), termEnd: b.termEnd });
+        } else {
+          const raw = b.credit !== -1 ? r[b.credit] : null;
+          let credit = (raw === null || raw === undefined || raw === '') ? 0 : Number(raw);
+          if(isNaN(credit)){ problems.push('Unreadable credit for ' + clean(r[b.title]) + ' (' + b.key + ')'); credit = 0; }
+          completed.push({ school: b.school, termEnd: b.termEnd, grade: b.grade, crsId: v, title: clean(r[b.title]),
+                           mark: b.mark !== -1 ? S(r[b.mark]) : '', credit: credit });
+          b.sum += credit;
+        }
+        continue;
+      }
+      const cm = v.match(/^Cmp:\s*([\d.]+)/);
+      if(cm){
+        // belongs to the nearest block starting at or left of this column
+        let start = -1;
+        Object.keys(blocks).forEach(function(k){ k = Number(k); if(k <= j && k > start && blocks[k].credit !== -1 && j <= blocks[k].credit) start = k; });
+        if(start !== -1 && blocks[start].open && !blocks[start].inProgress){
+          checkedTerms++;
+          if(Math.abs(Number(cm[1]) - blocks[start].sum) > 0.01) problems.push('Term ' + blocks[start].key + ': read ' + blocks[start].sum + ' credits but the report says ' + cm[1]);
+          blocks[start].open = false;
+        }
+      }
+    }
+  });
+  if(!completed.length && !inProgress.length) problems.push('No courses found on this sheet.');
+  return { id: id, completed: completed, inProgress: inProgress, problems: problems, checkedTerms: checkedTerms };
+}
+
+
+const XLSX_URL = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+let trStudents = [], trOverrides = {}, trCategories = [], trNames = {};
+function loadXlsxLib(){
+  return new Promise(function(resolve, reject){
+    if(window.XLSX){ resolve(window.XLSX); return; }
+    const sc = document.createElement('script'); sc.src = XLSX_URL;
+    sc.onload = function(){ resolve(window.XLSX); };
+    sc.onerror = function(){ reject(new Error('Could not load the spreadsheet reader. Check your connection.')); };
+    document.head.appendChild(sc);
+  });
+}
+document.getElementById('menuTranscriptBtn').onclick = function(){ showState('transcriptState'); };
+document.getElementById('backFromTranscriptBtn').onclick = function(){ showState('dashboardState'); };
+
+document.getElementById('trReadBtn').onclick = async function(){
+  const files = Array.from(document.getElementById('trFiles').files || []);
+  const prog = document.getElementById('trProgress');
+  ['trSummary','trCheck','trStudents'].forEach(function(id){ document.getElementById(id).innerHTML = ''; });
+  document.getElementById('trSaveBtn').style.display = 'none';
+  trStudents = [];
+  if(!files.length){ prog.textContent = 'Choose the Transcript Report file first.'; return; }
+  const btn = this; btn.disabled = true;
+  try{
+    prog.textContent = 'Loading...';
+    const lib = await loadXlsxLib();
+    const [cats, names] = await Promise.all([ apiGet({ mode:'transcriptcategories', code: myCode }), apiGet({ mode:'schoolstudents', code: myCode }) ]);
+    if(!cats.success){ prog.textContent = cats.error || 'Could not load categories.'; return; }
+    trOverrides = cats.overrides || {}; trCategories = cats.categories || [];
+    trNames = {}; ((names && names.students) || []).forEach(function(s){ if(s.id) trNames[s.id] = s.last + ', ' + s.first; });
+    for(let f = 0; f < files.length; f++){
+      prog.textContent = 'Reading ' + files[f].name + '...';
+      const wb = lib.read(new Uint8Array(await files[f].arrayBuffer()), { type:'array' });
+      wb.SheetNames.forEach(function(n){
+        const rows = lib.utils.sheet_to_json(wb.Sheets[n], { header:1, raw:true, defval:null });
+        const r = parseTranscriptSheet(String(n).trim(), rows);
+        if(!/^[0-9A-Z]{6,12}$/.test(r.id)) r.problems.unshift('Sheet name "' + n + '" is not a Student ID.');
+        trStudents.push(r);
+      });
+    }
+    prog.textContent = 'Read ' + trStudents.length + ' student(s). Review below, then save.';
+    renderTranscriptPreview();
+  }catch(err){ prog.textContent = 'Could not read that file: ' + err.message; }
+  finally{ btn.disabled = false; }
+};
+
+function trCat(c){ return categorizeCourse(c.crsId, c.title, trOverrides); }
+
+function renderTranscriptPreview(){
+  const terms = trStudents.reduce(function(s, r){ return s + r.checkedTerms; }, 0);
+  const probs = trStudents.filter(function(r){ return r.problems.length; });
+  document.getElementById('trSummary').innerHTML = '<div class="igp-header" style="margin-bottom:0;"><div class="igp-title">Transcript Report</div><div style="font-size:0.9rem;margin-top:4px;">' +
+    trStudents.length + ' student(s) &middot; ' + terms + ' terms checked against the report totals' +
+    (probs.length ? '<br><span style="color:#a34b3f;">' + probs.length + ' student(s) with problems - they will be skipped (see below)</span>' : '<br><span style="color:var(--green);">Every term matches the report.</span>') + '</div></div>';
+
+  // courses whose category is a judgment call, once per course number
+  const seen = {};
+  trStudents.forEach(function(s){
+    s.completed.concat(s.inProgress).forEach(function(c){
+      const id6 = c.crsId.slice(0, 6), r = trCat(c);
+      if(r.sure) return;
+      if(!seen[id6]) seen[id6] = { id: id6, titles: {}, n: 0, suggested: r.category };
+      seen[id6].titles[c.title] = true; seen[id6].n++;
+    });
+  });
+  const list = Object.keys(seen).sort().map(function(k){ return seen[k]; });
+  const box = document.getElementById('trCheck');
+  if(!list.length){ box.innerHTML = '<div class="hint" style="margin-top:10px;">Every course has a clear category.</div>'; }
+  else {
+    let h = '<div class="hr-head" style="margin-top:14px;">Courses to check (' + list.length + ')</div><div class="hint">These could go in more than one box. The suggestion is already picked; change any that are wrong and press Save next to it, or accept all. Your choice applies to every student, now and in future uploads.</div>' +
+      '<button class="btn-primary" id="trAcceptAll" style="margin:6px 0 10px;">Accept all suggestions</button><table class="tr-table"><tr><th>Course</th><th>Students</th><th>Category</th><th></th></tr>';
+    list.forEach(function(c, i){
+      h += '<tr data-i="' + i + '"><td><b>' + esc(c.id) + '</b> ' + esc(Object.keys(c.titles).join(' / ')) + '</td><td>' + c.n + '</td><td><select class="trSel">' +
+        trCategories.map(function(k){ return '<option' + (k === c.suggested ? ' selected' : '') + '>' + esc(k) + '</option>'; }).join('') + '</select></td><td><button class="trOne">Save</button> <span class="trOk"></span></td></tr>';
+    });
+    box.innerHTML = h + '</table>';
+    async function saveOne(tr){
+      const c = list[Number(tr.getAttribute('data-i'))], cat = tr.querySelector('.trSel').value, ok = tr.querySelector('.trOk');
+      ok.textContent = '...';
+      const r = await apiGet({ mode:'setcoursecategory', code: myCode, crsId: c.id, title: Object.keys(c.titles)[0], category: cat });
+      if(r.success){ trOverrides[c.id] = cat; ok.textContent = 'Saved'; ok.style.color = 'var(--green)'; } else { ok.textContent = r.error || 'Not saved'; ok.style.color = '#a34b3f'; }
+    }
+    box.querySelectorAll('.trOne').forEach(function(b){ b.onclick = function(){ saveOne(b.closest('tr')).then(renderTranscriptStudents); }; });
+    document.getElementById('trAcceptAll').onclick = async function(){
+      this.disabled = true;
+      const rows = Array.from(box.querySelectorAll('tr[data-i]'));
+      for(let i = 0; i < rows.length; i++){ if(rows[i].querySelector('.trOk').textContent !== 'Saved') await saveOne(rows[i]); }
+      this.disabled = false; renderTranscriptStudents();
+    };
+  }
+  renderTranscriptStudents();
+}
+
+function renderTranscriptStudents(){
+  let h = '<div class="hr-head" style="margin-top:14px;">Students</div>';
+  trStudents.forEach(function(s){
+    const credits = s.completed.reduce(function(t, c){ return t + (trCat(c).exclude ? 0 : c.credit); }, 0);
+    h += '<div class="course-row"><div class="course-title">' + esc(trNames[s.id] || '(not on the school list)') + ' <span style="font-weight:400;color:var(--muted);font-size:0.78rem;">' + esc(s.id) + '</span></div>' +
+      '<div class="course-sub">' + credits + ' credits earned &middot; ' + s.completed.length + ' courses on record &middot; ' + s.inProgress.length + ' in progress &middot; ' + s.checkedTerms + ' terms checked</div>' +
+      (s.problems.length ? '<div class="course-sub" style="color:#a34b3f;">Will be skipped: ' + s.problems.map(esc).join('; ') + '</div>' : '') + (s.result ? '<div class="course-sub" style="color:' + (s.result.ok ? 'var(--green)' : '#a34b3f') + ';">' + esc(s.result.text) + '</div>' : '') + '</div>';
+  });
+  document.getElementById('trStudents').innerHTML = h;
+  document.getElementById('trSaveBtn').style.display = trStudents.some(function(s){ return !s.problems.length; }) ? 'block' : 'none';
+}
+
+async function uploadTranscript(s){
+  const json = JSON.stringify({ id: s.id,
+    completed: s.completed.map(function(c){ return [c.school, c.termEnd, c.grade, c.crsId, c.title, c.mark, c.credit]; }),
+    inProgress: s.inProgress.map(function(c){ return [c.crsId, c.title, c.termEnd]; }) });
+  const parts = []; for(let i = 0; i < json.length; i += 1500) parts.push(json.slice(i, i + 1500));
+  const token = 'T' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  let r = null;
+  for(let i = 0; i < parts.length; i++){
+    r = await apiGet({ mode:'transcriptupload', code: myCode, token: token, part: i + 1, of: parts.length, data: parts[i] });
+    if(!r.success) return r;
+  }
+  return r;
+}
+
+document.getElementById('trSaveBtn').onclick = async function(){
+  const ready = trStudents.filter(function(s){ return !s.problems.length; });
+  if(!ready.length) return;
+  if(!confirm('Save transcripts for ' + ready.length + ' student(s)? Anyone uploaded before is replaced with this report.')) return;
+  const btn = this, prog = document.getElementById('trProgress');
+  btn.disabled = true;
+  let saved = 0;
+  for(let i = 0; i < ready.length; i++){
+    prog.textContent = 'Saving ' + (i + 1) + ' of ' + ready.length + ' (' + (trNames[ready[i].id] || ready[i].id) + ')...';
+    try{
+      const r = await uploadTranscript(ready[i]);
+      ready[i].result = r && r.success ? { ok: true, text: 'Saved: ' + r.credits + ' credits' } : { ok: false, text: (r && r.error) || 'Not saved' };
+      if(r && r.success) saved++;
+    }catch(err){ ready[i].result = { ok: false, text: 'Could not reach the server' }; }
+  }
+  prog.textContent = 'Saved ' + saved + ' of ' + ready.length + ' transcript(s).';
+  btn.disabled = false;
+  renderTranscriptStudents();
+};
 </script>
 </body>
 </html>
