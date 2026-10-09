@@ -514,14 +514,14 @@ function renderClassList(){
     if(!byPeriod[c.period]) byPeriod[c.period] = [];
     byPeriod[c.period].push(c);
   });
-  const periods = Object.keys(byPeriod).sort();
+  const periods = Object.keys(byPeriod).sort(function(a, b){ return (a === 'PH') - (b === 'PH') || a.localeCompare(b); });   // Advisory last
 
   periods.forEach(function(period){
     const group = document.createElement('div');
     group.className = 'period-group';
     const label = document.createElement('div');
     label.className = 'period-label';
-    label.textContent = 'Period ' + period;
+    label.textContent = period === 'PH' ? 'Period H \u2013 Advisory (Homeroom)' : 'Period ' + period;
     group.appendChild(label);
     if(byPeriod[period].length > 1){
       // A period with several courses also gets one alphabetical list of everyone in it.
@@ -1147,7 +1147,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v23';
+document.getElementById('buildTag').textContent = 'v24';
 </script>
 </body>
 </html>
