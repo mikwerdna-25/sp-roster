@@ -589,8 +589,8 @@ function renderStudentCard(el, d, pickEl){
     (cw === d.currentWeek ? '<div class="ro-sub">* this week is still in progress</div>' : '');
   const cur = d.classes.filter(function(c){ return !c.completed; }), done = d.classes.filter(function(c){ return c.completed; });
   const row = function(c, i){
-    return '<div class="ro-class"><div style="flex:1;"><div><b>' + hEsc(c.period || '') + '</b> ' + hEsc(c.course) + (c.mine ? ' <span class="mine-tag">your class</span>' : '') + '</div>' +
-      '<div class="ro-sub">' + hEsc(c.teacher || 'Teacher not listed') + ' &middot; ' + (c.completed ? 'Completed' + (c.grade ? ' (' + hEsc(c.grade) + ')' : '') : ptsFmt(c.total) + (c.advisory ? ' points (go to College & Career)' : ' / 75 points')) + '</div></div>' +
+    return '<div class="ro-class"><div style="flex:1;"><div>' + (c.notInMisis ? '<b style="color:#a32b2b;">\u2691</b> ' : '<b>' + hEsc(c.period || '') + '</b> ') + hEsc(c.course) + (c.mine ? ' <span class="mine-tag">your class</span>' : '') + '</div>' +
+      '<div class="ro-sub"' + (c.notInMisis ? ' style="color:#a32b2b;"' : '') + '>' + (c.notInMisis ? 'Not on MiSiS schedule (from FileMaker)' : hEsc(c.teacher || 'Teacher not listed')) + ' &middot; ' + (c.completed ? 'Completed' + (c.grade ? ' (' + hEsc(c.grade) + ')' : '') : ptsFmt(c.total) + (c.advisory ? ' points (go to College & Career)' : ' / 75 points')) + '</div></div>' +
       (c.mine && c.tab ? '<button class="save-btn open-mine" data-i="' + i + '">Open</button>' : '') + '</div>';
   };
   html += '<div class="ro-head">Current classes</div>' + (cur.length ? cur.map(function(c){ return row(c, d.classes.indexOf(c)); }).join('') : '<div class="ro-sub">No current classes on record.</div>');
@@ -1074,7 +1074,9 @@ function renderCourseRows(containerId, items, emptyText, rightFn){
   if(items.length === 0){ el.appendChild(mk('div', 'loading-text', emptyText)); return; }
   items.forEach(function(c){
     const row = mk('div', 'student-row');
-    row.appendChild(mk('span', null, c.courseTitle));
+    const t = mk('span', null, (c.notInMisis ? '\u2691 ' : '') + c.courseTitle);
+    if(c.notInMisis) t.style.color = '#a32b2b';
+    row.appendChild(t);
     row.appendChild(mk('span', null, rightFn(c)));
     el.appendChild(row);
   });
@@ -1147,7 +1149,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v24';
+document.getElementById('buildTag').textContent = 'v25';
 </script>
 </body>
 </html>

@@ -1093,7 +1093,7 @@
 <input type="file" id="photoInput" accept="image/*" style="display:none;">
 
 <script>
-const APP_BUILD = 'build-34-advisory';
+const APP_BUILD = 'build-35-not-on-misis';
 const GRADE_COLORS = {9:'g9',10:'g10',11:'g11',12:'g12'};
 const AVATAR_HUES = ['#5b7a9d','#6f8f5b','#b8862f','#a34b3f','#7a6a9d','#4a8f8f'];
 
@@ -1725,9 +1725,9 @@ function escHtml(t){ return String(t==null?'':t).replace(/[&<>"']/g, c=>({'&':'&
 function drawSchedule(box, courses){
   if(!courses.length){ box.innerHTML='<div style="color:var(--muted);">No classes found for this student in the points sheet.</div>'; return; }
   const row = c => `<div style="display:flex;gap:10px;padding:5px 0;border-bottom:1px solid #e3e6ec;${c.completed?'opacity:.6;':''}">
-      <div style="min-width:48px;font-weight:800;">${escHtml(c.period)||'&ndash;'}</div>
+      <div style="min-width:48px;font-weight:800;${c.notInMisis?'color:#a32b2b;':''}">${c.notInMisis?'\u2691':(escHtml(c.period)||'&ndash;')}</div>
       <div style="flex:1;"><div style="font-weight:600;">${escHtml(c.course)}</div>
-        <div style="color:var(--muted);font-size:0.78rem;">${escHtml(c.teacher)||'Teacher not listed'}${c.completed?' &middot; Completed'+(c.grade?' ('+escHtml(c.grade)+')':''):' &middot; '+escHtml(c.total)+' pts'+(c.advisory?' (to College &amp; Career)':'')}</div></div></div>`;
+        <div style="color:${c.notInMisis?'#a32b2b':'var(--muted)'};font-size:0.78rem;">${c.notInMisis?'Not on MiSiS schedule (from FileMaker)':(escHtml(c.teacher)||'Teacher not listed')}${c.completed?' &middot; Completed'+(c.grade?' ('+escHtml(c.grade)+')':''):' &middot; '+escHtml(c.total)+' pts'+(c.advisory?' (to College &amp; Career)':'')}</div></div></div>`;
   box.innerHTML = courses.map(row).join('');
 }
 async function loadScheduleSection(s){
