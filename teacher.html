@@ -326,6 +326,34 @@
   .student-row{ display:flex; justify-content:space-between; align-items:center; gap:8px; padding:8px 10px; border:1px solid var(--rule); border-radius:6px; margin-bottom:6px; font-size:0.88rem; }
   #igpPick, #studentPick{ width:100%; padding:11px 12px; border:1px solid var(--rule); border-radius:8px; font-size:1rem; font-family:inherit; background:#fff; }
   .student-card-ro{ padding:12px 14px; }
+  .wk-wrap{ margin:0 0 16px; }
+  .wk-chart{ position:relative; }
+  .wk-chart svg{ display:block; width:100%; height:auto; }
+  .wk-tip{ background:#fff; border:1px solid var(--rule); border-radius:8px; padding:7px 9px; font-size:0.76rem; color:var(--ink); margin:4px 0 8px; min-height:2.4em; }
+  .wk-hit:hover, .wk-hit.sel{ fill:rgba(28,43,74,0.07); }
+  .wk-tip b{ color:var(--navy); }
+  .wk-legend{ display:flex; gap:12px; flex-wrap:wrap; font-size:0.72rem; color:var(--muted); margin:4px 0 8px; }
+  .wk-legend span{ display:inline-flex; align-items:center; gap:4px; }
+  .wk-sw{ width:10px; height:10px; border-radius:2px; display:inline-block; }
+  .wk-blocks{ display:flex; gap:6px; flex-wrap:wrap; margin:6px 0 10px; }
+  .wk-block{ border:1px solid var(--rule); border-radius:8px; padding:5px 8px; font-size:0.74rem; background:#fff; }
+  .wk-block.bad{ border-color:#d03b3b; }
+  .wk-block .st{ font-weight:700; }
+  .wk-table-wrap{ overflow-x:auto; border:1px solid var(--rule); border-radius:8px; background:#fff; }
+  .wk-table{ border-collapse:collapse; font-size:0.74rem; width:100%; }
+  .wk-table th, .wk-table td{ padding:5px 6px; border-bottom:1px solid #eee6d2; text-align:right; white-space:nowrap; }
+  .wk-table th{ color:var(--muted); font-weight:600; background:var(--paper); position:sticky; top:0; }
+  .wk-table td:first-child, .wk-table th:first-child{ text-align:left; position:sticky; left:0; background:#fff; max-width:150px; overflow:hidden; text-overflow:ellipsis; }
+  .wk-table th:first-child{ background:var(--paper); }
+  .wk-table tr.sum td{ font-weight:800; border-top:2px solid var(--rule); }
+  .wk-table td.cur, .wk-table th.cur{ background:#fbf6e6; }
+  .wk-table tr.done td{ color:var(--muted); }
+  .wk-toggle{ background:none; border:none; color:var(--navy); font-weight:700; font-size:0.8rem; padding:6px 0; cursor:pointer; text-decoration:underline; }
+  .tv-head{ font-weight:800; color:var(--navy); margin:14px 0 6px; font-size:0.9rem; }
+  .tv-row{ display:flex; justify-content:space-between; align-items:center; gap:8px; padding:9px 10px; border:1px solid var(--rule); border-radius:8px; margin-bottom:6px; background:#fff; }
+  .tv-row .sub{ font-size:0.76rem; color:var(--muted); }
+  .tv-row .right{ font-size:0.85rem; white-space:nowrap; }
+
   .ro-sub{ font-size:0.76rem; color:var(--muted); }
   .ro-head{ font-size:0.74rem; font-weight:800; text-transform:uppercase; letter-spacing:0.05em; color:var(--navy); margin:12px 0 4px; }
   .ro-class{ display:flex; gap:10px; align-items:center; padding:6px 0; border-bottom:1px solid var(--rule); font-size:0.88rem; }
@@ -369,7 +397,7 @@
       </div>
 
       <div class="search-box">
-        <label>Find a student</label>
+        <label>View a student (current students, view only)</label>
         <select id="studentPick"><option value="">Loading students...</option></select>
         <div class="search-results" id="searchResults" style="display:none;"></div>
       </div>
@@ -395,6 +423,17 @@
     </div>
 
     <!-- STUDENT IGP (read-only) -->
+    <div class="state" id="studentViewState">
+      <button class="small-link" id="backFromStudentView" style="margin-bottom:10px;">&lt; Back</button>
+      <div style="font-weight:800;color:var(--navy);font-size:1.05rem;" id="tvName"></div>
+      <div class="ro-sub" id="tvSub" style="margin-bottom:10px;"></div>
+      <div id="tvWeekly"></div>
+      <div class="tv-head">In progress</div>
+      <div id="tvInProgress"></div>
+      <div class="tv-head">Completed</div>
+      <div id="tvCompleted"></div>
+    </div>
+
     <div class="state" id="igpState">
       <button class="small-link" id="backFromIgpBtn" style="margin-bottom:10px;">&lt; Back to class</button>
       <div class="igp-header">
@@ -607,6 +646,28 @@ function renderStudentCard(el, d, pickEl){
   const cl = document.getElementById('closeStudentCard');
   if(cl) cl.onclick = function(){ el.style.display = 'none'; el.innerHTML = ''; pickEl.value = ''; };
 }
+// ---- View a student: a read-only page like the counselor's (weekly chart, blocks, classes) ----
+function tvRow(c, i, d){
+  const right = c.completed ? 'Grade: ' + hEsc(c.grade || '') : (c.advisory ? ptsFmt(c.total) + ' pts to C&amp;C' : ptsFmt(c.total) + ' / 75');
+  return '<div class="tv-row"><div style="flex:1;min-width:0;"><div>' + (c.notInMisis ? '<b style="color:#a32b2b;">⚑</b> ' : '<b>' + hEsc(c.period || '') + '</b> ') + hEsc(c.course) +
+    (c.mine ? ' <span class="mine-tag">your class</span>' : '') + '</div><div class="sub"' + (c.notInMisis ? ' style="color:#a32b2b;"' : '') + '>' +
+    (c.notInMisis ? 'Not on MiSiS schedule (from FileMaker)' : hEsc(c.teacher || 'Teacher not listed')) + '</div></div>' +
+    '<div class="right">' + right + '</div>' + (c.mine && c.tab && !c.completed ? '<button class="save-btn open-mine" data-i="' + i + '">Open</button>' : '') + '</div>';
+}
+function renderStudentPage(d){
+  const st = d.student;
+  document.getElementById('tvName').textContent = st.first + ' ' + st.last + (st.id ? ' (' + st.id + ')' : '');
+  document.getElementById('tvSub').textContent = 'View only — you can enter points only in your own classes.';
+  const cur = d.classes.filter(function(c){ return !c.completed; }), done = d.classes.filter(function(c){ return c.completed; });
+  document.getElementById('tvInProgress').innerHTML = cur.length ? cur.map(function(c){ return tvRow(c, d.classes.indexOf(c), d); }).join('') : '<div class="ro-sub">No courses in progress.</div>';
+  document.getElementById('tvCompleted').innerHTML = done.length ? done.map(function(c){ return tvRow(c, d.classes.indexOf(c), d); }).join('') : '<div class="ro-sub">No completed courses yet.</div>';
+  document.querySelectorAll('#studentViewState .open-mine').forEach(function(btn){
+    btn.onclick = function(){ const c = d.classes[Number(btn.getAttribute('data-i'))]; openClass(c.tab, { first: c.rowFirst, last: c.rowLast }); };
+  });
+  showState('studentViewState');
+  renderStudentWeekly({ weekTotals: d.weeks, currentWeek: d.currentWeek, honorMin: d.honorMin, probationBelow: d.probationBelow,
+    blockWeeks: d.blockWeeks || 5, blockMinPerWeek: d.blockMinPerWeek || 20, inProgress: cur, completed: done });
+}
 document.getElementById('studentPick').addEventListener('change', function(e){
   const resultsEl = document.getElementById('searchResults');
   resultsEl.innerHTML = ''; resultsEl.style.display = 'none';
@@ -618,9 +679,114 @@ document.getElementById('studentPick').addEventListener('change', function(e){
   apiGet({ mode:'teacherviewstudent', code: myCode, id: st.id || '', first: st.first, last: st.last }).then(function(d){
     if(e.target.value !== want) return;               // they picked someone else meanwhile
     if(!d || !d.success){ resultsEl.innerHTML = '<div class="search-empty">' + hEsc((d && d.error) || 'Could not load this student.') + '</div>'; return; }
-    renderStudentCard(resultsEl, d, e.target);
+    resultsEl.innerHTML = ''; resultsEl.style.display = 'none'; e.target.value = '';
+    renderStudentPage(d);
   }).catch(function(){ resultsEl.innerHTML = '<div class="search-empty">Could not reach the server.</div>'; });
 });
+document.getElementById('backFromStudentView').onclick = function(){ showState('classListState'); };
+
+// ===================== View a Student: points by week (chart + table) =====================
+const WK_GOOD = '#0ca30c', WK_WARN = '#fab219', WK_CRIT = '#d03b3b', WK_NONE = '#d8cfb8';
+function wkStatus(v, d){
+  if(v === null || v === undefined) return { label: 'No points entered', color: WK_NONE, mark: '–' };
+  if(v >= d.honorMin) return { label: 'Honor Roll', color: WK_GOOD, mark: '✓' };
+  if(v >= d.probationBelow) return { label: 'Good standing', color: WK_WARN, mark: '•' };
+  return { label: 'Probation', color: WK_CRIT, mark: '!' };
+}
+function wkFmt(v){ return v === null || v === undefined ? '–' : String(Math.round(v * 100) / 100); }
+function renderStudentWeekly(d){
+  const box = document.getElementById('tvWeekly');
+  const totals = d.weekTotals || [];
+  if(!totals.length){ box.innerHTML = ''; return; }
+  const honor = d.honorMin || 30, prob = d.probationBelow || 20;
+  let lastData = 0; totals.forEach(function(v, i){ if(v !== null) lastData = i + 1; });
+  const n = Math.max(1, Math.min(totals.length, Math.max(d.currentWeek || 0, lastData)));
+  const classes = (d.inProgress || []).concat(d.completed || []);
+  const W = Math.max(300, Math.min(680, box.clientWidth || 640)), H = W < 480 ? 190 : 220, padL = 28, padR = 74, padT = 12, padB = 26;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  const maxV = Math.max(honor + 10, Math.ceil(Math.max.apply(null, totals.slice(0, n).map(function(v){ return v || 0; })) / 10) * 10);
+  const y = function(v){ return padT + plotH - (v / maxV) * plotH; };
+  const slot = plotW / n, bw = Math.max(6, Math.min(26, slot - 4));
+  let svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Weekly points across all classes, weeks 1 to ' + n + '">';
+  for(let g = 0; g <= maxV; g += 10){   // recessive grid
+    svg += '<line x1="' + padL + '" x2="' + (W - padR) + '" y1="' + y(g) + '" y2="' + y(g) + '" stroke="#eee6d2" stroke-width="1"/>' +
+           '<text x="' + (padL - 5) + '" y="' + (y(g) + 3) + '" text-anchor="end" font-size="10" fill="#7a7364">' + g + '</text>';
+  }
+  [[honor, 'Honor Roll ' + honor], [prob, 'Probation <' + prob]].forEach(function(t){
+    svg += '<line x1="' + padL + '" x2="' + (W - padR) + '" y1="' + y(t[0]) + '" y2="' + y(t[0]) + '" stroke="#7a7364" stroke-width="1" stroke-dasharray="4 3"/>' +
+           '<text x="' + (W - padR + 4) + '" y="' + (y(t[0]) + 3) + '" font-size="10" fill="#7a7364">' + t[1] + '</text>';
+  });
+  for(let i = 0; i < n; i++){
+    const v = totals[i], st = wkStatus(v, { honorMin: honor, probationBelow: prob });
+    const cx = padL + slot * i + slot / 2, x = cx - bw / 2;
+    const live = (i + 1) === d.currentWeek;
+    if(v !== null && v > 0){
+      const top = y(v), base = y(0), r = Math.min(4, bw / 2, base - top);
+      svg += '<path d="M' + x + ',' + base + ' V' + (top + r) + ' Q' + x + ',' + top + ' ' + (x + r) + ',' + top + ' H' + (x + bw - r) + ' Q' + (x + bw) + ',' + top + ' ' + (x + bw) + ',' + (top + r) + ' V' + base + ' Z" fill="' + st.color + '"' + (live ? ' fill-opacity="0.45"' : '') + '/>';
+    } else {
+      svg += '<line x1="' + x + '" x2="' + (x + bw) + '" y1="' + (y(0) - 1) + '" y2="' + (y(0) - 1) + '" stroke="' + (v === 0 ? WK_CRIT : WK_NONE) + '" stroke-width="2"/>';
+    }
+    if(n <= 12 || (i + 1) % 2 === 1 || live) svg += '<text x="' + cx + '" y="' + (H - 9) + '" text-anchor="middle" font-size="10" fill="#7a7364">' + (i + 1) + (live ? '*' : '') + '</text>';
+    svg += '<rect class="wk-hit" data-i="' + i + '" x="' + (padL + slot * i) + '" y="' + padT + '" width="' + slot + '" height="' + (plotH + padB) + '" fill="transparent" style="cursor:pointer"/>';
+  }
+  svg += '<line x1="' + padL + '" x2="' + (W - padR) + '" y1="' + y(0) + '" y2="' + y(0) + '" stroke="#b8ad93" stroke-width="1"/></svg>';
+
+  // 5-week blocks: need 20 per week with points (100 for a full block)
+  let blocks = '';
+  const bwk = d.blockWeeks || 5, per = d.blockMinPerWeek || 20, done = Math.max(0, (d.currentWeek || 1) - 1);
+  for(let b = 0; b * bwk < n; b++){
+    let tot = 0, cnt = 0;
+    const last = Math.min((b + 1) * bwk, n);
+    for(let w = b * bwk; w < last; w++){ if(totals[w] !== null){ tot += totals[w]; cnt++; } }
+    if(!cnt) continue;
+    const need = cnt * per, finished = (b + 1) * bwk <= done, ok = tot >= need;
+    blocks += '<div class="wk-block' + (finished && !ok ? ' bad' : '') + '">Weeks ' + (b * bwk + 1) + '–' + ((b + 1) * bwk) + ': <b>' + wkFmt(tot) + '</b> / ' + need +
+      ' &middot; <span class="st" style="color:' + (ok ? '#2b6b2b' : '#a32b2b') + ';">' + (ok ? '✓ Met' : (finished ? '! Intervention' : 'so far, short')) + '</span></div>';
+  }
+
+  // table: classes x weeks
+  const cur = d.currentWeek || 0;
+  let th = '<tr><th>Class</th>';
+  for(let i = 0; i < n; i++) th += '<th class="' + ((i + 1) === cur ? 'cur' : '') + '">Wk' + (i + 1) + '</th>';
+  th += '<th>Total</th></tr>';
+  let tb = '';
+  classes.forEach(function(c){
+    tb += '<tr class="' + (c.completed ? 'done' : '') + '"><td title="' + hEsc(c.course) + (c.notInMisis ? ' - not on MiSiS schedule' : '') + '">' + (c.notInMisis ? '<b style="color:#a32b2b;">\u2691</b> ' : '<b>' + hEsc(c.period || '') + '</b> ') + hEsc(c.course) + '</td>';
+    for(let i = 0; i < n; i++) tb += '<td class="' + ((i + 1) === cur ? 'cur' : '') + '">' + wkFmt(c.weeks ? c.weeks[i] : null) + '</td>';
+    tb += '<td>' + wkFmt(c.total) + (c.completed ? ' (' + hEsc(c.grade) + ')' : '') + '</td></tr>';
+  });
+  tb += '<tr class="sum"><td>All classes</td>';
+  for(let i = 0; i < n; i++){ const st = wkStatus(totals[i], { honorMin: honor, probationBelow: prob }); tb += '<td class="' + ((i + 1) === cur ? 'cur' : '') + '" title="' + st.label + '">' + wkFmt(totals[i]) + (totals[i] !== null ? ' <span style="color:' + st.color + ';">' + st.mark + '</span>' : '') + '</td>'; }
+  tb += '<td></td></tr>';
+
+  box.innerHTML = '<div class="wk-wrap"><label style="margin-top:0;">Weekly points (all classes)</label>' +
+    '<div class="wk-legend"><span><i class="wk-sw" style="background:' + WK_GOOD + '"></i>✓ Honor Roll (' + honor + '+)</span><span><i class="wk-sw" style="background:' + WK_WARN + '"></i>• Good standing (' + prob + '–' + (honor - 1) + ')</span><span><i class="wk-sw" style="background:' + WK_CRIT + '"></i>! Probation (under ' + prob + ')</span>' + (cur && cur <= n ? '<span>* week in progress</span>' : '') + '</div>' +
+    '<div class="wk-chart">' + svg + '</div><div class="wk-tip" id="wkTip"></div>' +
+    '<div class="wk-blocks">' + blocks + '</div>' +
+    '<button class="wk-toggle" id="wkTableToggle">Show points by class and week</button>' +
+    '<div class="wk-table-wrap" id="wkTableWrap" style="display:none;"><table class="wk-table"><thead>' + th + '</thead><tbody>' + tb + '</tbody></table></div></div>';
+
+  document.getElementById('wkTableToggle').onclick = function(){
+    const w = document.getElementById('wkTableWrap'), open = w.style.display === 'none';
+    w.style.display = open ? 'block' : 'none';
+    this.textContent = open ? 'Hide points by class and week' : 'Show points by class and week';
+  };
+  const tip = document.getElementById('wkTip'), chart = box.querySelector('.wk-chart');
+  function show(i){
+    const v = totals[i], st = wkStatus(v, { honorMin: honor, probationBelow: prob });
+    const parts = classes.filter(function(c){ return c.weeks && c.weeks[i] !== null && c.weeks[i] !== undefined; })
+      .map(function(c){ return hEsc(c.course) + ': ' + wkFmt(c.weeks[i]); });
+    tip.innerHTML = '<b>Week ' + (i + 1) + ((i + 1) === cur ? ' (in progress)' : '') + ':</b> ' + wkFmt(v) + ' pts &middot; ' + st.mark + ' ' + st.label +
+      (parts.length ? '<div style="margin-top:3px;color:#7a7364;">' + parts.join(' &middot; ') + '</div>' : '');
+    box.querySelectorAll('.wk-hit').forEach(function(h){ h.classList.toggle('sel', Number(h.getAttribute('data-i')) === i); });
+  }
+  box.querySelectorAll('.wk-hit').forEach(function(h){
+    const i = Number(h.getAttribute('data-i'));
+    h.addEventListener('mouseenter', function(ev){ show(i, ev); });
+    h.addEventListener('click', function(ev){ show(i, ev); });
+  });
+  show(Math.max(0, Math.min(n, (cur > 1 ? cur - 1 : 1)) - 1));   // start on the last finished week (tap or hover a bar to change)
+}
 
 // ---- Open a class roster ----
 let currentWeekLabels = WEEK_LABELS;
@@ -1149,7 +1315,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v25';
+document.getElementById('buildTag').textContent = 'v26';
 </script>
 </body>
 </html>
