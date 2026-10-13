@@ -99,6 +99,24 @@
     text-decoration:underline;
   }
 
+  .pg{ text-align:left; margin:14px 0 6px; border-top:1px solid var(--rule); padding-top:12px; }
+  .pg-loading{ font-size:0.82rem; color:var(--muted); text-align:center; padding:8px 0; }
+  .pg-title{ font-weight:800; color:var(--navy); font-size:1.05rem; margin-bottom:8px; text-align:center; }
+  .pg-head{ font-weight:800; color:var(--navy); font-size:0.85rem; margin:14px 0 4px; }
+  .pg-week{ background:#fff; border:1px solid var(--rule); border-radius:8px; padding:8px 10px; margin:6px 0; }
+  .pg-row{ display:flex; justify-content:space-between; gap:8px; align-items:baseline; font-size:0.85rem; }
+  .pg-bar{ position:relative; height:12px; background:#eee6d2; border-radius:6px; margin:6px 0 4px; overflow:hidden; }
+  .pg-bar.thin{ height:7px; margin:4px 0 0; }
+  .pg-fill{ height:100%; border-radius:6px; }
+  .pg-tick{ position:absolute; top:0; bottom:0; width:2px; background:#7a7364; }
+  .pg-sub{ font-size:0.74rem; color:var(--muted); }
+  .pg-legend{ display:flex; gap:10px; flex-wrap:wrap; font-size:0.7rem; color:var(--muted); }
+  .pg-legend i{ display:inline-block; width:9px; height:9px; border-radius:2px; margin-right:3px; vertical-align:-1px; }
+  .pg-chart svg{ display:block; width:100%; height:auto; }
+  .pg-hit{ cursor:pointer; }
+  .pg-tip{ font-size:0.74rem; color:var(--ink); background:#fff; border:1px solid var(--rule); border-radius:6px; padding:5px 8px; min-height:1.6em; }
+  .pg-class{ padding:7px 0; border-bottom:1px solid #eee6d2; }
+  .pg-done summary{ cursor:pointer; font-size:0.8rem; color:var(--navy); font-weight:700; margin-top:10px; }
   #successState .check{
     width:64px;height:64px;
     border-radius:50%;
@@ -159,7 +177,7 @@
 
 <div class="sheet">
   <div class="school">Stoney Point High School<br>Daily Check-In</div>
-  <div style="text-align:center; font-size:0.65rem; color:var(--muted); margin-top:-14px; margin-bottom:14px;">v10-auto-retry</div>
+  <div style="text-align:center; font-size:0.65rem; color:var(--muted); margin-top:-14px; margin-bottom:14px;">v11-my-progress</div>
 
   <div class="state active" id="loadingState">
     <div class="spinner"></div>
@@ -191,7 +209,8 @@
       <div id="streakNumber" style="font-size:1.4rem; font-weight:800; color:var(--navy);"></div>
       <div id="streakNote" style="font-size:0.85rem; color:var(--ink); margin-top:4px;"></div>
     </div>
-    <div style="font-size:0.72rem; color:var(--muted); margin:8px 0 4px;">Course points &amp; Wildcash coming soon!</div>
+    <div id="progressBox" class="pg" style="display:none;"></div>
+    <div style="font-size:0.72rem; color:var(--muted); margin:8px 0 4px;">WildCash coming soon!</div>
   </div>
 
   <div class="state" id="errorState">
@@ -333,6 +352,7 @@ document.getElementById('confirmBtn').onclick = function(){
       document.getElementById('streakBadge').style.display = 'none';
     }
     showState('successState');
+    loadMyProgress(identity.first, identity.last);
   }).catch(function(err){
     var code = (err && err.code) ? err.code : 'unknown';
     showError("Couldn't submit your check-in. Check your connection and try again. If it keeps happening, tell the office (code: " + code + ").");
@@ -375,6 +395,82 @@ document.getElementById('retryBtn').onclick = function(){
     showState('noCodeState');
   }
 })();
+
+// ===================== My progress on the success screen (v11) =====================
+function pEsc(t){ return String(t == null ? '' : t).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function pFmt(v){ return v === null || v === undefined ? '–' : String(Math.round(v * 100) / 100); }
+var P_GOOD = '#0ca30c', P_WARN = '#fab219', P_CRIT = '#d03b3b', P_NONE = '#d8cfb8';
+function pStatus(v, d){
+  if(v === null || v === undefined) return { label: 'No points yet', color: P_NONE, mark: '–' };
+  if(v >= d.honorMin) return { label: 'Honor Roll', color: P_GOOD, mark: '✓' };
+  if(v >= d.probationBelow) return { label: 'Good standing', color: P_WARN, mark: '•' };
+  return { label: 'Probation', color: P_CRIT, mark: '!' };
+}
+function loadMyProgress(first, last){
+  var box = document.getElementById('progressBox');
+  box.style.display = 'block';
+  box.innerHTML = '<div class="pg-loading">Loading your points...</div>';
+  var params = new URLSearchParams({ mode:'myprogress', first:first, last:last, _:Date.now() });
+  fetch(ROSTER_ENDPOINT_URL + '?' + params.toString(), { cache:'no-store' }).then(function(r){ return r.json(); }).then(function(d){
+    if(!d || !d.success){ box.innerHTML = '<div class="pg-loading">' + pEsc((d && d.error) || 'Points are not available right now.') + '</div>'; return; }
+    renderMyProgress(box, d);
+  }).catch(function(){ box.innerHTML = '<div class="pg-loading">Could not load your points right now.</div>'; });
+}
+function renderMyProgress(box, d){
+  var totals = d.weekTotals || [], cur = d.currentWeek || 0;
+  var lastData = 0; totals.forEach(function(v, i){ if(v !== null) lastData = i + 1; });
+  var n = Math.max(1, Math.min(totals.length, Math.max(cur, lastData)));
+  var h = '<div class="pg-title">Your points</div>';
+  // this week
+  var tw = cur >= 1 && cur <= totals.length ? totals[cur - 1] : null, twv = tw || 0;
+  var pct = Math.min(100, twv / d.honorMin * 100), mark = d.probationBelow / d.honorMin * 100;
+  h += '<div class="pg-week"><div class="pg-row"><b>This week (week ' + cur + ')</b><span><b>' + pFmt(twv) + '</b> pts</span></div>' +
+    '<div class="pg-bar"><div class="pg-fill" style="width:' + pct + '%;background:' + pStatus(twv, d).color + ';"></div><div class="pg-tick" style="left:' + mark + '%;"></div></div>' +
+    '<div class="pg-sub">' + (twv >= d.honorMin ? '✓ Honor Roll pace this week — keep it up!' : (d.honorMin - twv) + ' more for Honor Roll (' + d.honorMin + ')' + (twv < d.probationBelow ? ' · ' + (d.probationBelow - twv) + ' more to reach ' + d.probationBelow : '')) + '</div></div>';
+  // weekly chart
+  var W = 330, H = 150, padL = 22, padR = 6, padT = 8, padB = 20, plotW = W - padL - padR, plotH = H - padT - padB;
+  var maxV = Math.max(d.honorMin + 10, Math.ceil(Math.max.apply(null, totals.slice(0, n).map(function(v){ return v || 0; })) / 10) * 10);
+  var y = function(v){ return padT + plotH - (v / maxV) * plotH; };
+  var slot = plotW / n, bw = Math.max(5, Math.min(22, slot - 4));
+  var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Your points each week">';
+  for(var g = 0; g <= maxV; g += 10) svg += '<line x1="' + padL + '" x2="' + (W - padR) + '" y1="' + y(g) + '" y2="' + y(g) + '" stroke="#eee6d2"/><text x="' + (padL - 4) + '" y="' + (y(g) + 3) + '" text-anchor="end" font-size="8" fill="#7a7364">' + g + '</text>';
+  [d.honorMin, d.probationBelow].forEach(function(t){ svg += '<line x1="' + padL + '" x2="' + (W - padR) + '" y1="' + y(t) + '" y2="' + y(t) + '" stroke="#7a7364" stroke-dasharray="3 3"/>'; });
+  for(var i = 0; i < n; i++){
+    var v = totals[i], st = pStatus(v, d), cx = padL + slot * i + slot / 2, x = cx - bw / 2, live = (i + 1) === cur;
+    if(v !== null && v > 0){
+      var top = y(v), base = y(0), r = Math.min(3, bw / 2, base - top);
+      svg += '<path d="M' + x + ',' + base + ' V' + (top + r) + ' Q' + x + ',' + top + ' ' + (x + r) + ',' + top + ' H' + (x + bw - r) + ' Q' + (x + bw) + ',' + top + ' ' + (x + bw) + ',' + (top + r) + ' V' + base + ' Z" fill="' + st.color + '"' + (live ? ' fill-opacity="0.5"' : '') + '/>';
+    } else svg += '<line x1="' + x + '" x2="' + (x + bw) + '" y1="' + (y(0) - 1) + '" y2="' + (y(0) - 1) + '" stroke="' + (v === 0 ? P_CRIT : P_NONE) + '" stroke-width="2"/>';
+    if(n <= 12 || (i + 1) % 2 === 1 || live) svg += '<text x="' + cx + '" y="' + (H - 7) + '" text-anchor="middle" font-size="8" fill="#7a7364">' + (i + 1) + (live ? '*' : '') + '</text>';
+    svg += '<rect class="pg-hit" data-i="' + i + '" x="' + (padL + slot * i) + '" y="' + padT + '" width="' + slot + '" height="' + (plotH + padB) + '" fill="transparent"/>';
+  }
+  svg += '<line x1="' + padL + '" x2="' + (W - padR) + '" y1="' + y(0) + '" y2="' + y(0) + '" stroke="#b8ad93"/></svg>';
+  h += '<div class="pg-head">Every week</div><div class="pg-legend"><span><i style="background:' + P_GOOD + '"></i>Honor Roll ' + d.honorMin + '+</span><span><i style="background:' + P_WARN + '"></i>' + d.probationBelow + '–' + (d.honorMin - 1) + '</span><span><i style="background:' + P_CRIT + '"></i>under ' + d.probationBelow + '</span></div>' +
+    '<div class="pg-chart">' + svg + '</div><div class="pg-tip" id="pgTip">Tap a bar to see that week.</div>';
+  // 5-week block in progress
+  var bw5 = d.blockWeeks || 5, per = d.blockMinPerWeek || 20, b = Math.max(0, Math.floor((Math.max(cur, 1) - 1) / bw5)), tot = 0, cnt = 0;
+  for(var w = b * bw5; w < Math.min((b + 1) * bw5, n); w++){ if(totals[w] !== null){ tot += totals[w]; cnt++; } }
+  if(cnt){ var need = cnt * per; h += '<div class="pg-week"><div class="pg-row"><b>Weeks ' + (b * bw5 + 1) + '–' + ((b + 1) * bw5) + '</b><span><b>' + pFmt(tot) + '</b> / ' + (bw5 * per) + '</span></div>' +
+    '<div class="pg-bar"><div class="pg-fill" style="width:' + Math.min(100, tot / (bw5 * per) * 100) + '%;background:' + (tot >= need ? P_GOOD : P_WARN) + ';"></div></div>' +
+    '<div class="pg-sub">' + (tot >= need ? '✓ On track — no after-school intervention' : 'Need ' + (bw5 * per) + ' by the end of week ' + ((b + 1) * bw5) + ' to skip intervention') + '</div></div>'; }
+  // classes
+  var current = (d.courses || []).filter(function(c){ return !c.completed; }), done = (d.courses || []).filter(function(c){ return c.completed; });
+  h += '<div class="pg-head">Your classes</div>' + (current.length ? current.map(function(c){
+    var frac = c.advisory ? 0 : Math.min(100, c.total / 75 * 100);
+    return '<div class="pg-class"><div class="pg-row"><span><b>' + pEsc(c.period ? c.period.replace(/^P0?/, '').replace('H', 'Adv') + ' · ' : '') + '</b>' + pEsc(c.course) + '</span><span><b>' + pFmt(c.total) + '</b>' + (c.advisory ? ' pts' : ' / 75') + '</span></div>' +
+      (c.advisory ? '<div class="pg-sub">Advisory points go to College &amp; Career</div>' : '<div class="pg-bar thin"><div class="pg-fill" style="width:' + frac + '%;background:' + (c.total >= 75 ? P_GOOD : '#1c2b4a') + ';"></div></div>') + '</div>';
+  }).join('') : '<div class="pg-sub">No classes on record yet.</div>');
+  if(done.length) h += '<details class="pg-done"><summary>Finished this term (' + done.length + ')</summary>' + done.map(function(c){ return '<div class="pg-row pg-class"><span>' + pEsc(c.course) + '</span><span>' + (c.grade ? 'Grade ' + pEsc(c.grade) : 'Done') + '</span></div>'; }).join('') + '</details>';
+  box.innerHTML = h;
+  var tip = document.getElementById('pgTip');
+  box.querySelectorAll('.pg-hit').forEach(function(rect){
+    rect.addEventListener('click', function(){
+      var i = Number(rect.getAttribute('data-i')), v = totals[i], st = pStatus(v, d);
+      var parts = (d.courses || []).filter(function(c){ return c.weeks && c.weeks[i] !== null && c.weeks[i] !== undefined && c.weeks[i] !== 0; }).map(function(c){ return pEsc(c.course) + ' ' + pFmt(c.weeks[i]); });
+      tip.innerHTML = '<b>Week ' + (i + 1) + ':</b> ' + pFmt(v) + ' pts · ' + st.label + (parts.length ? '<br>' + parts.join(' · ') : '');
+    });
+  });
+}
 </script>
 </body>
 </html>
