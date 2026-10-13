@@ -368,6 +368,30 @@
   .chip-p{ background:#f7e9e6; border-color:#d9a69c; } .chip-p .wk-s{ color:#a34b3f; font-weight:700; }
   .igp-need{ padding:5px 10px; font-size:0.76rem; background:#fbeeea; color:#8a3b30; border-top:1px solid var(--rule); }
   .igp-ip{ padding:5px 10px; font-size:0.76rem; background:#fbf4e3; color:#7a5a12; border-top:1px solid var(--rule); }
+  /* v80: attendance + streak on the student page */
+  .att-wrap{ margin:14px 0 6px; background:#fff; border:1px solid #e3ddcc; border-radius:10px; padding:12px; }
+  .att-head{ font-weight:800; color:var(--navy); font-size:0.95rem; margin-bottom:8px; display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap; }
+  .att-tiles{ display:grid; grid-template-columns:repeat(auto-fit, minmax(96px, 1fr)); gap:6px; margin-bottom:10px; }
+  .att-tile{ background:#faf8f2; border:1px solid #ece6d6; border-radius:8px; padding:6px 8px; }
+  .att-tile b{ display:block; font-size:1.15rem; color:var(--navy); line-height:1.2; }
+  .att-tile span{ font-size:0.7rem; color:#6f6a5c; }
+  .att-tile.hot b{ color:#c2410c; }
+  .att-cal{ display:grid; grid-template-columns:44px repeat(5, 1fr); gap:3px; font-size:0.7rem; }
+  .att-cal .h{ color:#6f6a5c; text-align:center; font-weight:700; }
+  .att-cal .wk{ color:#6f6a5c; align-self:center; white-space:nowrap; }
+  .att-d{ height:24px; border-radius:4px; display:flex; align-items:center; justify-content:center; font-weight:700; background:#f4f1e8; color:#b9b2a0; cursor:default; }
+  .att-d.in{ background:#0ca30c; color:#fff; }
+  .att-d.ab{ background:#d03b3b; color:#fff; }
+  .att-d.ta{ background:#fab219; color:#3a2a00; }
+  .att-d.miss{ background:#fff; color:#d03b3b; border:1.5px dashed #d03b3b; }
+  .att-d.today{ outline:2px solid var(--navy); outline-offset:1px; }
+  .att-d.none{ background:transparent; color:transparent; }
+  .att-legend{ display:flex; gap:10px; flex-wrap:wrap; font-size:0.7rem; color:#6f6a5c; margin:8px 0 4px; }
+  .att-legend i{ display:inline-block; width:11px; height:11px; border-radius:3px; vertical-align:-1px; margin-right:3px; }
+  .att-list{ font-size:0.78rem; margin-top:6px; }
+  .att-list div{ display:flex; justify-content:space-between; padding:3px 0; border-bottom:1px solid #eee8d8; }
+  .att-note{ font-size:0.7rem; color:#6f6a5c; margin-top:6px; }
+  .att-more{ background:none; border:none; color:var(--navy); text-decoration:underline; font-size:0.75rem; padding:0; cursor:pointer; margin-top:6px; }
 </style>
 </head>
 <body>
@@ -430,6 +454,7 @@
       <div style="font-weight:800;color:var(--navy);font-size:1.05rem;" id="tvName"></div>
       <div class="ro-sub" id="tvSub" style="margin-bottom:10px;"></div>
       <div id="tvWeekly"></div>
+      <div id="tvAttendance"></div>
       <div class="tv-head">In progress</div>
       <div id="tvInProgress"></div>
       <div class="tv-head">Completed</div>
@@ -675,6 +700,7 @@ function renderStudentPage(d){
   showState('studentViewState');
   renderStudentWeekly({ weekTotals: d.weeks, currentWeek: d.currentWeek, honorMin: d.honorMin, probationBelow: d.probationBelow,
     blockWeeks: d.blockWeeks || 5, blockMinPerWeek: d.blockMinPerWeek || 20, inProgress: cur, completed: done });
+  loadAttendance('tvAttendance', myCode, st);   // v28
 }
 document.getElementById('studentPick').addEventListener('change', function(e){
   const resultsEl = document.getElementById('searchResults');
@@ -1332,7 +1358,78 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v27-double-block';
+document.getElementById('buildTag').textContent = 'v28-attendance';
+// ===================== Attendance & streak on the student page (v80) =====================
+// Check-ins come from the check-in station (a "school day" = a day anyone checked in). MiSiS days
+// (imported on the admin page) are the official record and win where both exist.
+function attEsc(t){ return String(t == null ? '' : t).replace(/[&<>"']/g, function(c){ return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]; }); }
+function attKey(d){ return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+function attParse(k){ const p = String(k).split('-'); return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]), 12); }
+function loadAttendance(boxId, code, st){
+  const box = document.getElementById(boxId);
+  if(!box) return;
+  box.innerHTML = '<div class="att-wrap"><div class="att-head">Attendance</div><div class="att-note">Loading attendance&hellip;</div></div>';
+  const want = (st.id || '') + '|' + st.first + '|' + st.last;
+  box.dataset.want = want;
+  apiGet({ mode:'studentattendance', code: code, id: st.id || '', first: st.first, last: st.last }).then(function(a){
+    if(box.dataset.want !== want) return;
+    if(!a || !a.success){ box.innerHTML = '<div class="att-wrap"><div class="att-head">Attendance</div><div class="att-note">' + attEsc((a && a.error) || 'Could not load attendance.') + '</div></div>'; return; }
+    renderAttendance(box, a, false);
+  }).catch(function(){ if(box.dataset.want === want) box.innerHTML = '<div class="att-wrap"><div class="att-head">Attendance</div><div class="att-note">Could not reach the server.</div></div>'; });
+}
+function renderAttendance(box, a, wholeYear){
+  const byDate = {}; (a.days || []).forEach(function(d){ byDate[d.date] = d; });
+  const c = a.misisCounts || {};
+  const tiles = [
+    ['hot', (a.streak || 0) + (a.streak ? ' 🔥' : ''), 'day check-in streak'],
+    ['', a.bestStreak || 0, 'best streak this year'],
+    ['', (a.checkIns || 0) + ' / ' + (a.schoolDaysSinceFirst || 0), 'days checked in' + (a.checkInRate != null ? ' (' + a.checkInRate + '%)' : '')],
+    ['', c.attendanceRate != null ? c.attendanceRate + '%' : '–', 'MiSiS attendance'],
+    ['', c.absent || 0, 'MiSiS absences'],
+    ['', (c.tardy || 0) + (c.partial ? ' + ' + c.partial : ''), 'tardies' + (c.partial ? ' + partial days' : '')]
+  ];
+  let h = '<div class="att-wrap"><div class="att-head"><span>Attendance &amp; streak</span><span style="font-weight:600;font-size:0.72rem;color:#6f6a5c;">this school year</span></div>' +
+    '<div class="att-tiles">' + tiles.map(function(t){ return '<div class="att-tile ' + t[0] + '"><b>' + attEsc(t[1]) + '</b><span>' + attEsc(t[2]) + '</span></div>'; }).join('') + '</div>';
+
+  // calendar, Monday-Friday rows, newest week first
+  const today = attParse(a.today);
+  const first = a.firstDay ? attParse(a.firstDay) : today;
+  const monday = function(d){ const x = new Date(d.getTime()); const wd = (x.getDay() + 6) % 7; x.setDate(x.getDate() - wd); return x; };
+  let start = monday(first);
+  if(!wholeYear){ const eight = monday(today); eight.setDate(eight.getDate() - 7 * 7); if(eight > start) start = eight; }
+  const weeks = [];
+  for(let w = monday(today); w >= start; w.setDate(w.getDate() - 7)) weeks.push(new Date(w.getTime()));
+  h += '<div class="att-cal"><div></div>' + ['Mon','Tue','Wed','Thu','Fri'].map(function(x){ return '<div class="h">' + x + '</div>'; }).join('');
+  weeks.forEach(function(w){
+    h += '<div class="wk">' + (w.getMonth() + 1) + '/' + w.getDate() + '</div>';
+    for(let i = 0; i < 5; i++){
+      const d = new Date(w.getTime()); d.setDate(d.getDate() + i);
+      const k = attKey(d), x = byDate[k], label = d.toLocaleDateString([], { weekday:'short', month:'short', day:'numeric' });
+      let cls = 'att-d', tip = label + ': ';
+      if(d > today){ cls += ' none'; tip = ''; }
+      else if(!x || (a.firstDay && k < a.firstDay)){ tip += 'no school day on record'; }
+      else if(x.misis === 'absent'){ cls += ' ab'; tip += 'MiSiS: absent' + (x.reason ? ' (' + x.reason + ')' : '') + (x.checkedIn ? ' - checked in' : ''); }
+      else if(x.misis === 'tardy' || x.misis === 'partial'){ cls += ' ta'; tip += 'MiSiS: ' + x.misis + (x.reason ? ' (' + x.reason + ')' : '') + (x.checkedIn ? ' - checked in' : ''); }
+      else if(x.misis === 'present' || x.checkedIn){ cls += ' in'; tip += (x.misis === 'present' ? 'MiSiS: present' : 'checked in') + (x.misis && x.checkedIn ? ' - checked in' : ''); }
+      else { cls += ' miss'; tip += 'school day - did not check in (no MiSiS record yet)'; }
+      if(k === a.today) cls += ' today';
+      h += '<div class="' + cls + '" title="' + attEsc(tip) + '">' + (d > today ? '' : d.getDate()) + '</div>';
+    }
+  });
+  h += '</div><div class="att-legend"><span><i style="background:#0ca30c"></i>Present / checked in</span><span><i style="background:#fab219"></i>Tardy or partial (MiSiS)</span><span><i style="background:#d03b3b"></i>Absent (MiSiS)</span><span><i style="border:1.5px dashed #d03b3b;background:#fff"></i>No check-in</span><span><i style="background:#f4f1e8"></i>No school / before enrolled</span></div>';
+  h += '<button class="att-more" type="button">' + (wholeYear ? 'Show the last 8 weeks' : 'Show the whole school year') + '</button>';
+
+  const notes = (a.days || []).filter(function(x){ return x.misis && x.misis !== 'present' && x.misis !== 'ans'; }).slice(0, 8);
+  if(notes.length) h += '<div class="att-list"><div style="font-weight:700;border-bottom:1px solid #d9d1bd;"><span>Recent absences &amp; tardies (MiSiS)</span><span></span></div>' + notes.map(function(x){
+    return '<div><span>' + attEsc(attParse(x.date).toLocaleDateString([], { weekday:'short', month:'numeric', day:'numeric' })) + '</span><span style="font-weight:700;color:' + (x.misis === 'absent' ? '#d03b3b' : '#8a5a00') + ';">' +
+      attEsc(x.misis === 'absent' ? 'Absent' : x.misis === 'tardy' ? 'Tardy' : 'Partial day') + (x.reason ? ' (' + attEsc(x.reason) + ')' : '') + '</span></div>';
+  }).join('') + '</div>';
+  h += '<div class="att-note">Streak = school days in a row checked in at the station (a day MiSiS marks absent breaks it). ' +
+    (a.misisLastImported ? 'MiSiS attendance last imported ' + attEsc(new Date(a.misisLastImported).toLocaleDateString([], { month:'short', day:'numeric' })) + '. ' : 'No MiSiS attendance imported yet. ') + 'MiSiS is the official record.</div></div>';
+  box.innerHTML = h;
+  box.querySelector('.att-more').onclick = function(){ renderAttendance(box, a, !wholeYear); };
+}
+
 </script>
 </body>
 </html>
