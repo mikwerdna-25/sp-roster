@@ -139,6 +139,8 @@
   .period-group{ margin-bottom:18px; }
   .class-row.all-students{ font-weight:700; background:var(--paper); border-style:dashed; }
   .student-course{ font-size:0.78rem; color:var(--muted); margin:-2px 0 6px; }
+  .dbl-flag{ display:inline-block; font-size:0.74rem; font-weight:700; color:#6b4a00; background:#fff3cf; border:1px solid #f0d27a; border-radius:6px; padding:2px 7px; margin:0 0 6px; }
+  .dbl-count{ font-size:0.72rem; font-weight:700; color:#6b4a00; background:#fff3cf; border-radius:6px; padding:1px 6px; margin-left:6px; white-space:nowrap; }
   .period-label{
     font-size:0.72rem;
     font-weight:800;
@@ -531,7 +533,7 @@ document.getElementById('loginBtn').onclick = function(){
     myCode = code;
     myTeacherName = data.teacherName;
     myClasses = data.classes.map(function(c){
-      return { tab: c.tab, title: c.title, period: parsePeriodFromTitle(c.title) };
+      return { tab: c.tab, title: c.title, period: parsePeriodFromTitle(c.title), doubleBlocks: c.doubleBlocks || 0 };
     });
     renderClassList();
     showState('classListState');
@@ -574,6 +576,12 @@ function renderClassList(){
       const row = document.createElement('div');
       row.className = 'class-row';
       row.textContent = c.title;
+      if(c.doubleBlocks){   // v27: students who have this same course in another period too
+        const dc = document.createElement('span'); dc.className = 'dbl-count';
+        dc.textContent = '\u21c4 ' + c.doubleBlocks + ' double-blocked';
+        dc.title = c.doubleBlocks + ' student(s) in this class also have this course in another period. Their points and grade are shared between the periods.';
+        row.appendChild(dc);
+      }
       row.onclick = function(){ openClass(c.tab, null); };
       group.appendChild(row);
     });
@@ -629,7 +637,7 @@ function renderStudentCard(el, d, pickEl){
   const cur = d.classes.filter(function(c){ return !c.completed; }), done = d.classes.filter(function(c){ return c.completed; });
   const row = function(c, i){
     return '<div class="ro-class"><div style="flex:1;"><div>' + (c.notInMisis ? '<b style="color:#a32b2b;">\u2691</b> ' : '<b>' + hEsc(c.period || '') + '</b> ') + hEsc(c.course) + (c.mine ? ' <span class="mine-tag">your class</span>' : '') + '</div>' +
-      '<div class="ro-sub"' + (c.notInMisis ? ' style="color:#a32b2b;"' : '') + '>' + (c.notInMisis ? 'Not on MiSiS schedule (from FileMaker)' : hEsc(c.teacher || 'Teacher not listed')) + ' &middot; ' + (c.completed ? 'Completed' + (c.grade ? ' (' + hEsc(c.grade) + ')' : '') : ptsFmt(c.total) + (c.advisory ? ' points (go to College & Career)' : ' / 75 points')) + '</div></div>' +
+      '<div class="ro-sub"' + (c.notInMisis ? ' style="color:#a32b2b;"' : '') + '>' + (c.notInMisis ? 'Not on MiSiS schedule (from FileMaker)' : hEsc(c.teacher || 'Teacher not listed')) + (c.doubleBlock ? ' &middot; <b style="color:#6b4a00;">\u21c4 double block ' + hEsc(c.doubleBlock.periods.join(' + ')) + '</b>' : '') + ' &middot; ' + (c.completed ? 'Completed' + (c.grade ? ' (' + hEsc(c.grade) + ')' : '') : ptsFmt(c.total) + (c.advisory ? ' points (go to College & Career)' : ' / 75 points')) + '</div></div>' +
       (c.mine && c.tab ? '<button class="save-btn open-mine" data-i="' + i + '">Open</button>' : '') + '</div>';
   };
   html += '<div class="ro-head">Current classes</div>' + (cur.length ? cur.map(function(c){ return row(c, d.classes.indexOf(c)); }).join('') : '<div class="ro-sub">No current classes on record.</div>');
@@ -651,7 +659,7 @@ function tvRow(c, i, d){
   const right = c.completed ? 'Grade: ' + hEsc(c.grade || '') : (c.advisory ? ptsFmt(c.total) + ' pts to C&amp;C' : ptsFmt(c.total) + ' / 75');
   return '<div class="tv-row"><div style="flex:1;min-width:0;"><div>' + (c.notInMisis ? '<b style="color:#a32b2b;">⚑</b> ' : '<b>' + hEsc(c.period || '') + '</b> ') + hEsc(c.course) +
     (c.mine ? ' <span class="mine-tag">your class</span>' : '') + '</div><div class="sub"' + (c.notInMisis ? ' style="color:#a32b2b;"' : '') + '>' +
-    (c.notInMisis ? 'Not on MiSiS schedule (from FileMaker)' : hEsc(c.teacher || 'Teacher not listed')) + '</div></div>' +
+    (c.notInMisis ? 'Not on MiSiS schedule (from FileMaker)' : hEsc(c.teacher || 'Teacher not listed')) + (c.doubleBlock ? ' &middot; <b style="color:#6b4a00;">\u21c4 double block ' + hEsc(c.doubleBlock.periods.join(' + ')) + ' (points shared)</b>' : '') + '</div></div>' +
     '<div class="right">' + right + '</div>' + (c.mine && c.tab && !c.completed ? '<button class="save-btn open-mine" data-i="' + i + '">Open</button>' : '') + '</div>';
 }
 function renderStudentPage(d){
@@ -893,6 +901,14 @@ function renderStudentList(students){
     total.textContent = totalText(s.total);
     top.appendChild(name); top.appendChild(total);
     card.appendChild(top);
+    if(s.doubleBlock && s.doubleBlock.others && s.doubleBlock.others.length){
+      // v27: double block - same course in another period; points and the grade are shared (linked)
+      const fl = document.createElement('div');
+      fl.className = 'dbl-flag';
+      fl.textContent = '\u21c4 Double block: also in ' + s.doubleBlock.others.map(function(o){ return 'Period ' + String(o.period).replace(/^P0?/, '') + (o.teacher ? ' (' + o.teacher + ')' : ''); }).join(', ') +
+        ' \u2014 points and grade are shared';
+      card.appendChild(fl);
+    }
     if(s._course){
       // Shown in the whole-period view so you can tell which course each student is in.
       const courseLine = document.createElement('div');
@@ -931,7 +947,7 @@ function renderStudentList(students){
         .then(function(res){
           saveBtn.disabled = false;
           if(res.success){
-            status.textContent = 'Saved. New total: ' + res.newTotal;
+            status.textContent = 'Saved. New total: ' + res.newTotal + (res.mirrored && res.mirrored.length ? ' (also saved in ' + res.mirrored.map(function(t){ const m = String(t).match(/\((P\w+)/); return m ? m[1] : t; }).join(', ') + ' - double block)' : '');
             status.className = 'save-status ok';
             total.textContent = totalText(res.newTotal);
             s.total = res.newTotal;
@@ -1072,7 +1088,8 @@ function renderStudentList(students){
           gradeSaveBtn.disabled = false;
           if(res.success){
             s.grade = g;
-            gradeStatus.innerHTML = (res.corrected ? 'Saved - grade corrected.' : 'Saved - course marked complete.') + '<br>' +
+            gradeStatus.innerHTML = (res.corrected ? 'Saved - grade corrected.' : 'Saved - course marked complete.') +
+              (res.alsoCompleted && res.alsoCompleted.length ? ' Double block: the same grade was also saved in ' + res.alsoCompleted.map(hEsc).join(', ') + ' (one course, one grade).' : '') + '<br>' +
               '<a href="https://docs.google.com/forms/d/e/1FAIpQLSc_AUhfsFpno8a4J7nqtqHiNVQqoy2F-S2bK-uhMIVI17dkFg/viewform" target="_blank" rel="noopener" style="color:var(--navy); font-weight:700;">Open the official Course Completion Form &#8594;</a>' +
               '<br>Made a mistake? Use Undo completion (available for 24 hours).';
             gradeStatus.className = 'save-status ok';
@@ -1315,7 +1332,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v26';
+document.getElementById('buildTag').textContent = 'v27-double-block';
 </script>
 </body>
 </html>
