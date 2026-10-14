@@ -177,7 +177,7 @@
 
 <div class="sheet">
   <div class="school">Stoney Point High School<br>Daily Check-In</div>
-  <div style="text-align:center; font-size:0.65rem; color:var(--muted); margin-top:-14px; margin-bottom:14px;">v12-google-page</div>
+  <div style="text-align:center; font-size:0.65rem; color:var(--muted); margin-top:-14px; margin-bottom:14px;">v13-phone-fix</div>
 
   <div class="state active" id="loadingState">
     <div class="spinner"></div>
@@ -226,15 +226,24 @@
 (function(){
   if(!(window.google && google.script && google.script.run)) return;
   const realFetch = window.fetch ? window.fetch.bind(window) : null;
-  window.fetch = function(url, opts){
-    const u = String(url);
-    if(u.indexOf('script.google.com/macros/') === -1 && u.indexOf('/exec?') === -1) return realFetch ? realFetch(url, opts) : Promise.reject(new Error('offline'));
-    const params = {}; new URL(u, location.href).searchParams.forEach(function(v, k){ params[k] = v; });
+  // v2: first the normal web request (works on phones, including Safari, and with several Google accounts signed in);
+  // if that is blocked, google.script.run as a backup.
+  function viaScriptRun(params){
     return new Promise(function(resolve, reject){
       google.script.run.withSuccessHandler(function(txt){
         resolve({ ok: true, status: 200, text: function(){ return Promise.resolve(txt); }, json: function(){ return Promise.resolve(JSON.parse(txt)); } });
       }).withFailureHandler(function(err){ reject(err); }).pageApi(params);
     });
+  }
+  window.fetch = function(url, opts){
+    const u = String(url);
+    if(u.indexOf('script.google.com/macros/') === -1 && u.indexOf('/exec?') === -1) return realFetch ? realFetch(url, opts) : Promise.reject(new Error('offline'));
+    const params = {}; new URL(u, location.href).searchParams.forEach(function(v, k){ params[k] = v; });
+    if(!realFetch) return viaScriptRun(params);
+    return realFetch(url, opts).then(function(r){
+      if(!r.ok) throw new Error('HTTP ' + r.status);
+      return r.text().then(function(txt){ JSON.parse(txt); return { ok: true, status: 200, text: function(){ return Promise.resolve(txt); }, json: function(){ return Promise.resolve(JSON.parse(txt)); } }; });
+    }).catch(function(){ return viaScriptRun(params); });
   };
 })();
 
