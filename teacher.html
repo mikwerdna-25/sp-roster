@@ -52,7 +52,7 @@
   .state{ display:none; }
   .state.active{ display:block; }
 
-  input[type=text], input[type=number], select{
+  input[type=text], input[type=password], input[type=number], select{
     width:100%;
     padding:11px 12px;
     border:1px solid var(--rule);
@@ -404,7 +404,7 @@
     <!-- LOGIN -->
     <div class="state active" id="loginState">
       <label>Your code</label>
-      <input type="text" id="codeInput" placeholder="Enter your code" autocomplete="off">
+      <input type="password" id="codeInput" class="code-field" placeholder="Enter your code" autocomplete="off" autocapitalize="off" spellcheck="false">
       <button class="btn-primary" id="loginBtn">Log in</button>
       <div class="error-msg" id="loginError"></div>
     </div>
@@ -419,7 +419,7 @@
     <div class="state" id="classListState">
       <div class="top-row">
         <div class="teacher-name" id="teacherNameLabel"></div>
-        <a href="hallmonitor.html" target="_blank" rel="noopener" style="display:inline-block; margin-top:6px; font-weight:800; color:var(--navy); font-size:.85rem;">Hall Monitor &mdash; who is out of class &#8599;</a>
+        <a href="hallmonitor.html" id="hallMonitorLink" onclick="openHallMonitor(event)" style="display:inline-block; margin-top:6px; font-weight:800; color:var(--navy); font-size:.85rem;">Hall Monitor &mdash; who is out of class &#8599;</a>
         <button class="small-link" id="changeCodeLink">Change my code</button>
       </div>
 
@@ -482,9 +482,9 @@
     <div class="state" id="changeCodeState">
       <button class="small-link" id="backFromChangeCodeBtn" style="margin-bottom:10px;">&lt; Back</button>
       <label>Current code</label>
-      <input type="text" id="oldCodeInput" autocomplete="off">
+      <input type="password" id="oldCodeInput" class="code-field" autocomplete="off" autocapitalize="off" spellcheck="false">
       <label>New code (4+ characters)</label>
-      <input type="text" id="newCodeInput" autocomplete="off">
+      <input type="password" id="newCodeInput" class="code-field" autocomplete="off" autocapitalize="off" spellcheck="false">
       <button class="btn-primary" id="submitCodeChangeBtn">Update code</button>
       <div class="error-msg" id="changeCodeError"></div>
     </div>
@@ -1359,7 +1359,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v29-hall-monitor';
+document.getElementById('buildTag').textContent = 'v31-hidden-code';
 // ===================== Attendance & streak on the student page (v80) =====================
 // Check-ins come from the check-in station (a "school day" = a day anyone checked in). MiSiS days
 // (imported on the admin page) are the official record and win where both exist.
@@ -1431,6 +1431,27 @@ function renderAttendance(box, a, wholeYear){
   box.querySelector('.att-more').onclick = function(){ renderAttendance(box, a, !wholeYear); };
 }
 
+
+// v2: open the Hall Monitor already signed in (the code is handed over once through this browser and wiped right away)
+function openHallMonitor(e){
+  if(e) e.preventDefault();
+  try{ localStorage.setItem('hmHandoff', JSON.stringify({ code: myCode, t: Date.now() })); }catch(err){}
+  const w = window.open('hallmonitor.html', '_blank');
+  if(!w) location.href = 'hallmonitor.html';
+}
+
+// v: hide codes as they are typed; "Show" lets the person check what they typed
+document.querySelectorAll('input.code-field').forEach(function(inp){
+  const wrap = document.createElement('div'); wrap.style.cssText = 'position:relative;';
+  inp.parentNode.insertBefore(wrap, inp); wrap.appendChild(inp);
+  inp.style.paddingRight = '64px';
+  const b = document.createElement('button'); b.type = 'button'; b.textContent = 'Show';
+  b.setAttribute('aria-label', 'Show or hide the code');
+  b.style.cssText = 'position:absolute; right:8px; top:50%; transform:translateY(-50%); margin:0; padding:4px 8px; border:none; background:transparent; color:#1c2b4a; font-weight:700; font-size:.8rem; cursor:pointer; width:auto;';
+  try{ wrap.style.marginBottom = getComputedStyle(inp).marginBottom; inp.style.marginBottom = '0'; }catch(e){}   // keeps the Show button centred
+  b.onclick = function(){ const show = inp.type === 'password'; inp.type = show ? 'text' : 'password'; b.textContent = show ? 'Hide' : 'Show'; inp.focus(); };
+  wrap.appendChild(b);
+});
 </script>
 </body>
 </html>
