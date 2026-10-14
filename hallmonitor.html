@@ -71,7 +71,7 @@
 
   /* campus map */
   .map{ display:grid; gap:7px; grid-template-columns:repeat(7, minmax(0, 1fr));
-        grid-template-areas:"r2 r3 r4 r5 r6 r7 r8" "r1 office rr r219 r218 side side"; }
+        grid-template-areas:"r2 r4 r5 r6 r8 r218 r219" "r1 office rr r3 r7 side side"; }
   .map .side{ grid-area:side; display:flex; flex-direction:column; gap:7px; }
   .map .side .tray{ flex:1; }
   .room{ border:1px solid #cbb98e; background:#f4ead2; border-radius:8px; padding:6px; min-height:96px; display:flex; flex-direction:column; }
@@ -181,7 +181,7 @@
         <div id="tab-programs" style="display:none;"></div>
       </div>
     </div>
-    <div class="small muted" style="margin-top:12px;">Student locations come from their MiSiS class schedule (points sheet), today's check-ins and hall passes. Updates every 20 seconds. <a href="#" id="signOut">Sign out</a> <span style="float:right;">hallmonitor v5</span></div>
+    <div class="small muted" style="margin-top:12px;">Student locations come from their MiSiS class schedule (points sheet), today's check-ins and hall passes. Updates every 20 seconds. <a href="#" id="signOut">Sign out</a> <span style="float:right;">hallmonitor v6</span></div>
   </div>
 </div></div>
 
@@ -435,8 +435,9 @@ function renderMap(){
     return '<div class="room ' + (extraCls || '') + (mine ? ' mine' : '') + '" data-room="' + id + '" style="grid-area:' + MAP_AREAS[id] + ';"><div class="rh"><span>' + esc(r.name) + '</span><span class="cnt">' + n + '</span></div><div class="rl">' + esc(r.label && r.label !== r.name ? r.label : '') + '</div>' +
       '<div class="chips">' + x.vis.join('') + x.here.join('') + x.out.join('') + x.absent.join('') + '</div></div>';
   };
-  let h = '<div class="map">' + ['2', '3', '4', '5', '6', '7', '8'].map(function(id){ return box(id, id === '3' || id === '7' ? 'svc' : ''); }).join('') +
-    box('1', 'svc') + box('OFFICE', 'svc') + box('RR', 'svc') + box('219') + box('218') + '<div class="side">';
+  // top row: classroom teachers; bottom row: counseling, office, restrooms, kitchen, health & wellness
+  let h = '<div class="map">' + ['2', '4', '5', '6', '8', '218', '219'].map(function(id){ return box(id); }).join('') +
+    ['1', 'OFFICE', 'RR', '3', '7'].map(function(id){ return box(id, 'svc'); }).join('') + '<div class="side">';
   if(b && b.key === 'LUNCH') h += '<div class="tray"><div class="rh">Lunch / Nutrition (' + lunch.length + ')</div><div class="chips">' + (lunch.join('') || '<span class="small muted">none</span>') + '</div></div>';
   if(b && b.key === 'AFTER') h += '<div class="tray"><div class="rh">On the intervention list (not signed in)</div><div class="chips">' + (afterList.join('') || '<span class="small muted">none</span>') + '</div></div>';
   h += '<div class="tray"><div class="rh">No class this period</div><div class="chips">' + (none.join('') || '<span class="small muted">none</span>') + '</div></div>';
