@@ -419,6 +419,7 @@
     <div class="state" id="classListState">
       <div class="top-row">
         <div class="teacher-name" id="teacherNameLabel"></div>
+        <a href="hallmonitor.html" target="_blank" rel="noopener" style="display:inline-block; margin-top:6px; font-weight:800; color:var(--navy); font-size:.85rem;">Hall Monitor &mdash; who is out of class &#8599;</a>
         <button class="small-link" id="changeCodeLink">Change my code</button>
       </div>
 
@@ -1358,7 +1359,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v28-attendance';
+document.getElementById('buildTag').textContent = 'v29-hall-monitor';
 // ===================== Attendance & streak on the student page (v80) =====================
 // Check-ins come from the check-in station (a "school day" = a day anyone checked in). MiSiS days
 // (imported on the admin page) are the official record and win where both exist.
