@@ -1359,7 +1359,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v31-hidden-code';
+document.getElementById('buildTag').textContent = 'v32-back-from-monitor';
 // ===================== Attendance & streak on the student page (v80) =====================
 // Check-ins come from the check-in station (a "school day" = a day anyone checked in). MiSiS days
 // (imported on the admin page) are the official record and win where both exist.
@@ -1452,6 +1452,15 @@ document.querySelectorAll('input.code-field').forEach(function(inp){
   b.onclick = function(){ const show = inp.type === 'password'; inp.type = show ? 'text' : 'password'; b.textContent = show ? 'Hide' : 'Show'; inp.focus(); };
   wrap.appendChild(b);
 });
+
+// Coming back from the Hall Monitor: sign in with the code it handed over (good for 60 seconds, read once, then wiped)
+(function(){
+  try{
+    const ho = JSON.parse(localStorage.getItem('pageHandoff') || 'null');
+    localStorage.removeItem('pageHandoff');
+    if(ho && ho.code && Date.now() - ho.t < 60000){ document.getElementById('codeInput').value = ho.code; document.getElementById('loginBtn').click(); }
+  }catch(e){}
+})();
 </script>
 </body>
 </html>

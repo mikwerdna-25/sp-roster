@@ -152,7 +152,7 @@
         <div class="clock" id="clock">--:--</div>
         <div style="margin-top:4px;"><span class="chip" id="blockChip"></span> <span class="chip alert" id="overChip" style="display:none;"></span></div>
       </div>
-      <div class="who"><div id="whoName"></div><div id="syncNote">&nbsp;</div></div>
+      <div class="who"><div id="whoName"></div><div id="syncNote">&nbsp;</div><button class="btn sm light" id="backToPage" style="margin-top:4px; display:none;"></button></div>
     </div>
 
     <div class="strip" id="strip"></div>
@@ -184,7 +184,7 @@
         <div id="tab-log" style="display:none;"></div>
       </div>
     </div>
-    <div class="small muted" style="margin-top:12px;">Student locations come from their MiSiS class schedule (points sheet), today's check-ins and hall passes. Updates every 20 seconds. <a href="#" id="signOut">Sign out</a> <span style="float:right;">hallmonitor v9</span></div>
+    <div class="small muted" style="margin-top:12px;">Student locations come from their MiSiS class schedule (points sheet), today's check-ins and hall passes. Updates every 20 seconds. <a href="#" id="signOut">Sign out</a> <span style="float:right;">hallmonitor v10</span></div>
   </div>
 </div></div>
 
@@ -302,6 +302,7 @@ function accept(d){
   D = d; offset = d.nowMs - Date.now();
   if(!selKey || !blocksToday().some(function(b){ return b.key === selKey; })){ const b = curBlock(d.minute); selKey = b ? b.key : (d.minute < DAY_START ? 'P01' : blocksToday()[blocksToday().length - 1].key); }
   document.getElementById('whoName').textContent = d.staff.name + (d.staff.readOnly ? ' (view only)' : '');
+  const bk = document.getElementById('backToPage'); bk.style.display = ''; bk.textContent = '\u2190 Back to ' + (d.staff.admin ? 'Counselor / Admin page' : 'my Teacher page');
   document.getElementById('dayLabel').textContent = fmtDay.format(new Date(d.nowMs)) + ' · ' + d.students.length + ' students · ' + d.students.filter(function(s){ return s.checkedIn; }).length + ' checked in';
 }
 function refresh(){
@@ -856,6 +857,15 @@ function openHistory(id){
     dr.innerHTML = h; document.getElementById('hiClose').onclick = closeDrawer;
   }).catch(function(){ dr.innerHTML = '<div class="err">Could not reach the server.</div>'; });
 }
+
+// v10: back to the page this person came from, still signed in
+document.getElementById('backToPage').onclick = function(){
+  const page = D && D.staff.admin ? 'admin.html' : 'teacher.html';
+  // opened from that page in a new tab: just close this tab and the original is still there
+  try{ if(window.opener && !window.opener.closed){ window.opener.focus(); window.close(); return; } }catch(e){}
+  try{ localStorage.setItem('pageHandoff', JSON.stringify({ code: myCode, t: Date.now() })); }catch(e){}
+  location.href = page;
+};
 </script>
 </body>
 </html>
