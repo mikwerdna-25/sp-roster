@@ -459,6 +459,36 @@
   #printArea .unoff{ position:absolute; top:34%; left:0; right:0; text-align:center; font-family:-apple-system, system-ui, Arial, sans-serif; font-size:70pt; font-weight:800; color:rgba(163,43,43,0.08); transform:rotate(-24deg); pointer-events:none; letter-spacing:0.08em; }
   #printArea .unoff-band{ border:1.2pt solid #a32b2b; color:#a32b2b; font-family:-apple-system, system-ui, Arial, sans-serif; font-size:8.5pt; font-weight:700; padding:4px 8px; margin-bottom:8px; text-align:center; letter-spacing:0.03em; }
   #printArea .empty{ font-family:-apple-system, system-ui, Arial, sans-serif; font-size:9pt; color:#666; font-style:italic; padding:6px 0; }
+
+  /* ===== v95 program roll ===== */
+  .rl-progs{ display:flex; flex-wrap:wrap; gap:6px; margin:6px 0 10px; }
+  .rl-prog{ width:auto; margin:0; padding:8px 12px; border-radius:999px; border:1.5px solid #c6cdda; background:#fff; color:#1c2b4a; font-weight:700; font-size:0.86rem; cursor:pointer; }
+  .rl-prog.on{ background:#1c2b4a; color:#fff; border-color:#1c2b4a; }
+  .rl-head{ margin:4px 0 8px; }
+  .rl-title{ font-weight:800; color:#1c2b4a; font-size:1.05rem; }
+  .rl-note{ background:#fff3cf; border:1px solid #e6c35c; color:#5a4100; border-radius:8px; padding:8px 10px; font-size:0.86rem; margin:8px 0; }
+  .rl-note .btn-secondary{ width:auto; display:inline-block; margin:6px 6px 0 0; padding:6px 10px; font-size:0.82rem; }
+  .rl-err{ background:#fde8e5; color:#7a2318; border-radius:8px; padding:10px 12px; font-size:0.9rem; }
+  .rl-bar{ display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; font-size:0.86rem; margin:8px 0 4px; }
+  .rl-bulk .btn-secondary{ width:auto; margin:4px 0 8px; padding:7px 12px; font-size:0.84rem; }
+  .rl-list{ border-top:1px solid #e3dccb; }
+  .rl-row{ display:flex; align-items:center; gap:10px; padding:8px 4px; border-bottom:1px solid #e3dccb; }
+  .rl-row.changed{ background:#eef4ff; }
+  .rl-row.away .rl-nm{ color:#6b6457; }
+  .rl-who{ flex:1; min-width:0; }
+  .rl-nm{ font-weight:700; font-size:0.92rem; }
+  .rl-sub{ font-size:0.76rem; color:#6b6457; }
+  .rl-in{ color:#1d7a3a; font-weight:700; } .rl-out{ color:#a34b3f; }
+  .rl-seg{ display:flex; flex:none; }
+  .rl-seg button{ width:auto; margin:0; padding:9px 12px; min-height:40px; border:1.5px solid #c6cdda; background:#fff; color:#1c2b4a; font-weight:700; font-size:0.84rem; cursor:pointer; }
+  .rl-seg button:first-child{ border-radius:8px 0 0 8px; } .rl-seg button:last-child{ border-radius:0 8px 8px 0; border-left:none; }
+  .rl-seg .rl-p.on{ background:#1d7a3a; color:#fff; border-color:#1d7a3a; }
+  .rl-seg .rl-a.on{ background:#a32b2b; color:#fff; border-color:#a32b2b; }
+  .rl-sel{ width:auto; max-width:46%; margin:0; padding:8px; font-size:0.86rem; flex:none; }
+  .rl-save{ position:sticky; bottom:0; background:#fffdf7; padding:10px 0 6px; box-shadow:0 -8px 10px -8px rgba(0,0,0,0.25); z-index:5; }
+  .rl-save .btn-primary:disabled{ opacity:0.5; }
+
+  #rlBody .hint{ font-size:0.82rem; color:#6b6457; margin:4px 0; }
 </style>
 </head>
 <body>
@@ -502,6 +532,7 @@
       </div>
 
       <div id="pointsDueBox"></div>
+      <button class="btn-primary" id="rollLink" onclick="rlOpen('classListState')" style="margin:8px 0 4px;">Program roll &mdash; Intervention, Cinema 107, ArtworxLA&hellip;</button>
       <div style="text-align:right;"><button class="small-link" id="printMineLink">&#128424; Print schedules / IGPs for all my classes&hellip;</button></div>
       <div id="periodGroups"></div>
     </div>
@@ -530,6 +561,13 @@
       <div id="tvInProgress"></div>
       <div class="tv-head">Completed</div>
       <div id="tvCompleted"></div>
+    </div>
+
+    <div class="state" id="progRollState">
+      <button class="small-link" id="rlBackBtn" style="margin-bottom:10px;">&lt; Back</button>
+      <div style="font-weight:800; color:var(--navy); margin-bottom:2px;">Program Roll</div>
+      <div style="font-size:0.8rem; color:#6b6457;">Cinema 107, ArtworxLA, Intervention, Extended Intervention, Leadership and Percussion. Saved straight into the Extra Curricular attendance spreadsheet; every change is recorded under your name.</div>
+      <div id="rlBody"></div>
     </div>
 
     <div class="state" id="igpState">
@@ -1488,7 +1526,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v34-print';
+document.getElementById('buildTag').textContent = 'v35-program-roll';
 // ===================== Attendance & streak on the student page (v80) =====================
 // Check-ins come from the check-in station (a "school day" = a day anyone checked in). MiSiS days
 // (imported on the admin page) are the official record and win where both exist.
@@ -1762,6 +1800,116 @@ document.getElementById('rosterPrintBtn').onclick = function(){
 };
 document.getElementById('printMineLink').onclick = function(){
   prDialog({ title: 'Print for all my classes', sub: 'Every current student in your classes, one per page.', defaults: ['schedule'], params: { scope: 'mine' } });
+};
+
+// ===================== v95: PROGRAM ROLL (shared by the counselor and teacher pages) =====================
+// Roll for Cinema 107, ArtworxLA, Intervention, Extended Intervention, Leadership and Percussion, written
+// into the Extra Curricular attendance spreadsheet. Every save is recorded in the AuditLog.
+let rlData = null, rlKey = '', rlMarks = {}, rlMineOnly = false, rlBack = '';
+function rlE(t){ return String(t == null ? '' : t).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function rlOpen(backState){
+  rlBack = backState; rlKey = rlKey || ''; rlData = null; rlMarks = {};
+  showState('progRollState');
+  rlLoad(rlKey, '');
+}
+function rlLoad(key, col){
+  const box = document.getElementById('rlBody');
+  box.innerHTML = '<div class="hint">Loading...</div>';
+  const q = { mode:'progroll', code: myCode }; if(key) q.key = key; if(col) q.col = col;
+  apiGet(q).then(function(d){
+    rlData = d; rlMarks = {};
+    if(d.key) rlKey = d.key;
+    if(d.students) rlMineOnly = d.students.some(function(s){ return s.mine; });
+    rlRender();
+  }).catch(function(){ box.innerHTML = '<div class="rl-err">Could not reach the server.</div>'; });
+}
+function rlValue(s){ return Object.prototype.hasOwnProperty.call(rlMarks, s.row) ? rlMarks[s.row] : s.value; }
+function rlRender(){
+  const d = rlData || {}, box = document.getElementById('rlBody');
+  let h = '<div class="rl-progs">' + (d.programs || []).map(function(p){
+    return '<button class="rl-prog' + (p.key === d.key ? ' on' : '') + '" data-key="' + rlE(p.key) + '">' + rlE(p.label) + '</button>'; }).join('') + '</div>';
+  if(!d.success){ box.innerHTML = h + '<div class="rl-err">' + rlE(d.error || 'Could not load.') + '</div>'; rlWire(); return; }
+  if(!d.key){ box.innerHTML = h + '<div class="hint">Pick a program to take roll.</div>'; rlWire(); return; }
+  h += '<div class="rl-head"><div class="rl-title">' + rlE(d.title) + '</div><div class="hint" style="margin:0;">' + rlE(d.schedule) + '</div></div>';
+  if(d.choices.length > 1 || (d.admin && d.choices.length)){
+    h += '<select id="rlDay">' + d.choices.map(function(c){ return '<option value="' + c.col + '"' + (c.col === d.col ? ' selected' : '') + '>' + rlE(c.label) + (c.today ? ' (today)' : '') + '</option>'; }).join('') + '</select>';
+  }
+  if(!d.hasToday){
+    h += '<div class="rl-note">No column for today (' + rlE(d.todayLabel) + ') on this tab.' + (d.readOnly ? '' :
+      (d.key === 'intervention' ? ' <button class="btn-secondary rl-add" data-s="0">Add today</button><button class="btn-secondary rl-add" data-s="1">Add block 1</button><button class="btn-secondary rl-add" data-s="2">Add block 2</button>'
+                                : ' <button class="btn-secondary rl-add" data-s="0">Add today&#39;s column</button>')) + '</div>';
+  }
+  if(!d.col){ box.innerHTML = h; rlWire(); return; }
+  const anyMine = d.students.some(function(s){ return s.mine; });
+  const list = d.students.filter(function(s){ return !rlMineOnly || s.mine; });
+  h += '<div class="rl-bar"><span><b>' + rlE(d.colLabel) + '</b> &middot; ' + d.hereCount + ' of ' + d.students.length + ' checked in today</span>' +
+    (anyMine ? '<button class="small-link rl-mine">' + (rlMineOnly ? 'Show everyone' : 'Only my students') + '</button>' : '') + '</div>';
+  if(!d.readOnly){
+    h += '<div class="rl-bulk">' + (d.kind === 'check'
+      ? '<button class="btn-secondary rl-bulk-b" data-b="here">Check everyone who checked in today</button>'
+      : '<button class="btn-secondary rl-bulk-b" data-b="absent">Mark &ldquo;Absent Today&rdquo; for everyone not checked in</button>') + '</div>';
+  }
+  h += '<div class="rl-list">' + (list.length ? list.map(function(s){
+    const v = rlValue(s), changed = Object.prototype.hasOwnProperty.call(rlMarks, s.row);
+    let ctl;
+    if(d.kind === 'check'){
+      ctl = '<div class="rl-seg"><button class="rl-p' + (v === true ? ' on' : '') + '" data-row="' + s.row + '" data-v="true"' + (d.readOnly ? ' disabled' : '') + '>Present</button>' +
+            '<button class="rl-a' + (v === false ? ' on' : '') + '" data-row="' + s.row + '" data-v="false"' + (d.readOnly ? ' disabled' : '') + '>Absent</button></div>';
+    } else {
+      ctl = '<select class="rl-sel" data-row="' + s.row + '"' + (d.readOnly ? ' disabled' : '') + '>' + (d.options.indexOf(String(v)) === -1 && v ? '<option>' + rlE(v) + '</option>' : '') +
+            d.options.map(function(o){ return '<option' + (o === v ? ' selected' : '') + '>' + rlE(o) + '</option>'; }).join('') + '</select>';
+    }
+    return '<div class="rl-row' + (changed ? ' changed' : '') + (s.here ? '' : ' away') + '"><div class="rl-who"><div class="rl-nm">' + rlE(s.name) + '</div><div class="rl-sub">' +
+      (s.here ? '<span class="rl-in">checked in</span>' : '<span class="rl-out">not checked in</span>') + (s.assigned ? ' &middot; ' + rlE(s.assigned) : '') + '</div></div>' + ctl + '</div>';
+  }).join('') : '<div class="hint">No students.</div>') + '</div>';
+  const n = Object.keys(rlMarks).length;
+  if(!d.readOnly) h += '<div class="rl-save"><button class="btn-primary" id="rlSave"' + (n ? '' : ' disabled') + '>' + (n ? 'Save roll (' + n + ' change' + (n === 1 ? '' : 's') + ')' : 'No changes yet') + '</button><div class="hint" id="rlMsg"></div></div>';
+  if(d.key === 'intervention' && !d.readOnly) h += '<button class="small-link" id="rlToday">Refresh &ldquo;Todays Intervention List&rdquo; from today&#39;s check-ins</button>';
+  box.innerHTML = h; rlWire();
+}
+function rlSet(row, v){
+  const s = rlData.students.filter(function(x){ return x.row === row; })[0]; if(!s) return;
+  if(v === s.value) delete rlMarks[row]; else rlMarks[row] = v;
+}
+function rlWire(){
+  const box = document.getElementById('rlBody');
+  box.querySelectorAll('.rl-prog').forEach(function(b){ b.onclick = function(){
+    if(Object.keys(rlMarks).length && !confirm('You have unsaved changes. Leave without saving?')) return;
+    rlLoad(b.getAttribute('data-key'), ''); }; });
+  const day = document.getElementById('rlDay'); if(day) day.onchange = function(){ rlLoad(rlKey, day.value); };
+  box.querySelectorAll('.rl-add').forEach(function(b){ b.onclick = function(){
+    b.disabled = true;
+    apiGet({ mode:'progaddday', code: myCode, key: rlKey, session: b.getAttribute('data-s') }).then(function(r){
+      if(!r.success){ alert(r.error || 'Could not add the column.'); b.disabled = false; return; } rlLoad(rlKey, r.col || ''); })
+      .catch(function(){ alert('Could not reach the server.'); b.disabled = false; }); }; });
+  const mine = box.querySelector('.rl-mine'); if(mine) mine.onclick = function(){ rlMineOnly = !rlMineOnly; rlRender(); };
+  box.querySelectorAll('.rl-seg button').forEach(function(b){ b.onclick = function(){ rlSet(Number(b.getAttribute('data-row')), b.getAttribute('data-v') === 'true'); rlRender(); }; });
+  box.querySelectorAll('.rl-sel').forEach(function(s){ s.onchange = function(){ rlSet(Number(s.getAttribute('data-row')), s.value); rlRender(); }; });
+  box.querySelectorAll('.rl-bulk-b').forEach(function(b){ b.onclick = function(){
+    const which = b.getAttribute('data-b');
+    rlData.students.filter(function(s){ return !rlMineOnly || s.mine; }).forEach(function(s){
+      if(which === 'here' && s.here) rlSet(s.row, true);
+      if(which === 'absent' && !s.here) rlSet(s.row, 'Absent Today');
+    });
+    rlRender(); }; });
+  const sv = document.getElementById('rlSave');
+  if(sv) sv.onclick = function(){
+    const marks = Object.keys(rlMarks).map(function(r){ return [Number(r), rlMarks[r]]; });
+    sv.disabled = true; document.getElementById('rlMsg').textContent = 'Saving...';
+    apiGet({ mode:'progsave', code: myCode, key: rlKey, col: rlData.col, marks: JSON.stringify(marks) }).then(function(r){
+      if(!r.success){ sv.disabled = false; document.getElementById('rlMsg').textContent = r.error || 'Not saved.'; return; }
+      rlLoad(rlKey, rlData.col);
+      setTimeout(function(){ const m = document.getElementById('rlMsg'); if(m) m.textContent = 'Saved ✓ (' + r.changed + ' change' + (r.changed === 1 ? '' : 's') + ')'; }, 900);
+    }).catch(function(){ sv.disabled = false; document.getElementById('rlMsg').textContent = 'Could not reach the server - nothing was saved.'; });
+  };
+  const tl = document.getElementById('rlToday');
+  if(tl) tl.onclick = function(){ tl.disabled = true;
+    apiGet({ mode:'progtodaylist', code: myCode }).then(function(r){ tl.disabled = false; alert(r.success ? 'Todays Intervention List updated: ' + r.count + ' student(s) checked in.' : (r.error || 'Not updated.')); })
+      .catch(function(){ tl.disabled = false; alert('Could not reach the server.'); }); };
+}
+document.getElementById('rlBackBtn').onclick = function(){
+  if(Object.keys(rlMarks).length && !confirm('You have unsaved changes. Leave without saving?')) return;
+  rlMarks = {}; showState(rlBack);
 };
 </script>
 </body>
