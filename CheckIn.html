@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stoney Point Check-In</title>
+<style>
+  :root{
+    --navy:#1c2b4a;
+    --navy-deep:#101c33;
+    --paper:#f6f3ea;
+    --card:#fffdf7;
+    --rule:#d8cfb8;
+    --gold:#b8862f;
+    --ink:#26241d;
+    --muted:#7a7364;
+    --green:#3d5c2c;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    min-height:100vh;
+    background:var(--navy);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+    font-family:-apple-system, system-ui, sans-serif;
+  }
+  .sheet{
+    width:100%;
+    max-width:380px;
+    background:var(--card);
+    border-radius:12px;
+    padding:28px 22px;
+    box-shadow:0 10px 40px rgba(0,0,0,0.35);
+    text-align:center;
+  }
+  .school{
+    font-family:Georgia, serif;
+    font-weight:700;
+    color:var(--navy);
+    font-size:1.05rem;
+    margin-bottom:22px;
+  }
+  .state{ display:none; }
+  .state.active{ display:block; }
+
+  #loadingState .spinner{
+    width:34px;height:34px;
+    border:4px solid var(--rule);
+    border-top-color:var(--gold);
+    border-radius:50%;
+    margin:10px auto 14px;
+    animation:spin 0.9s linear infinite;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+
+  #confirmState .avatar{
+    width:64px;height:64px;
+    border-radius:50%;
+    background:var(--navy);
+    color:#fff;
+    display:flex;align-items:center;justify-content:center;
+    font-weight:800;
+    font-size:1.4rem;
+    margin:0 auto 14px;
+  }
+  #confirmName{
+    font-size:1.3rem;
+    font-weight:800;
+    color:var(--ink);
+    margin-bottom:4px;
+  }
+  #confirmSub{
+    font-size:0.85rem;
+    color:var(--muted);
+    margin-bottom:22px;
+  }
+  .btn-primary{
+    width:100%;
+    padding:14px;
+    border:none;
+    border-radius:8px;
+    background:var(--green);
+    color:#fff;
+    font-weight:800;
+    font-size:1.05rem;
+    cursor:pointer;
+    margin-bottom:10px;
+  }
+  .btn-primary:active{ opacity:0.85; }
+  .btn-secondary{
+    background:none;
+    border:none;
+    color:var(--muted);
+    font-size:0.82rem;
+    cursor:pointer;
+    text-decoration:underline;
+  }
+
+  .pg{ text-align:left; margin:14px 0 6px; border-top:1px solid var(--rule); padding-top:12px; }
+  .pg-loading{ font-size:0.82rem; color:var(--muted); text-align:center; padding:8px 0; }
+  .pg-title{ font-weight:800; color:var(--navy); font-size:1.05rem; margin-bottom:8px; text-align:center; }
+  .pg-head{ font-weight:800; color:var(--navy); font-size:0.85rem; margin:14px 0 4px; }
+  .pg-week{ background:#fff; border:1px solid var(--rule); border-radius:8px; padding:8px 10px; margin:6px 0; }
+  .pg-row{ display:flex; justify-content:space-between; gap:8px; align-items:baseline; font-size:0.85rem; }
+  .pg-bar{ position:relative; height:12px; background:#eee6d2; border-radius:6px; margin:6px 0 4px; overflow:hidden; }
+  .pg-bar.thin{ height:7px; margin:4px 0 0; }
+  .pg-fill{ height:100%; border-radius:6px; }
+  .pg-tick{ position:absolute; top:0; bottom:0; width:2px; background:#7a7364; }
+  .pg-sub{ font-size:0.74rem; color:var(--muted); }
+  .pg-legend{ display:flex; gap:10px; flex-wrap:wrap; font-size:0.7rem; color:var(--muted); }
+  .pg-legend i{ display:inline-block; width:9px; height:9px; border-radius:2px; margin-right:3px; vertical-align:-1px; }
+  .pg-chart svg{ display:block; width:100%; height:auto; }
+  .pg-hit{ cursor:pointer; }
+  .pg-tip{ font-size:0.74rem; color:var(--ink); background:#fff; border:1px solid var(--rule); border-radius:6px; padding:5px 8px; min-height:1.6em; }
+  .pg-class{ padding:7px 0; border-bottom:1px solid #eee6d2; }
+  .pg-done summary{ cursor:pointer; font-size:0.8rem; color:var(--navy); font-weight:700; margin-top:10px; }
+  #successState .check{
+    width:64px;height:64px;
+    border-radius:50%;
+    background:var(--green);
+    color:#fff;
+    display:flex;align-items:center;justify-content:center;
+    font-size:2rem;
+    margin:0 auto 14px;
+  }
+  #successName{
+    font-size:1.2rem;
+    font-weight:800;
+    color:var(--ink);
+    margin-bottom:4px;
+  }
+  #successTime{
+    font-size:0.85rem;
+    color:var(--muted);
+    margin-bottom:20px;
+  }
+
+  #noCodeState .nc-icon{
+    font-size:2rem;
+    margin-bottom:10px;
+  }
+  #noCodeState p{
+    font-size:0.9rem;
+    color:var(--ink);
+    line-height:1.5;
+    margin:0 0 18px;
+  }
+  #noCodeState a.form-link{
+    display:block;
+    width:100%;
+    padding:14px;
+    border-radius:8px;
+    background:var(--navy);
+    color:#fff;
+    font-weight:800;
+    font-size:1rem;
+    text-decoration:none;
+    box-sizing:border-box;
+  }
+
+  #errorState .err-icon{
+    font-size:2rem;
+    margin-bottom:10px;
+  }
+  #errorMsg{
+    font-size:0.88rem;
+    color:var(--ink);
+    margin-bottom:16px;
+    line-height:1.4;
+  }
+</style>
+</head>
+<body>
+
+<div class="sheet">
+  <div class="school">Stoney Point High School<br>Daily Check-In</div>
+  <div style="text-align:center; font-size:0.65rem; color:var(--muted); margin-top:-14px; margin-bottom:14px;">v12-google-page</div>
+
+  <div class="state active" id="loadingState">
+    <div class="spinner"></div>
+    <div style="color:var(--muted); font-size:0.9rem;">Loading...</div>
+  </div>
+
+  <div class="state" id="noCodeState">
+    <div class="nc-icon">&#128241;</div>
+    <p>This page only works from your own personal QR code.<br><br>
+    If you don't have your code, fill out the check-in form directly instead.</p>
+    <a class="form-link" href="https://docs.google.com/forms/d/e/1FAIpQLScr6XGP_Exanw7LYCeMmBoZTBzesdzVQ7PwtJ168zoaG2vrTg/viewform" target="_blank" rel="noopener">Open check-in form</a>
+  </div>
+
+  <div class="state" id="confirmState">
+    <div class="avatar" id="confirmAvatar"></div>
+    <div id="confirmName"></div>
+    <div id="confirmSub">Is this you?</div>
+    <button class="btn-primary" id="confirmBtn">Check me in</button>
+    <div style="font-size:0.72rem; color:var(--muted); margin-top:8px;">If this isn't your name, tell your teacher - don't check in as someone else.</div>
+  </div>
+
+  <div class="state" id="successState">
+    <div class="check">&check;</div>
+    <div id="successName"></div>
+    <div id="successTime"></div>
+    <div id="alreadyNote" style="display:none; margin-top:8px; font-size:0.9rem; font-weight:700; color:var(--navy);"></div>
+    <div id="savedNote" style="font-size:0.78rem; color:var(--green); font-weight:700; margin-top:4px;">&check; Saved to today's attendance sheet</div>
+    <div id="streakBadge" style="display:none; margin:14px 0; padding:12px; background:#fdf2df; border-radius:8px; border:1px solid var(--gold);">
+      <div id="streakNumber" style="font-size:1.4rem; font-weight:800; color:var(--navy);"></div>
+      <div id="streakNote" style="font-size:0.85rem; color:var(--ink); margin-top:4px;"></div>
+    </div>
+    <div id="progressBox" class="pg" style="display:none;"></div>
+    <div style="font-size:0.72rem; color:var(--muted); margin:8px 0 4px;">WildCash coming soon!</div>
+  </div>
+
+  <div class="state" id="errorState">
+    <div class="err-icon">!</div>
+    <div id="errorMsg"></div>
+    <button class="btn-primary" id="retryBtn">Try again</button>
+  </div>
+</div>
+
+<script>
+// ---- When this page is opened from the Apps Script web address (?page=...), LAUSD filters can't block it:
+// requests to the script go through google.script.run instead of the network. On github.io nothing changes.
+(function(){
+  if(!(window.google && google.script && google.script.run)) return;
+  const realFetch = window.fetch ? window.fetch.bind(window) : null;
+  window.fetch = function(url, opts){
+    const u = String(url);
+    if(u.indexOf('script.google.com/macros/') === -1 && u.indexOf('/exec?') === -1) return realFetch ? realFetch(url, opts) : Promise.reject(new Error('offline'));
+    const params = {}; new URL(u, location.href).searchParams.forEach(function(v, k){ params[k] = v; });
+    return new Promise(function(resolve, reject){
+      google.script.run.withSuccessHandler(function(txt){
+        resolve({ ok: true, status: 200, text: function(){ return Promise.resolve(txt); }, json: function(){ return Promise.resolve(JSON.parse(txt)); } });
+      }).withFailureHandler(function(err){ reject(err); }).pageApi(params);
+    });
+  };
+})();
+
+const ROSTER_ENDPOINT_URL = 'https://script.google.com/macros/s/AKfycbyMtocUhBSO_IcqIrEI4s5-C5XXWpdS9iBrfM3YqVWCgtJY1wVY8-zGpx1Pp14OPnkA/exec';
+
+const STORAGE_KEY = 'sp_checkin_identity';
+
+function showState(id){
+  document.querySelectorAll('.state').forEach(function(el){ el.classList.remove('active'); });
+  document.getElementById(id).classList.add('active');
+}
+
+function getSavedIdentity(){
+  try{
+    var raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  }catch(e){ return null; }
+}
+function saveIdentity(first, last){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({first: first, last: last})); }catch(e){}
+}
+function clearIdentity(){
+  try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
+}
+
+function initialsOf(first, last){
+  return (first[0]||'').toUpperCase() + (last[0]||'').toUpperCase();
+}
+
+function showConfirm(first, last){
+  document.getElementById('confirmAvatar').textContent = initialsOf(first, last);
+  document.getElementById('confirmName').textContent = first + ' ' + last;
+  showState('confirmState');
+}
+
+function showError(msg){
+  document.getElementById('errorMsg').textContent = msg;
+  showState('errorState');
+}
+
+function submitOnce(first, last){
+  // One attempt, with a 20-second limit so a stalled request can't hang the screen.
+  var params = new URLSearchParams({ mode:'submit', first:first, last:last, _:Date.now() });
+  var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+  var timer = ctrl ? setTimeout(function(){ ctrl.abort(); }, 20000) : null;
+  return fetch(ROSTER_ENDPOINT_URL + '?' + params.toString(), { cache:'no-store', signal: ctrl ? ctrl.signal : undefined })
+    .then(function(res){
+      if(!res.ok){ var e = new Error('HTTP ' + res.status); e.retry = true; e.code = 'http-' + res.status; throw e; }
+      return res.text();
+    })
+    .then(function(txt){
+      var data;
+      try{ data = JSON.parse(txt); }
+      catch(x){ var e = new Error('Not JSON'); e.retry = true; e.code = 'bad-response'; throw e; }
+      if(!data || data.success !== true){
+        var msg = (data && data.error) || 'Check-in was not confirmed.';
+        var e2 = new Error(msg);
+        e2.code = 'server: ' + msg;
+        e2.retry = /busy|unexpected|could not save|timed out|too many|service/i.test(msg); // worth another try
+        throw e2;
+      }
+      return data;
+    })
+    .catch(function(err){
+      if(err && err.name === 'AbortError'){ err.retry = true; err.code = 'timeout'; }
+      else if(err && err.retry === undefined){ err.retry = true; err.code = err.code || 'network'; } // fetch itself failed
+      throw err;
+    })
+    .finally(function(){ if(timer) clearTimeout(timer); });
+}
+
+// Up to 3 tries. Safe to repeat: the server keeps only ONE check-in per student per day.
+function submitCheckin(first, last){
+  var delays = [0, 1500, 3500];
+  function attempt(i){
+    return new Promise(function(r){ setTimeout(r, delays[i]); })
+      .then(function(){ return submitOnce(first, last); })
+      .catch(function(err){
+        if(i < delays.length - 1 && err && err.retry) return attempt(i + 1);
+        throw err;
+      });
+  }
+  return attempt(0);
+}
+
+// Encouraging notes by streak length - never shaming, always positive,
+// picks randomly within the matching tier so it doesn't feel repetitive.
+var STREAK_MESSAGES = [
+  { min: 1,  max: 1,  notes: ["Great start - see you tomorrow!", "You're here! That's what counts."] },
+  { min: 2,  max: 4,  notes: ["Two days and counting - keep it up!", "You're building a habit. Nice work."] },
+  { min: 5,  max: 9,  notes: ["5-day streak! You're on a roll.", "A full week almost - awesome consistency."] },
+  { min: 10, max: 19, notes: ["10+ days straight. That's real dedication.", "Double digits! Keep showing up."] },
+  { min: 20, max: 999,notes: ["20+ days! You're a Stoney Point all-star.", "Incredible streak. This is who you are now."] }
+];
+function pickStreakMessage(streak){
+  for(var i=0;i<STREAK_MESSAGES.length;i++){
+    var tier = STREAK_MESSAGES[i];
+    if(streak >= tier.min && streak <= tier.max){
+      return tier.notes[Math.floor(Math.random()*tier.notes.length)];
+    }
+  }
+  return "Nice job checking in!";
+}
+
+document.getElementById('confirmBtn').onclick = function(){
+  var identity = getSavedIdentity();
+  if(!identity) return;
+  var btn = document.getElementById('confirmBtn');
+  btn.disabled = true;
+  btn.textContent = 'Checking in...';
+  submitCheckin(identity.first, identity.last).then(function(data){
+    document.getElementById('successName').textContent = identity.first + ' ' + identity.last;
+    var when = new Date();
+    if(data && data.alreadyCheckedIn && data.timestamp){
+      var parsed = new Date(data.timestamp);
+      if(!isNaN(parsed.getTime())) when = parsed;
+    }
+    document.getElementById('successTime').textContent = when.toLocaleString([], {weekday:'short', hour:'2-digit', minute:'2-digit'});
+    // If the earlier check-in was only moments ago, it is almost certainly this same tap
+    // (a slow connection re-sent the request), so just show the normal success screen.
+    var already = !!(data && data.alreadyCheckedIn) && (new Date() - when) > 120000;
+    var note = document.getElementById('alreadyNote');
+    note.style.display = already ? 'block' : 'none';
+    note.textContent = already ? "You're already checked in today - no need to scan again." : '';
+    document.getElementById('savedNote').style.display = already ? 'none' : 'block';
+    var streak = (data && typeof data.streak === 'number') ? data.streak : 0;
+    if(streak >= 1){
+      document.getElementById('streakNumber').textContent = streak + (streak===1 ? ' day' : ' days') + ' on campus in a row';
+      document.getElementById('streakNote').textContent = pickStreakMessage(streak);
+      document.getElementById('streakBadge').style.display = 'block';
+    } else {
+      document.getElementById('streakBadge').style.display = 'none';
+    }
+    showState('successState');
+    loadMyProgress(identity.first, identity.last);
+  }).catch(function(err){
+    var code = (err && err.code) ? err.code : 'unknown';
+    showError("Couldn't submit your check-in. Check your connection and try again. If it keeps happening, tell the office (code: " + code + ").");
+  }).finally(function(){
+    btn.disabled = false;
+    btn.textContent = 'Check me in';
+  });
+};
+
+document.getElementById('retryBtn').onclick = function(){
+  var identity = getSavedIdentity();
+  if(identity) showConfirm(identity.first, identity.last);
+  else showState('noCodeState');
+};
+
+(function init(){
+  if(ROSTER_ENDPOINT_URL === 'YOUR_APPS_SCRIPT_WEB_APP_URL' || !ROSTER_ENDPOINT_URL){
+    document.getElementById('errorMsg').innerHTML =
+      '<b>This page isn\'t set up yet.</b><br><br>' +
+      'The Apps Script URL inside this file is still the placeholder text. ' +
+      'Open checkin.html, find the line starting with <code>const ROSTER_ENDPOINT_URL</code>, ' +
+      'and replace the placeholder with the real Apps Script Web app URL. ' +
+      'Then re-upload the file.';
+    document.getElementById('retryBtn').style.display = 'none';
+    showState('errorState');
+    return;
+  }
+  // Opened from the Apps Script address (?page=checkin&first=..&last=..): the name comes from google.script.url.
+  if(window.google && google.script && google.script.url){
+    google.script.url.getLocation(function(loc){ var p = (loc && loc.parameter) || {}; startWith(p.first, p.last); });
+    return;
+  }
+  var urlParams = new URLSearchParams(window.location.search);
+  startWith(urlParams.get('first'), urlParams.get('last'));
+})();
+function startWith(urlFirst, urlLast){
+  if(urlFirst && urlLast){
+    saveIdentity(urlFirst, urlLast);
+    showConfirm(urlFirst, urlLast);
+    return;
+  }
+  var identity = getSavedIdentity();
+  if(identity){
+    showConfirm(identity.first, identity.last);
+  } else {
+    showState('noCodeState');
+  }
+}
+
+// ===================== My progress on the success screen (v11) =====================
+function pEsc(t){ return String(t == null ? '' : t).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function pFmt(v){ return v === null || v === undefined ? '–' : String(Math.round(v * 100) / 100); }
+var P_GOOD = '#0ca30c', P_WARN = '#fab219', P_CRIT = '#d03b3b', P_NONE = '#d8cfb8';
+function pStatus(v, d){
+  if(v === null || v === undefined) return { label: 'No points yet', color: P_NONE, mark: '–' };
+  if(v >= d.honorMin) return { label: 'Honor Roll', color: P_GOOD, mark: '✓' };
+  if(v >= d.probationBelow) return { label: 'Good standing', color: P_WARN, mark: '•' };
+  return { label: 'Probation', color: P_CRIT, mark: '!' };
+}
+function loadMyProgress(first, last){
+  var box = document.getElementById('progressBox');
+  box.style.display = 'block';
+  box.innerHTML = '<div class="pg-loading">Loading your points...</div>';
+  var params = new URLSearchParams({ mode:'myprogress', first:first, last:last, _:Date.now() });
+  fetch(ROSTER_ENDPOINT_URL + '?' + params.toString(), { cache:'no-store' }).then(function(r){ return r.json(); }).then(function(d){
+    if(!d || !d.success){ box.innerHTML = '<div class="pg-loading">' + pEsc((d && d.error) || 'Points are not available right now.') + '</div>'; return; }
+    renderMyProgress(box, d);
+  }).catch(function(){ box.innerHTML = '<div class="pg-loading">Could not load your points right now.</div>'; });
+}
+function renderMyProgress(box, d){
+  var totals = d.weekTotals || [], cur = d.currentWeek || 0;
+  var lastData = 0; totals.forEach(function(v, i){ if(v !== null) lastData = i + 1; });
+  var n = Math.max(1, Math.min(totals.length, Math.max(cur, lastData)));
+  var h = '<div class="pg-title">Your points</div>';
+  // this week
+  var tw = cur >= 1 && cur <= totals.length ? totals[cur - 1] : null, twv = tw || 0;
+  var pct = Math.min(100, twv / d.honorMin * 100), mark = d.probationBelow / d.honorMin * 100;
+  h += '<div class="pg-week"><div class="pg-row"><b>This week (week ' + cur + ')</b><span><b>' + pFmt(twv) + '</b> pts</span></div>' +
+    '<div class="pg-bar"><div class="pg-fill" style="width:' + pct + '%;background:' + pStatus(twv, d).color + ';"></div><div class="pg-tick" style="left:' + mark + '%;"></div></div>' +
+    '<div class="pg-sub">' + (twv >= d.honorMin ? '✓ Honor Roll pace this week — keep it up!' : (d.honorMin - twv) + ' more for Honor Roll (' + d.honorMin + ')' + (twv < d.probationBelow ? ' · ' + (d.probationBelow - twv) + ' more to reach ' + d.probationBelow : '')) + '</div></div>';
+  // weekly chart
+  var W = 330, H = 150, padL = 22, padR = 6, padT = 8, padB = 20, plotW = W - padL - padR, plotH = H - padT - padB;
+  var maxV = Math.max(d.honorMin + 10, Math.ceil(Math.max.apply(null, totals.slice(0, n).map(function(v){ return v || 0; })) / 10) * 10);
+  var y = function(v){ return padT + plotH - (v / maxV) * plotH; };
+  var slot = plotW / n, bw = Math.max(5, Math.min(22, slot - 4));
+  var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Your points each week">';
+  for(var g = 0; g <= maxV; g += 10) svg += '<line x1="' + padL + '" x2="' + (W - padR) + '" y1="' + y(g) + '" y2="' + y(g) + '" stroke="#eee6d2"/><text x="' + (padL - 4) + '" y="' + (y(g) + 3) + '" text-anchor="end" font-size="8" fill="#7a7364">' + g + '</text>';
+  [d.honorMin, d.probationBelow].forEach(function(t){ svg += '<line x1="' + padL + '" x2="' + (W - padR) + '" y1="' + y(t) + '" y2="' + y(t) + '" stroke="#7a7364" stroke-dasharray="3 3"/>'; });
+  for(var i = 0; i < n; i++){
+    var v = totals[i], st = pStatus(v, d), cx = padL + slot * i + slot / 2, x = cx - bw / 2, live = (i + 1) === cur;
+    if(v !== null && v > 0){
+      var top = y(v), base = y(0), r = Math.min(3, bw / 2, base - top);
+      svg += '<path d="M' + x + ',' + base + ' V' + (top + r) + ' Q' + x + ',' + top + ' ' + (x + r) + ',' + top + ' H' + (x + bw - r) + ' Q' + (x + bw) + ',' + top + ' ' + (x + bw) + ',' + (top + r) + ' V' + base + ' Z" fill="' + st.color + '"' + (live ? ' fill-opacity="0.5"' : '') + '/>';
+    } else svg += '<line x1="' + x + '" x2="' + (x + bw) + '" y1="' + (y(0) - 1) + '" y2="' + (y(0) - 1) + '" stroke="' + (v === 0 ? P_CRIT : P_NONE) + '" stroke-width="2"/>';
+    if(n <= 12 || (i + 1) % 2 === 1 || live) svg += '<text x="' + cx + '" y="' + (H - 7) + '" text-anchor="middle" font-size="8" fill="#7a7364">' + (i + 1) + (live ? '*' : '') + '</text>';
+    svg += '<rect class="pg-hit" data-i="' + i + '" x="' + (padL + slot * i) + '" y="' + padT + '" width="' + slot + '" height="' + (plotH + padB) + '" fill="transparent"/>';
+  }
+  svg += '<line x1="' + padL + '" x2="' + (W - padR) + '" y1="' + y(0) + '" y2="' + y(0) + '" stroke="#b8ad93"/></svg>';
+  h += '<div class="pg-head">Every week</div><div class="pg-legend"><span><i style="background:' + P_GOOD + '"></i>Honor Roll ' + d.honorMin + '+</span><span><i style="background:' + P_WARN + '"></i>' + d.probationBelow + '–' + (d.honorMin - 1) + '</span><span><i style="background:' + P_CRIT + '"></i>under ' + d.probationBelow + '</span></div>' +
+    '<div class="pg-chart">' + svg + '</div><div class="pg-tip" id="pgTip">Tap a bar to see that week.</div>';
+  // 5-week block in progress
+  var bw5 = d.blockWeeks || 5, per = d.blockMinPerWeek || 20, b = Math.max(0, Math.floor((Math.max(cur, 1) - 1) / bw5)), tot = 0, cnt = 0;
+  for(var w = b * bw5; w < Math.min((b + 1) * bw5, n); w++){ if(totals[w] !== null){ tot += totals[w]; cnt++; } }
+  if(cnt){ var need = cnt * per; h += '<div class="pg-week"><div class="pg-row"><b>Weeks ' + (b * bw5 + 1) + '–' + ((b + 1) * bw5) + '</b><span><b>' + pFmt(tot) + '</b> / ' + (bw5 * per) + '</span></div>' +
+    '<div class="pg-bar"><div class="pg-fill" style="width:' + Math.min(100, tot / (bw5 * per) * 100) + '%;background:' + (tot >= need ? P_GOOD : P_WARN) + ';"></div></div>' +
+    '<div class="pg-sub">' + (tot >= need ? '✓ On track — no after-school intervention' : 'Need ' + (bw5 * per) + ' by the end of week ' + ((b + 1) * bw5) + ' to skip intervention') + '</div></div>'; }
+  // classes
+  var current = (d.courses || []).filter(function(c){ return !c.completed; }), done = (d.courses || []).filter(function(c){ return c.completed; });
+  h += '<div class="pg-head">Your classes</div>' + (current.length ? current.map(function(c){
+    var frac = c.advisory ? 0 : Math.min(100, c.total / 75 * 100);
+    return '<div class="pg-class"><div class="pg-row"><span><b>' + pEsc(c.period ? c.period.replace(/^P0?/, '').replace('H', 'Adv') + ' · ' : '') + '</b>' + pEsc(c.course) + '</span><span><b>' + pFmt(c.total) + '</b>' + (c.advisory ? ' pts' : ' / 75') + '</span></div>' +
+      (c.advisory ? '<div class="pg-sub">Advisory points go to College &amp; Career</div>' : '<div class="pg-bar thin"><div class="pg-fill" style="width:' + frac + '%;background:' + (c.total >= 75 ? P_GOOD : '#1c2b4a') + ';"></div></div>') + '</div>';
+  }).join('') : '<div class="pg-sub">No classes on record yet.</div>');
+  if(done.length) h += '<details class="pg-done"><summary>Finished this term (' + done.length + ')</summary>' + done.map(function(c){ return '<div class="pg-row pg-class"><span>' + pEsc(c.course) + '</span><span>' + (c.grade ? 'Grade ' + pEsc(c.grade) : 'Done') + '</span></div>'; }).join('') + '</details>';
+  box.innerHTML = h;
+  var tip = document.getElementById('pgTip');
+  box.querySelectorAll('.pg-hit').forEach(function(rect){
+    rect.addEventListener('click', function(){
+      var i = Number(rect.getAttribute('data-i')), v = totals[i], st = pStatus(v, d);
+      var parts = (d.courses || []).filter(function(c){ return c.weeks && c.weeks[i] !== null && c.weeks[i] !== undefined && c.weeks[i] !== 0; }).map(function(c){ return pEsc(c.course) + ' ' + pFmt(c.weeks[i]); });
+      tip.innerHTML = '<b>Week ' + (i + 1) + ':</b> ' + pFmt(v) + ' pts · ' + st.label + (parts.length ? '<br>' + parts.join(' · ') : '');
+    });
+  });
+}
+</script>
+</body>
+</html>
