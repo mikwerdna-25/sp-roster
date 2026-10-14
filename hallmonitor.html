@@ -184,7 +184,7 @@
         <div id="tab-log" style="display:none;"></div>
       </div>
     </div>
-    <div class="small muted" style="margin-top:12px;">Student locations come from their MiSiS class schedule (points sheet), today's check-ins and hall passes. Updates every 20 seconds. <a href="#" id="signOut">Sign out</a> <span style="float:right;">hallmonitor v8</span></div>
+    <div class="small muted" style="margin-top:12px;">Student locations come from their MiSiS class schedule (points sheet), today's check-ins and hall passes. Updates every 20 seconds. <a href="#" id="signOut">Sign out</a> <span style="float:right;">hallmonitor v9</span></div>
   </div>
 </div></div>
 
@@ -421,9 +421,11 @@ function renderMap(){
     if(b && b.key === 'AFTER'){
       if(p && progOf(p.type)){ (boxes[p.to] || { vis: unknownRoom }).vis.push(chip(st, 'vis', ' · ' + esc(progOf(p.type).name.split(' ')[0]))); return; }
       if(st.intervention) afterList.push(chip(st, st.checkedIn ? '' : 'absent'));
+      if(!st.checkedIn) notIn.push(chip(st, 'absent'));   // the full list, after school too
       return;
     }
-    if(!st.checkedIn && !p){ if(sch.length && boxes[sch[0].room]) boxes[sch[0].room].absent.push(chip(st, 'absent')); else notIn.push(chip(st, 'absent')); return; }
+    // v9: everyone not checked in is listed in the "Not checked in today" box (and still shown dashed in their room)
+    if(!st.checkedIn && !p){ if(sch.length && boxes[sch[0].room]) boxes[sch[0].room].absent.push(chip(st, 'absent')); notIn.push(chip(st, 'absent', sch.length ? ' · ' + esc(shortRoom(sch[0].room)) : '')); return; }
     if(p){
       const lvl = passLevel(p);
       const target = boxes[p.to];
@@ -451,7 +453,7 @@ function renderMap(){
   if(b && b.key === 'LUNCH') h += '<div class="tray"><div class="rh">Lunch / Nutrition (' + lunch.length + ')</div><div class="chips">' + (lunch.join('') || '<span class="small muted">none</span>') + '</div></div>';
   if(b && b.key === 'AFTER') h += '<div class="tray"><div class="rh">On the intervention list (not signed in)</div><div class="chips">' + (afterList.join('') || '<span class="small muted">none</span>') + '</div></div>';
   h += '<div class="tray"><div class="rh">No class this period</div><div class="chips">' + (none.join('') || '<span class="small muted">none</span>') + '</div></div>';
-  h += '<div class="tray"><div class="rh">Not checked in today</div><div class="chips">' + (notIn.join('') || '<span class="small muted">none (also shown dashed in their room)</span>') + '</div></div>';
+  h += '<div class="tray"><div class="rh">Not checked in today (' + notIn.length + ')</div><div class="chips">' + (notIn.join('') || '<span class="small muted">everyone scheduled now has checked in</span>') + '</div></div>';
   if(unknownRoom.length) h += '<div class="tray"><div class="rh">Room not on the map</div><div class="chips">' + unknownRoom.join('') + '</div></div>';
   h += '</div></div><div class="legend"><span><i style="background:#fff;border:1px solid #e0d6bd"></i>In class</span><span><i style="background:#fff3cf;border:1px solid #e8c45c"></i>Here on a pass (timer)</span><span><i style="background:#fde2df;border:1px solid var(--crit)"></i>Over time</span><span style="text-decoration:line-through;">Out of this room</span><span><i style="border:1px dashed #9a948a"></i>Not checked in</span>' + (D.staff.rooms.length ? '<span><i style="box-shadow:0 0 0 2px var(--gold)"></i>Your room</span>' : '') + '</div>';
   if(!live && b) h += '<div class="small muted" style="margin-top:4px;">This is where students are scheduled for ' + esc(b.label) + '. Live passes show only on the current period.</div>';
