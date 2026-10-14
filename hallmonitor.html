@@ -128,6 +128,7 @@
   .legend{ display:flex; gap:12px; flex-wrap:wrap; font-size:.7rem; color:var(--muted); margin-top:6px; }
   .legend i{ display:inline-block; width:12px; height:8px; border-radius:2px; vertical-align:0; margin-right:3px; }
   .prog-list{ max-height:340px; overflow:auto; border:1px solid var(--rule); border-radius:8px; padding:6px 10px; background:#fff; columns:2 220px; }
+  @media print{ body{ background:#fff; } .sheet{ box-shadow:none; } .strip, .legend, .grid2 > .panel, .tabs, #toolbar, #dragHint, .top .who, .bar, .btn{ display:none !important; } .grid2{ display:block; } }
   .prog-list label{ display:block; font-size:.82rem; padding:2px 0; break-inside:avoid; }
 </style>
 </head>
@@ -168,6 +169,7 @@
           <button class="tab on" data-tab="map">Campus map</button>
           <button class="tab" data-tab="timeline">Timeline by period</button>
           <button class="tab" data-tab="programs">Programs &amp; intervention</button>
+          <button class="tab" data-tab="log">Daily log</button>
         </div>
         <div class="bar" id="toolbar">
           <input type="text" id="search" placeholder="Find a student">
@@ -179,9 +181,10 @@
         <div id="tab-map"></div>
         <div id="tab-timeline" style="display:none;"></div>
         <div id="tab-programs" style="display:none;"></div>
+        <div id="tab-log" style="display:none;"></div>
       </div>
     </div>
-    <div class="small muted" style="margin-top:12px;">Student locations come from their MiSiS class schedule (points sheet), today's check-ins and hall passes. Updates every 20 seconds. <a href="#" id="signOut">Sign out</a> <span style="float:right;">hallmonitor v6</span></div>
+    <div class="small muted" style="margin-top:12px;">Student locations come from their MiSiS class schedule (points sheet), today's check-ins and hall passes. Updates every 20 seconds. <a href="#" id="signOut">Sign out</a> <span style="float:right;">hallmonitor v8</span></div>
   </div>
 </div></div>
 
@@ -206,7 +209,7 @@ function hm(s){ const p = String(s).split(':'); return Number(p[0]) * 60 + Numbe
 function t12(s){ const m = typeof s === 'number' ? s : hm(s), h = Math.floor(m / 60), mm = Math.round(m % 60); return ((h + 11) % 12 + 1) + ':' + ('0' + mm).slice(-2); }
 function mmss(ms){ const s = Math.max(0, Math.floor(ms / 1000)), m = Math.floor(s / 60); return (m >= 60 ? Math.floor(m / 60) + ':' + ('0' + (m % 60)).slice(-2) : m) + ':' + ('0' + (s % 60)).slice(-2); }
 
-let myCode = '', D = null, offset = 0, selKey = null, tab = 'map', mineOnly = false, pollT = null;
+let myCode = '', D = null, offset = 0, selKey = null, tab = 'map', mineOnly = false, pollT = null, followNow = true;   // followNow: the view moves with the bell
 try{ myCode = sessionStorage.getItem('hmCode') || ''; }catch(e){}
 // Opened from the teacher or counselor page: use the code handed over (good for 60 seconds, read once, then wiped)
 try{
@@ -306,9 +309,8 @@ function refresh(){
   document.getElementById('syncNote').textContent = 'updating…';
   apiGet({ mode:'hpboard', code: myCode }).then(function(d){
     if(!d.success){ document.getElementById('syncNote').textContent = d.error || 'not updated'; return; }
-    const wasLive = isLive();
     accept(d);
-    if(wasLive){ const b = curBlock(d.minute); if(b) selKey = b.key; }   // follow the clock when watching "now"
+    if(followNow){ const b = curBlock(d.minute); if(b) selKey = b.key; }   // follow the clock when watching "now"
     renderAll();
     document.getElementById('syncNote').textContent = 'updated ' + fmtHM.format(new Date(d.nowMs));
   }).catch(function(){ document.getElementById('syncNote').textContent = 'offline - retrying'; });
@@ -319,6 +321,8 @@ if(myCode) signIn(myCode);
 setInterval(function(){
   if(!D) return;
   const ms = nowMs(), info = ptInfo(ms), b = curBlock(info.minute);
+  // v8: when the bell changes, the map and timeline move to the new period by themselves (unless someone picked another period)
+  if(followNow && b && b.key !== selKey && D.dow <= 5){ selKey = b.key; renderStrip(); if(tab !== 'log' && tab !== 'programs') renderTab(); }
   document.getElementById('clock').textContent = fmtClock.format(new Date(ms));
   const chip = document.getElementById('blockChip');
   if(D.dow > 5){ chip.textContent = 'Weekend'; chip.className = 'chip'; }
@@ -351,7 +355,7 @@ function renderStrip(){
   }).join('') + '</div>';
   h += needle() + '</div>';
   el.innerHTML = h;
-  el.querySelectorAll('.blk[data-key]').forEach(function(b){ b.onclick = function(){ selKey = b.getAttribute('data-key'); renderStrip(); renderTab(); }; });
+  el.querySelectorAll('.blk[data-key]').forEach(function(b){ b.onclick = function(){ selKey = b.getAttribute('data-key'); const cb = curBlock(ptInfo(nowMs()).minute); followNow = !!(cb && cb.key === selKey); renderStrip(); renderTab(); }; });
 }
 
 // ---- out of class now ----
@@ -391,12 +395,18 @@ document.getElementById('search').oninput = function(){ renderTab(); };
 document.getElementById('statusSel').onchange = function(){ renderTab(); };
 document.getElementById('mineToggle').onclick = function(){ mineOnly = !mineOnly; this.classList.toggle('on', mineOnly); renderTab(); };
 function renderTab(){
-  ['map', 'timeline', 'programs'].forEach(function(k){ document.getElementById('tab-' + k).style.display = k === tab ? '' : 'none'; });
-  document.getElementById('toolbar').style.display = tab === 'programs' ? 'none' : '';
+  ['map', 'timeline', 'programs', 'log'].forEach(function(k){ document.getElementById('tab-' + k).style.display = k === tab ? '' : 'none'; });
+  document.getElementById('toolbar').style.display = (tab === 'programs' || tab === 'log') ? 'none' : '';
   document.getElementById('dragHint').style.display = (tab === 'map' && canDrag()) ? '' : 'none';
   const b = selBlock();
-  document.getElementById('selLabel').textContent = b ? (isLive() ? 'Showing now: ' : 'Showing ') + b.label + ' (' + t12(b.start) + '–' + t12(b.end) + ')' : '';
-  if(tab === 'map') renderMap(); else if(tab === 'timeline') renderTimeline(); else renderPrograms();
+  const sl = document.getElementById('selLabel');
+  sl.innerHTML = b ? esc((isLive() ? 'Showing now: ' : 'Showing ') + b.label + ' (' + t12(b.start) + '–' + t12(b.end) + ')') : '';
+  if(!followNow){
+    const back = document.createElement('button'); back.className = 'btn sm'; back.style.marginLeft = '8px'; back.textContent = 'Back to now';
+    back.onclick = function(){ followNow = true; const cb = curBlock(ptInfo(nowMs()).minute); if(cb) selKey = cb.key; renderStrip(); renderTab(); };
+    sl.appendChild(back);
+  }
+  if(tab === 'map') renderMap(); else if(tab === 'timeline') renderTimeline(); else if(tab === 'log'){ if(logData && logData.date === logData.today) logData = null; renderLog(); } else renderPrograms();
 }
 function chip(st, cls, extra){
   return '<span class="sc ' + (cls || '') + '" data-sid="' + esc(st.id) + '" title="' + esc(st.first + ' ' + st.last) + '">' + esc(st.first.split(' ')[0] + ' ' + st.last.charAt(0) + '.') + (extra || '') + '</span>';
@@ -637,7 +647,8 @@ function openStudent(id){
   });
   h += '</div>';
   const mine = D.passes.filter(function(x){ return x.studentId === st.id; });
-  h += '<div style="font-weight:800; color:var(--navy); margin:10px 0 4px;">Passes today (' + mine.length + ')</div>' + (mine.length ? mine.map(function(x){
+  setTimeout(function(){ const hb = document.getElementById('drHist'); if(hb) hb.onclick = function(){ openHistory(st.id); }; }, 0);
+  h += '<div style="font-weight:800; color:var(--navy); margin:10px 0 4px; display:flex; justify-content:space-between;"><span>Passes today (' + mine.length + ')</span><button class="btn sm light" id="drHist">Pass history</button></div>' + (mine.length ? mine.map(function(x){
     return '<div class="kv"><span>' + esc(fmtHM.format(new Date(x.out))) + ' ' + (x.from ? esc(roomName(x.from)) + ' → ' : '') + esc(placeOf(x)) + '</span><span>' + (x.status === 'Out' ? '<b>out now</b>' : esc(x.minutes) + ' min · ' + esc(x.status)) + '</span></div>';
   }).join('') : '<div class="small muted">None.</div>');
   if(!ro){
@@ -682,6 +693,167 @@ document.querySelectorAll('input.code-field').forEach(function(inp){
   b.onclick = function(){ const show = inp.type === 'password'; inp.type = show ? 'text' : 'password'; b.textContent = show ? 'Hide' : 'Show'; inp.focus(); };
   wrap.appendChild(b);
 });
+
+// ===================== Daily log: where each student was, and for how long (v7) =====================
+let logData = null, logDate = '', logOpen = {};
+function todayKey(){ const o = {}; new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year:'numeric', month:'2-digit', day:'2-digit' }).formatToParts(new Date(nowMs())).forEach(function(p){ o[p.type] = p.value; }); return o.year + '-' + o.month + '-' + o.day; }
+function minOf(ms){ return ptInfo(ms).minute; }
+function fmtMin(m){ m = Math.round(m); return m >= 60 ? Math.floor(m / 60) + ' h ' + (m % 60) + ' min' : m + ' min'; }
+function renderLog(){
+  const el = document.getElementById('tab-log');
+  if(!logDate) logDate = todayKey();
+  if(!logData || logData.date !== logDate){
+    el.innerHTML = '<div class="small muted">Loading ' + esc(logDate) + '…</div>';
+    apiGet({ mode:'hplog', code: myCode, date: logDate }).then(function(d){
+      if(!d.success){ el.innerHTML = '<div class="err">' + esc(d.error || 'Could not load.') + '</div>'; return; }
+      logData = d; if(tab === 'log') drawLog();
+    }).catch(function(){ el.innerHTML = '<div class="err">Could not reach the server.</div>'; });
+    return;
+  }
+  drawLog();
+}
+// Builds one student's day: class time from the schedule, cut wherever a hall pass took them somewhere else.
+function buildDay(st, L){
+  const C = L.config, dow = L.dow, isToday = L.date === L.today;
+  const progs = C.programs.filter(function(p){ return p.days.indexOf(dow) !== -1; });
+  const mine = L.passes.filter(function(p){ return p.studentId === st.id; }).sort(function(a, b){ return a.out - b.out; });
+  if(!st.checkedIn && !mine.length) return [];
+  const nowM = isToday ? minOf(nowMs()) : 24 * 60;
+  const start = st.checkedIn ? minOf(st.checkedIn) : minOf(mine[0].out);
+  const classEnd = Math.min(hm('13:30'), nowM);
+  // 1) where the schedule puts them, minute range by minute range
+  const cuts = [start, classEnd];
+  C.bell.forEach(function(b){ cuts.push(hm(b.start), hm(b.end)); });
+  progs.forEach(function(p){ if(!p.afterSchool && st.programs.indexOf(p.key) !== -1) cuts.push(hm(p.start), hm(p.end)); });
+  const pts = cuts.filter(function(m, i, a){ return m >= start && m <= classEnd && a.indexOf(m) === i; }).sort(function(a, b){ return a - b; });
+  let segs = [];
+  for(let i = 0; i < pts.length - 1; i++){
+    const a = pts[i], b2 = pts[i + 1]; if(b2 <= a) continue;
+    const pr = progs.filter(function(p){ return !p.afterSchool && st.programs.indexOf(p.key) !== -1 && a >= hm(p.start) && a < hm(p.end); })[0];
+    const bl = C.bell.filter(function(b){ return a >= hm(b.start) && a < hm(b.end); })[0];
+    let seg;
+    if(pr) seg = { kind:'program', room: pr.room, label: pr.name + ' · ' + roomName(pr.room), per: bl ? bl.label : '' };
+    else if(bl && bl.key === 'LUNCH') seg = { kind:'lunch', room:'LUNCH', label:'Lunch / Nutrition', per: bl.label };
+    else if(bl){ const c = st.periods[bl.key] || []; seg = c.length ? { kind:'class', room: c[0].room, label: roomFull(c[0].room) + ' · ' + c.map(function(x){ return x.course; }).join(', '), per: bl.label } : { kind:'free', room:'', label:'No class scheduled', per: bl.label }; }
+    else seg = { kind:'free', room:'', label:'Passing / before school', per:'' };
+    seg.s = a; seg.e = b2; segs.push(seg);
+  }
+  // 2) cut out each pass and put the pass in its place
+  mine.forEach(function(p){
+    const ps = minOf(p.out), open = !p.back;
+    const pe = p.back ? minOf(p.back) : (isToday ? nowM : Math.max(ps + 1, classEnd));
+    const out = [];
+    segs.forEach(function(sg){
+      if(sg.e <= ps || sg.s >= pe){ out.push(sg); return; }
+      if(sg.s < ps) out.push(Object.assign({}, sg, { e: ps }));
+      if(sg.e > pe) out.push(Object.assign({}, sg, { s: pe }));
+    });
+    out.push({ kind: progOf(p.type) ? 'after' : 'pass', room: p.to, label: placeOf(p), s: ps, e: Math.max(pe, ps + 0.1), pass: p, open: open && !isToday, live: open && isToday, per: '' });
+    segs = out.sort(function(a, b){ return a.s - b.s; });
+  });
+  // 3) join back-to-back pieces in the same place (e.g. two periods in Room 218)
+  const merged = [];
+  segs.forEach(function(sg){
+    const last = merged[merged.length - 1];
+    if(last && !sg.pass && !last.pass && last.kind === sg.kind && last.label === sg.label && Math.abs(last.e - sg.s) < 0.01){ last.e = sg.e; if(sg.per && last.per.indexOf(sg.per) === -1) last.per += ', ' + sg.per; }
+    else merged.push(Object.assign({}, sg));
+  });
+  return merged.filter(function(sg){ return sg.e - sg.s >= 0.5 || sg.pass; });
+}
+function drawLog(){
+  const L = logData, el = document.getElementById('tab-log');
+  const q = (document.getElementById('logSearch') ? document.getElementById('logSearch').value : '').trim().toLowerCase();
+  const onlyPasses = document.getElementById('logOnly') ? document.getElementById('logOnly').checked : false;
+  const allRows = L.students.map(function(st){
+    const day = buildDay(st, L), passes = L.passes.filter(function(p){ return p.studentId === st.id; });
+    const outMin = day.filter(function(x){ return x.kind === 'pass'; }).reduce(function(t, x){ return t + (x.e - x.s); }, 0);
+    return { st: st, day: day, passes: passes, outMin: outMin };
+  });
+  const rows = allRows.filter(function(r){
+    if(q && (r.st.first + ' ' + r.st.last + ' ' + r.st.id).toLowerCase().indexOf(q) === -1) return false;
+    if(onlyPasses && !r.passes.length) return false;
+    return r.st.checkedIn || r.passes.length || !onlyPasses;
+  });
+  // totals from the same pieces the rows show (a pass nobody ended counts until classes end, and is marked)
+  const passSegs = []; allRows.forEach(function(r){ r.day.forEach(function(sg){ if(sg.kind === 'pass') passSegs.push(sg); }); });
+  const all = passSegs, mins = passSegs.map(function(sg){ return sg.e - sg.s; });
+  const rrMin = passSegs.filter(function(sg){ return sg.pass.type === 'restroom'; }).map(function(sg){ return sg.e - sg.s; }), rr = rrMin;
+  const longest = mins.length ? Math.max.apply(null, mins) : 0;
+  const neverEnded = passSegs.filter(function(sg){ return sg.open; }).length;
+  const plural = function(n, w){ return n + ' ' + w + (n === 1 ? '' : 'es'); };
+  const isToday = L.date === L.today;
+  let h = '<div class="bar"><input type="date" id="logDateIn" value="' + esc(L.date) + '" max="' + esc(L.today) + '" style="max-width:170px;">' +
+    (isToday ? '' : '<button class="btn sm light" id="logToday">Today</button>') +
+    '<input type="text" id="logSearch" placeholder="Find a student" value="' + esc(q) + '">' +
+    '<label class="small"><input type="checkbox" id="logOnly"' + (onlyPasses ? ' checked' : '') + '> Only students with passes</label>' +
+    '<button class="btn sm" id="logCsv">Download (Excel)</button><button class="btn sm light" onclick="window.print()">Print</button></div>';
+  h += '<div class="trays" style="margin:0 0 10px;">' +
+    '<div class="tray"><div class="rh">' + esc(new Date(L.date + 'T12:00:00').toLocaleDateString([], { weekday:'long', month:'long', day:'numeric' })) + '</div><div class="small">' +
+      L.students.filter(function(s){ return s.checkedIn; }).length + ' checked in · ' + plural(all.length, 'hall pass') + ' · ' + fmtMin(mins.reduce(function(a, b){ return a + b; }, 0)) + ' out of class in all' + (neverEnded ? ' · <b style="color:#a32b2b;">' + neverEnded + ' never ended</b>' : '') + '</div></div>' +
+    '<div class="tray"><div class="rh">Restroom</div><div class="small">' + plural(rr.length, 'pass') + ' · average ' + (rr.length ? fmtMin(rrMin.reduce(function(a, b){ return a + b; }, 0) / rr.length) : '–') + '</div></div>' +
+    '<div class="tray"><div class="rh">Longest pass</div><div class="small">' + (all.length ? fmtMin(longest) : '–') + '</div></div></div>';
+  if(L.note) h += '<div class="small muted" style="margin-bottom:6px;">' + esc(L.note) + '</div>';
+  h += '<div class="tl"><div class="tlh"><div class="nmcol" style="width:220px;"><b>Student</b></div><div style="flex:1; display:flex; font-size:.74rem; font-weight:800; padding:5px 8px; gap:8px;"><span style="width:90px;">Checked in</span><span style="width:70px;">Passes</span><span>Out of class</span></div></div>';
+  rows.forEach(function(r){
+    const st = r.st, open = !!logOpen[st.id];
+    h += '<div class="tlr' + (st.checkedIn ? '' : ' absent') + '" style="cursor:pointer;" data-row="' + esc(st.id) + '"><div class="nmcol" style="width:220px;">' + (open ? '▾ ' : '▸ ') + esc(st.last + ', ' + st.first) + '</div>' +
+      '<div style="flex:1; display:flex; gap:8px; font-size:.8rem; padding:6px 8px; align-items:center;"><span style="width:90px;">' + (st.checkedIn ? esc(fmtHM.format(new Date(st.checkedIn))) : '<span class="muted">not checked in</span>') + '</span>' +
+      '<span style="width:70px;">' + (r.passes.length || '') + '</span><span>' + (r.outMin ? '<b' + (r.outMin >= 30 ? ' style="color:var(--crit);"' : '') + '>' + fmtMin(r.outMin) + '</b>' : '') + '</span></div></div>';
+    if(open){
+      h += '<div style="padding:6px 10px 10px 30px; background:#fbf9f3; border-top:1px solid #f1ecdf;">' + (r.day.length ? r.day.map(function(sg){
+        const col = sg.kind === 'pass' ? 'var(--crit)' : sg.kind === 'after' ? 'var(--good)' : sg.kind === 'program' ? '#b8862f' : sg.kind === 'lunch' ? '#b9ad8f' : sg.kind === 'free' ? '#bbb' : (ROOM_COLORS[sg.room] || '#888');
+        return '<div style="display:flex; gap:10px; font-size:.8rem; padding:3px 0; border-bottom:1px dashed #eee6d2;"><span style="width:130px; color:var(--muted); font-variant-numeric:tabular-nums;">' + t12(sg.s) + '–' + (sg.live ? 'now' : t12(sg.e)) + '</span>' +
+          '<span style="width:12px; height:12px; border-radius:3px; background:' + col + '; margin-top:2px; flex:none;"></span>' +
+          '<span style="flex:1;">' + (sg.kind === 'pass' ? '<b>Hall pass:</b> ' : sg.kind === 'after' ? '<b>Signed in:</b> ' : '') + esc(sg.label) + (sg.per && sg.per !== sg.label ? ' <span class="muted">(' + esc(sg.per) + ')</span>' : '') +
+          (sg.pass ? ' <span class="muted small">' + esc((sg.pass.from ? 'from ' + roomName(sg.pass.from) + ' · ' : '') + (sg.pass.teacherOk === 'Not asked' ? 'teacher not asked' : 'teacher OK') + (sg.pass.sentOk ? ' · sent ✓' : '') + (sg.pass.arrivedOk ? ' · arrived ✓' : '') + (sg.open ? ' · never ended' : '')) + '</span>' : '') + '</span>' +
+          '<span style="width:80px; text-align:right; font-weight:' + (sg.pass ? '800' : '600') + ';">' + fmtMin(sg.e - sg.s) + '</span></div>';
+      }).join('') : '<div class="small muted">Not checked in and no passes this day.</div>') +
+      '<div style="margin-top:6px;"><button class="btn sm light" data-hist="' + esc(st.id) + '">Pass history (30 days)</button></div><div class="small muted" style="margin-top:4px;">Class time comes from the schedule and check-in; hall pass times are exact.</div></div>';
+    }
+  });
+  if(!rows.length) h += '<div class="small muted" style="padding:10px;">No students match.</div>';
+  h += '</div>';
+  el.innerHTML = h;
+  document.getElementById('logDateIn').onchange = function(){ if(this.value){ logDate = this.value; logOpen = {}; renderLog(); } };
+  const lt = document.getElementById('logToday'); if(lt) lt.onclick = function(){ logDate = todayKey(); renderLog(); };
+  document.getElementById('logSearch').oninput = function(){ const pos = this.selectionStart; drawLog(); const s = document.getElementById('logSearch'); s.focus(); try{ s.setSelectionRange(pos, pos); }catch(e){} };
+  document.getElementById('logOnly').onchange = drawLog;
+  el.querySelectorAll('[data-row]').forEach(function(r){ r.onclick = function(){ const id = r.getAttribute('data-row'); logOpen[id] = !logOpen[id]; drawLog(); }; });
+  el.querySelectorAll('[data-hist]').forEach(function(b){ b.onclick = function(e){ e.stopPropagation(); openHistory(b.getAttribute('data-hist')); }; });
+  document.getElementById('logCsv').onclick = function(){
+    const out = [['Date', 'Last name', 'First name', 'Student ID', 'Checked in', 'Start', 'End', 'Minutes', 'Where', 'Kind', 'Period', 'Teacher OK', 'Sent OK', 'Arrived OK']];
+    rows.forEach(function(r){
+      if(!r.day.length) out.push([L.date, r.st.last, r.st.first, r.st.id, '', '', '', '', 'Not checked in', '', '', '', '', '']);
+      r.day.forEach(function(sg){ out.push([L.date, r.st.last, r.st.first, r.st.id, r.st.checkedIn ? fmtHM.format(new Date(r.st.checkedIn)) : '', t12(sg.s), sg.live ? 'still out' : t12(sg.e), Math.round(sg.e - sg.s),
+        sg.label, { pass:'Hall pass', after:'After school', program:'Program', lunch:'Lunch', free:'No class', 'class':'Class (schedule)' }[sg.kind], sg.per || '', sg.pass ? sg.pass.teacherOk : '', sg.pass ? sg.pass.sentOk : '', sg.pass ? sg.pass.arrivedOk : '']); });
+    });
+    const csv = out.map(function(row){ return row.map(function(v){ v = String(v == null ? '' : v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }).join(','); }).join('\r\n');
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['﻿' + csv], { type:'text/csv' })); a.download = 'hall-log-' + L.date + '.csv'; document.body.appendChild(a); a.click(); a.remove();
+  };
+}
+function openHistory(id){
+  const dr = document.getElementById('drawer'); dr.innerHTML = '<div class="small muted">Loading pass history…</div>';
+  document.getElementById('drawerBack').style.display = 'flex';
+  apiGet({ mode:'hplog', code: myCode, id: id, days: 30 }).then(function(d){
+    if(!d.success){ dr.innerHTML = '<div class="err">' + esc(d.error || 'Could not load.') + '</div><button class="btn sm light" onclick="closeDrawer()">Close</button>'; return; }
+    const ps = d.passes.filter(function(p){ return !progOf(p.type); }), after = d.passes.filter(function(p){ return progOf(p.type); });
+    // a pass nobody ended on an earlier day counts until classes ended that day (same as the daily log)
+    const ended = function(p){ return p.minutes != null || p.date === d.to; };
+    const m = function(p){ return p.minutes != null ? Number(p.minutes) : (p.date === d.to ? (nowMs() - p.out) / 60000 : Math.max(0, hm('13:30') - minOf(p.out))); };
+    const by = {}; ps.forEach(function(p){ const k = placeOf(p); (by[k] = by[k] || []).push(m(p)); });
+    const byDay = {}; d.passes.forEach(function(p){ (byDay[p.date] = byDay[p.date] || []).push(p); });
+    let h = '<div style="display:flex; justify-content:space-between; gap:8px;"><div><div class="h1" style="font-size:1.05rem;">' + esc(d.student.first + ' ' + d.student.last) + '</div><div class="small muted">Hall passes ' + esc(d.from) + ' to ' + esc(d.to) + '</div></div><button class="btn sm light" id="hiClose">Close</button></div>';
+    h += '<div class="kv" style="margin-top:8px;"><span>Passes</span><b>' + ps.length + ' · ' + fmtMin(ps.reduce(function(t, p){ return t + m(p); }, 0)) + ' out of class</b></div>';
+    Object.keys(by).sort(function(a, b){ return by[b].length - by[a].length; }).forEach(function(k){ const v = by[k]; h += '<div class="kv"><span>' + esc(k) + '</span><span>' + v.length + ' ×, average ' + fmtMin(v.reduce(function(a, b){ return a + b; }, 0) / v.length) + '</span></div>'; });
+    if(after.length) h += '<div class="kv"><span>After-school sign-ins</span><span>' + after.length + '</span></div>';
+    h += '<div style="font-weight:800; color:var(--navy); margin:10px 0 4px;">By day</div>' + (Object.keys(byDay).sort().reverse().map(function(day){
+      return '<div style="margin:6px 0 2px; font-weight:700; font-size:.82rem;">' + esc(new Date(day + 'T12:00:00').toLocaleDateString([], { weekday:'short', month:'short', day:'numeric' })) + '</div>' + byDay[day].map(function(p){
+        return '<div class="kv"><span>' + esc(fmtHM.format(new Date(p.out))) + (p.back ? '–' + esc(fmtHM.format(new Date(p.back))) : '') + ' ' + esc(placeOf(p)) + (p.teacherOk === 'Not asked' ? ' <span style="color:#a32b2b;">(not asked)</span>' : '') + '</span><span>' + (p.status === 'Out' && p.date === d.to ? 'out now' : fmtMin(m(p)) + (ended(p) ? '' : ' <span style="color:#a32b2b;">(never ended)</span>')) + '</span></div>';
+      }).join('');
+    }).join('') || '<div class="small muted">No passes in the last 30 days.</div>');
+    dr.innerHTML = h; document.getElementById('hiClose').onclick = closeDrawer;
+  }).catch(function(){ dr.innerHTML = '<div class="err">Could not reach the server.</div>'; });
+}
 </script>
 </body>
 </html>
