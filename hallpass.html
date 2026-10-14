@@ -103,10 +103,27 @@
     <div id="histBox" class="hist" style="margin-top:10px;"></div>
     <button class="btn btn-light" id="doneBtn">Done</button>
   </div>
-  <div class="buildtag">hallpass v1</div>
+  <div class="buildtag">hallpass v2</div>
 </div></div>
 
 <script>
+// ---- When this page is opened from the Apps Script web address (?page=...), LAUSD filters can't block it:
+// requests to the script go through google.script.run instead of the network. On github.io nothing changes.
+(function(){
+  if(!(window.google && google.script && google.script.run)) return;
+  const realFetch = window.fetch ? window.fetch.bind(window) : null;
+  window.fetch = function(url, opts){
+    const u = String(url);
+    if(u.indexOf('script.google.com/macros/') === -1 && u.indexOf('/exec?') === -1) return realFetch ? realFetch(url, opts) : Promise.reject(new Error('offline'));
+    const params = {}; new URL(u, location.href).searchParams.forEach(function(v, k){ params[k] = v; });
+    return new Promise(function(resolve, reject){
+      google.script.run.withSuccessHandler(function(txt){
+        resolve({ ok: true, status: 200, text: function(){ return Promise.resolve(txt); }, json: function(){ return Promise.resolve(JSON.parse(txt)); } });
+      }).withFailureHandler(function(err){ reject(err); }).pageApi(params);
+    });
+  };
+})();
+
 const ENDPOINT = 'https://script.google.com/macros/s/AKfycbyMtocUhBSO_IcqIrEI4s5-C5XXWpdS9iBrfM3YqVWCgtJY1wVY8-zGpx1Pp14OPnkA/exec';
 const TZ = 'America/Los_Angeles';
 function apiGet(params){
