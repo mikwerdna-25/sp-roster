@@ -140,6 +140,14 @@
   .class-row.all-students{ font-weight:700; background:var(--paper); border-style:dashed; }
   .student-course{ font-size:0.78rem; color:var(--muted); margin:-2px 0 6px; }
   .dbl-flag{ display:inline-block; font-size:0.74rem; font-weight:700; color:#6b4a00; background:#fff3cf; border:1px solid #f0d27a; border-radius:6px; padding:2px 7px; margin:0 0 6px; }
+  .pts-due{ background:#fff3cf; border:1px solid #e6c35c; color:#5a4100; border-radius:10px; padding:10px 12px; margin:10px 0 4px; font-size:0.88rem; }
+  .pts-due.past{ background:#fde8e5; border-color:#e39a8f; color:#7a2318; }
+  .pts-due.done{ background:#e6f4ea; border-color:#9fd0ab; color:#1d5a2c; }
+  .pts-due b{ font-weight:800; }
+  .pts-due ul{ margin:6px 0 2px 18px; padding:0; }
+  .pts-due li{ cursor:pointer; text-decoration:underline; margin:2px 0; }
+  .pts-due .sub{ font-size:0.78rem; margin-top:4px; opacity:0.9; }
+  .blank-count{ font-size:0.72rem; font-weight:700; color:#7a2318; background:#fde8e5; border-radius:6px; padding:1px 6px; margin-left:6px; white-space:nowrap; }
   .dbl-count{ font-size:0.72rem; font-weight:700; color:#6b4a00; background:#fff3cf; border-radius:6px; padding:1px 6px; margin-left:6px; white-space:nowrap; }
   .period-label{
     font-size:0.72rem;
@@ -434,6 +442,7 @@
         <select id="igpPick"><option value="">Loading students...</option></select>
       </div>
 
+      <div id="pointsDueBox"></div>
       <div id="periodGroups"></div>
     </div>
 
@@ -558,6 +567,7 @@ document.getElementById('loginBtn').onclick = function(){
     }
     myCode = code;
     myTeacherName = data.teacherName;
+    myPointsDue = data.pointsDue || null;
     myClasses = data.classes.map(function(c){
       return { tab: c.tab, title: c.title, period: parsePeriodFromTitle(c.title), doubleBlocks: c.doubleBlocks || 0 };
     });
@@ -571,8 +581,55 @@ document.getElementById('loginBtn').onclick = function(){
   });
 };
 
+// v33: weekly points reminder - blank cells for this week (due the last school day, normally Friday)
+let myPointsDue = null;
+function renderPointsDue(){
+  const box = document.getElementById('pointsDueBox');
+  box.innerHTML = '';
+  if(!myPointsDue || !myPointsDue.length) return;
+  myPointsDue.forEach(function(wk, i){
+    if(i > 0 && !wk.missing) return;                     // last week: only if something is still blank
+    const div = document.createElement('div');
+    if(!wk.missing){
+      div.className = 'pts-due done';
+      div.innerHTML = '<b>\u2713 Week ' + wk.week + ' points are all in.</b> Thank you!';
+      box.appendChild(div); return;
+    }
+    div.className = 'pts-due' + (wk.pastDue ? ' past' : '');
+    const head = wk.pastDue ? 'Week ' + wk.week + ' points were due ' + wk.dueLabel + '.'
+               : wk.dueToday ? 'Week ' + wk.week + ' points are due today.'
+               : 'Week ' + wk.week + ' points are due by ' + wk.dueLabel + '.';
+    div.innerHTML = '<b>' + hEsc(head) + '</b> ' + wk.missing + ' student' + (wk.missing === 1 ? '' : 's') + ' still blank:';
+    const ul = document.createElement('ul');
+    wk.classes.forEach(function(c){
+      const li = document.createElement('li');
+      li.textContent = c.period + ' ' + c.course + ' \u2014 ' + c.missing + ' of ' + c.expected;
+      li.onclick = function(){ openClass(c.tab, null); };
+      ul.appendChild(li);
+    });
+    div.appendChild(ul);
+    const sub = document.createElement('div'); sub.className = 'sub';
+    sub.textContent = 'Enter 0 for a student who earned no points \u2014 a blank week isn\'t counted for Honor Roll or intervention.';
+    div.appendChild(sub);
+    box.appendChild(div);
+  });
+}
+function blankCountFor(tab){
+  if(!myPointsDue || !myPointsDue.length) return 0;
+  const c = myPointsDue[0].classes.filter(function(x){ return x.tab === tab; })[0];
+  return c ? c.missing : 0;
+}
+// After entering points, refresh the reminder quietly when going back to the class list.
+function refreshPointsDue(){
+  if(!myCode) return;
+  apiGet({ mode:'teacherclasses', code: myCode }).then(function(d){
+    if(d && !d.error){ myPointsDue = d.pointsDue || null; renderClassList(); }
+  }).catch(function(){});
+}
+
 function renderClassList(){
   document.getElementById('teacherNameLabel').textContent = myTeacherName;
+  renderPointsDue();
   const container = document.getElementById('periodGroups');
   container.innerHTML = '';
 
@@ -607,6 +664,13 @@ function renderClassList(){
         dc.textContent = '\u21c4 ' + c.doubleBlocks + ' double-blocked';
         dc.title = c.doubleBlocks + ' student(s) in this class also have this course in another period. Their points and grade are shared between the periods.';
         row.appendChild(dc);
+      }
+      const blanks = blankCountFor(c.tab);
+      if(blanks){
+        const bc = document.createElement('span'); bc.className = 'blank-count';
+        bc.textContent = blanks + ' blank Wk ' + myPointsDue[0].week;
+        bc.title = blanks + ' student(s) have no points entered for Week ' + myPointsDue[0].week + ' yet.';
+        row.appendChild(bc);
       }
       row.onclick = function(){ openClass(c.tab, null); };
       group.appendChild(row);
@@ -1332,6 +1396,7 @@ document.getElementById('backFromIgpBtn').onclick = function(){
 document.getElementById('backToClassesBtn').onclick = function(){
   renderClassList();
   showState('classListState');
+  refreshPointsDue();
 };
 
 // ---- Change code ----
@@ -1359,7 +1424,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v32-back-from-monitor';
+document.getElementById('buildTag').textContent = 'v33-points-due';
 // ===================== Attendance & streak on the student page (v80) =====================
 // Check-ins come from the check-in station (a "school day" = a day anyone checked in). MiSiS days
 // (imported on the admin page) are the official record and win where both exist.
