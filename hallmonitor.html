@@ -88,6 +88,11 @@
   .sc.vis.over{ background:#fde2df; border-color:var(--crit); color:#8a1f1a; }
   .sc.absent{ color:#9a948a; border-style:dashed; background:transparent; }
   .sc.hl{ outline:2px solid var(--crit); }
+  .sc.drag{ cursor:grab; touch-action:none; user-select:none; -webkit-user-select:none; }
+  .sc.dragging{ opacity:.35; }
+  .sc.ghost{ position:fixed; z-index:100; pointer-events:none; box-shadow:0 6px 16px rgba(0,0,0,.3); background:#fff; cursor:grabbing; }
+  .room.drop{ outline:3px dashed var(--navy); outline-offset:-3px; background:#e3e9f6; }
+  body.is-dragging{ cursor:grabbing; user-select:none; }
   .trays{ display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:8px; margin-top:8px; }
   .tray{ border:1px dashed var(--rule); border-radius:8px; padding:7px; background:#fffdf7; }
   .tray .rh{ font-weight:800; font-size:.78rem; color:var(--navy); margin-bottom:4px; }
@@ -170,12 +175,13 @@
           <select id="statusSel"><option value="">Everyone</option><option value="out">Out of class now</option><option value="absent">Not checked in</option><option value="intervention">Intervention list</option></select>
           <span class="small muted" id="selLabel"></span>
         </div>
+        <div id="dragHint" class="small muted" style="display:none; margin:-4px 0 8px;">Drag a student onto another room to send them there now (hall pass) or to change their class for this period. Tap a name for details.</div>
         <div id="tab-map"></div>
         <div id="tab-timeline" style="display:none;"></div>
         <div id="tab-programs" style="display:none;"></div>
       </div>
     </div>
-    <div class="small muted" style="margin-top:12px;">Student locations come from their MiSiS class schedule (points sheet), today's check-ins and hall passes. Updates every 20 seconds. <a href="#" id="signOut">Sign out</a> <span style="float:right;">hallmonitor v4</span></div>
+    <div class="small muted" style="margin-top:12px;">Student locations come from their MiSiS class schedule (points sheet), today's check-ins and hall passes. Updates every 20 seconds. <a href="#" id="signOut">Sign out</a> <span style="float:right;">hallmonitor v5</span></div>
   </div>
 </div></div>
 
@@ -387,6 +393,7 @@ document.getElementById('mineToggle').onclick = function(){ mineOnly = !mineOnly
 function renderTab(){
   ['map', 'timeline', 'programs'].forEach(function(k){ document.getElementById('tab-' + k).style.display = k === tab ? '' : 'none'; });
   document.getElementById('toolbar').style.display = tab === 'programs' ? 'none' : '';
+  document.getElementById('dragHint').style.display = (tab === 'map' && canDrag()) ? '' : 'none';
   const b = selBlock();
   document.getElementById('selLabel').textContent = b ? (isLive() ? 'Showing now: ' : 'Showing ') + b.label + ' (' + t12(b.start) + '–' + t12(b.end) + ')' : '';
   if(tab === 'map') renderMap(); else if(tab === 'timeline') renderTimeline(); else renderPrograms();
@@ -425,7 +432,7 @@ function renderMap(){
     const r = roomById(id) || { name: id, label: '' }, x = boxes[id];
     const n = x.here.length + x.vis.length;
     const mine = D.staff.rooms.indexOf(id) !== -1;
-    return '<div class="room ' + (extraCls || '') + (mine ? ' mine' : '') + '" style="grid-area:' + MAP_AREAS[id] + ';"><div class="rh"><span>' + esc(r.name) + '</span><span class="cnt">' + n + '</span></div><div class="rl">' + esc(r.label && r.label !== r.name ? r.label : '') + '</div>' +
+    return '<div class="room ' + (extraCls || '') + (mine ? ' mine' : '') + '" data-room="' + id + '" style="grid-area:' + MAP_AREAS[id] + ';"><div class="rh"><span>' + esc(r.name) + '</span><span class="cnt">' + n + '</span></div><div class="rl">' + esc(r.label && r.label !== r.name ? r.label : '') + '</div>' +
       '<div class="chips">' + x.vis.join('') + x.here.join('') + x.out.join('') + x.absent.join('') + '</div></div>';
   };
   let h = '<div class="map">' + ['2', '3', '4', '5', '6', '7', '8'].map(function(id){ return box(id, id === '3' || id === '7' ? 'svc' : ''); }).join('') +
@@ -438,7 +445,101 @@ function renderMap(){
   h += '</div></div><div class="legend"><span><i style="background:#fff;border:1px solid #e0d6bd"></i>In class</span><span><i style="background:#fff3cf;border:1px solid #e8c45c"></i>Here on a pass (timer)</span><span><i style="background:#fde2df;border:1px solid var(--crit)"></i>Over time</span><span style="text-decoration:line-through;">Out of this room</span><span><i style="border:1px dashed #9a948a"></i>Not checked in</span>' + (D.staff.rooms.length ? '<span><i style="box-shadow:0 0 0 2px var(--gold)"></i>Your room</span>' : '') + '</div>';
   if(!live && b) h += '<div class="small muted" style="margin-top:4px;">This is where students are scheduled for ' + esc(b.label) + '. Live passes show only on the current period.</div>';
   const el = document.getElementById('tab-map'); el.innerHTML = h;
-  el.querySelectorAll('.sc[data-sid]').forEach(function(c){ c.onclick = function(){ openStudent(c.getAttribute('data-sid')); }; });
+  el.querySelectorAll('.sc[data-sid]').forEach(function(c){ c.onclick = function(){ if(dragJustEnded) return; openStudent(c.getAttribute('data-sid')); }; });
+  if(canDrag()){ el.querySelectorAll('.room .sc[data-sid]').forEach(function(c){ c.classList.add('drag'); c.addEventListener('pointerdown', dragStart); }); }
+  const hint = document.getElementById('dragHint'); if(hint) hint.style.display = canDrag() ? '' : 'none';
+}
+
+// ---- Drag a student to another room (full-access counselors/admins) ----
+function canDrag(){ return !!(D && D.staff.admin && !D.staff.readOnly); }
+let drag = null, dragJustEnded = false;
+function dragStart(e){
+  if(e.button !== undefined && e.button !== 0) return;
+  const chipEl = e.currentTarget, roomEl = chipEl.closest('.room');
+  drag = { sid: chipEl.getAttribute('data-sid'), from: roomEl ? roomEl.getAttribute('data-room') : '', x: e.clientX, y: e.clientY, el: chipEl, ghost: null, over: null };
+  document.addEventListener('pointermove', dragMove);
+  document.addEventListener('pointerup', dragEnd);
+}
+function dragMove(e){
+  if(!drag) return;
+  if(!drag.ghost){
+    if(Math.abs(e.clientX - drag.x) + Math.abs(e.clientY - drag.y) < 8) return;   // a tap, not a drag
+    drag.ghost = drag.el.cloneNode(true); drag.ghost.classList.add('ghost'); document.body.appendChild(drag.ghost);
+    drag.el.classList.add('dragging'); document.body.classList.add('is-dragging');
+  }
+  e.preventDefault();
+  drag.ghost.style.left = (e.clientX + 8) + 'px'; drag.ghost.style.top = (e.clientY + 8) + 'px';
+  drag.ghost.style.display = 'none';
+  const under = document.elementFromPoint(e.clientX, e.clientY);
+  drag.ghost.style.display = '';
+  const room = under && under.closest ? under.closest('.room[data-room]') : null;
+  if(drag.over && drag.over !== room) drag.over.classList.remove('drop');
+  drag.over = room; if(room && room.getAttribute('data-room') !== drag.from) room.classList.add('drop');
+}
+function dragEnd(){
+  document.removeEventListener('pointermove', dragMove); document.removeEventListener('pointerup', dragEnd);
+  if(!drag) return;
+  const d = drag; drag = null;
+  document.body.classList.remove('is-dragging');
+  if(!d.ghost) return;                                   // it was a tap - the click opens the student
+  d.ghost.remove(); d.el.classList.remove('dragging'); if(d.over) d.over.classList.remove('drop');
+  dragJustEnded = true; setTimeout(function(){ dragJustEnded = false; }, 50);
+  const to = d.over ? d.over.getAttribute('data-room') : '';
+  if(to && to !== d.from) openMoveChoice(d.sid, d.from, to);
+}
+const DEST_FOR_ROOM = { RR:'restroom', '1':'counseling', OFFICE:'office', '7':'wellness', '3':'kitchen' };
+function openMoveChoice(sid, from, to){
+  const st = D.students.filter(function(s){ return s.id === sid; })[0]; if(!st) return;
+  const live = isLive(), b = selBlock(), p = activePass(st), toR = roomById(to);
+  const sch = scheduledAt(st, blockMinute()), home = sch[0] ? sch[0].room : '';
+  const fromCls = (st.periods[selKey] || []).filter(function(c){ return c.room === from; })[0] || (st.periods[selKey] || [])[0];
+  const targets = (D.sections || []).filter(function(x){ return x.room === to && x.period === selKey && (!fromCls || x.tab !== fromCls.tab); });
+  let h = '<div style="display:flex; justify-content:space-between; gap:8px;"><div class="h1" style="font-size:1.05rem;">Move ' + esc(st.first + ' ' + st.last) + '</div><button class="btn sm light" id="mvClose">Cancel</button></div>' +
+    '<div class="small muted" style="margin:2px 0 10px;">' + esc(roomFull(from)) + ' \u2192 <b style="color:var(--navy);">' + esc(roomFull(to)) + '</b>' + (b ? ' \u00b7 ' + esc(b.label) : '') + '</div>';
+  let any = false;
+  if(live){
+    any = true;
+    if(p && to === home) h += '<button class="btn good" id="mvPass" style="width:100%;">End the pass \u2013 back in ' + esc(roomName(to)) + '</button>';
+    else h += '<button class="btn good" id="mvPass" style="width:100%;">Send now on a hall pass to ' + esc(toR ? toR.name + (toR.label && toR.label !== toR.name ? ' (' + toR.label + ')' : '') : to) + '</button>' +
+      '<div class="small muted" style="margin:4px 0 0;">For right now only' + (p ? ' (their current pass to ' + esc(placeOf(p)) + ' is ended first)' : '') + '. You approve it; it shows in Out of class now with a timer.</div>';
+  }
+  if(fromCls && b && /^P0\d$|^PH$/.test(selKey) && targets.length){
+    any = true;
+    h += '<div style="border-top:1px solid var(--rule); margin-top:12px; padding-top:10px;"><div style="font-weight:800; color:var(--navy);">Change their ' + esc(b.label) + ' class (schedule)</div>' +
+      '<div class="small muted" style="margin:2px 0 6px;">Now in: ' + esc(fromCls.course + ' (' + roomName(fromCls.room) + ')') + '. This is a lasting schedule change \u2013 make the same change in MiSiS.</div>' +
+      targets.map(function(x, i){ return '<label style="display:block; font-size:.86rem; padding:3px 0;"><input type="radio" name="mvTab" value="' + esc(x.tab) + '"' + (i === 0 ? ' checked' : '') + '> ' + esc(x.course) + ' <span class="muted">(' + esc(x.teacher) + ')</span></label>'; }).join('') +
+      '<div style="display:flex; gap:14px; margin:6px 0; font-size:.84rem;"><label><input type="radio" name="mvHow" value="transfer" checked> Bring their points</label><label><input type="radio" name="mvHow" value="fresh"> Start at 0</label></div>' +
+      '<button class="btn" id="mvClass" style="width:100%;">Move to this class</button><div class="small muted" style="margin-top:4px;">Nothing is deleted \u2013 the old class keeps their row, marked removed with a note.</div></div>';
+  }
+  if(!any) h += '<div class="small">Nothing to do here: this isn\u2019t the current period (passes are for right now), and ' + esc(roomName(to)) + ' has no ' + esc(b ? b.label : '') + ' class to move them into.</div>';
+  const dr = document.getElementById('drawer'); dr.innerHTML = h;
+  document.getElementById('drawerBack').style.display = 'flex';
+  document.getElementById('mvClose').onclick = closeDrawer;
+  const bp = document.getElementById('mvPass');
+  if(bp) bp.onclick = function(){
+    bp.disabled = true;
+    const done = function(r){ bp.disabled = false; if(r && !r.success){ alert(r.error || 'Not saved.'); return; } closeDrawer(); refresh(); };
+    const startPass = function(){
+      const dest = DEST_FOR_ROOM[to] || 'class';
+      return apiGet({ mode:'hpstaffpass', code: myCode, id: st.id, dest: dest, room: dest === 'class' ? to : '', from: home || from });
+    };
+    if(p && to === home) apiGet({ mode:'hpaction', code: myCode, pass: p.id, action:'end' }).then(done).catch(function(){ done({ success:false, error:'Could not reach the server.' }); });
+    else if(p) apiGet({ mode:'hpaction', code: myCode, pass: p.id, action:'end' }).then(function(r){ if(!r.success) return r; return startPass(); }).then(done).catch(function(){ done({ success:false, error:'Could not reach the server.' }); });
+    else startPass().then(done).catch(function(){ done({ success:false, error:'Could not reach the server.' }); });
+  };
+  const bc = document.getElementById('mvClass');
+  if(bc) bc.onclick = function(){
+    const tab = (dr.querySelector('input[name="mvTab"]:checked') || {}).value, how = dr.querySelector('input[name="mvHow"]:checked').value;
+    const tgt = targets.filter(function(x){ return x.tab === tab; })[0];
+    if(!tgt || !confirm('Move ' + st.first + ' ' + st.last + ' from ' + fromCls.course + ' to ' + tgt.course + ' (' + tgt.teacher + ')' + (how === 'transfer' ? ', bringing their points?' : ', starting at 0?') + '\n\nRemember to make the same change in MiSiS.')) return;
+    bc.disabled = true;
+    apiGet({ mode:'adminmovestudent', code: myCode, from: fromCls.tab, to: tab, first: st.first, last: st.last, how: how }).then(function(r){
+      bc.disabled = false;
+      if(!r.success){ alert(r.error || 'Not moved.'); return; }
+      alert('Moved to ' + r.to + '.' + (r.mode === 'transfer' ? ' Points copied (' + r.copied + ' entries), new total ' + r.newTotal + '.' : ' Started at 0; the old points stay in ' + r.from + '.'));
+      closeDrawer(); refresh();
+    }).catch(function(){ bc.disabled = false; alert('Could not reach the server.'); });
+  };
 }
 
 function renderTimeline(){
