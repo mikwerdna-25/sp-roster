@@ -70,8 +70,10 @@
   .toggle.on{ background:var(--navy); color:#fff; border-color:var(--navy); }
 
   /* campus map */
-  .map{ display:grid; gap:7px; grid-template-columns:repeat(8, minmax(0, 1fr));
-        grid-template-areas:"r2 r3 lunch r4 r5 r6 r7 r8" "courts r1 lunch r219 r218 park park park" "courts office rr r219 r218 park park park"; }
+  .map{ display:grid; gap:7px; grid-template-columns:repeat(7, minmax(0, 1fr));
+        grid-template-areas:"r2 r3 r4 r5 r6 r7 r8" "r1 office rr r219 r218 side side"; }
+  .map .side{ grid-area:side; display:flex; flex-direction:column; gap:7px; }
+  .map .side .tray{ flex:1; }
   .room{ border:1px solid #cbb98e; background:#f4ead2; border-radius:8px; padding:6px; min-height:96px; display:flex; flex-direction:column; }
   .room.svc{ background:#eef1f7; border-color:#c9d0e0; }
   .room.ground{ background:#eaf3e6; border-color:#cfe3c6; }
@@ -89,7 +91,7 @@
   .trays{ display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:8px; margin-top:8px; }
   .tray{ border:1px dashed var(--rule); border-radius:8px; padding:7px; background:#fffdf7; }
   .tray .rh{ font-weight:800; font-size:.78rem; color:var(--navy); margin-bottom:4px; }
-  @media (max-width:760px){ .map{ grid-template-columns:1fr 1fr; grid-template-areas:none; } .map > div{ grid-area:auto !important; } .map .hide-sm{ display:none; } }
+  @media (max-width:760px){ .map{ grid-template-columns:1fr 1fr; grid-template-areas:none; } .map > div{ grid-area:auto !important; } .map .side{ grid-column:1 / -1; } }
 
   /* timeline */
   .tl{ border:1px solid var(--rule); border-radius:8px; overflow:hidden; background:#fff; }
@@ -173,7 +175,7 @@
         <div id="tab-programs" style="display:none;"></div>
       </div>
     </div>
-    <div class="small muted" style="margin-top:12px;">Student locations come from their MiSiS class schedule (points sheet), today's check-ins and hall passes. Updates every 20 seconds. <a href="#" id="signOut">Sign out</a> <span style="float:right;">hallmonitor v3</span></div>
+    <div class="small muted" style="margin-top:12px;">Student locations come from their MiSiS class schedule (points sheet), today's check-ins and hall passes. Updates every 20 seconds. <a href="#" id="signOut">Sign out</a> <span style="float:right;">hallmonitor v4</span></div>
   </div>
 </div></div>
 
@@ -392,11 +394,11 @@ function renderTab(){
 function chip(st, cls, extra){
   return '<span class="sc ' + (cls || '') + '" data-sid="' + esc(st.id) + '" title="' + esc(st.first + ' ' + st.last) + '">' + esc(st.first.split(' ')[0] + ' ' + st.last.charAt(0) + '.') + (extra || '') + '</span>';
 }
-const MAP_AREAS = { '2':'r2', '3':'r3', 'LUNCH':'lunch', '4':'r4', '5':'r5', '6':'r6', '7':'r7', '8':'r8', '1':'r1', '219':'r219', '218':'r218', 'OFFICE':'office', 'RR':'rr' };
+const MAP_AREAS = { '2':'r2', '3':'r3', '4':'r4', '5':'r5', '6':'r6', '7':'r7', '8':'r8', '1':'r1', '219':'r219', '218':'r218', 'OFFICE':'office', 'RR':'rr' };
 function renderMap(){
   const live = isLive(), minute = blockMinute(), b = selBlock();
   const boxes = {}; Object.keys(MAP_AREAS).forEach(function(k){ boxes[k] = { here: [], out: [], absent: [], vis: [] }; });
-  const none = [], notIn = [], unknownRoom = [], afterList = [];
+  const none = [], notIn = [], unknownRoom = [], afterList = [], lunch = [];
   D.students.filter(matches).forEach(function(st){
     const p = live ? activePass(st) : null, sch = scheduledAt(st, minute);
     if(b && b.key === 'AFTER'){
@@ -415,6 +417,7 @@ function renderMap(){
       return;
     }
     if(!sch.length){ none.push(chip(st)); return; }
+    if(sch[0].room === 'LUNCH'){ lunch.push(chip(st)); return; }
     if(!boxes[sch[0].room]){ unknownRoom.push(chip(st, '', ' · ' + esc(sch[0].teacher || sch[0].course))); return; }
     boxes[sch[0].room].here.push(chip(st));
   });
@@ -422,19 +425,17 @@ function renderMap(){
     const r = roomById(id) || { name: id, label: '' }, x = boxes[id];
     const n = x.here.length + x.vis.length;
     const mine = D.staff.rooms.indexOf(id) !== -1;
-    return '<div class="room ' + (extraCls || '') + (mine ? ' mine' : '') + '" style="grid-area:' + MAP_AREAS[id] + ';"><div class="rh"><span>' + esc(r.name) + '</span><span class="cnt">' + n + '</span></div><div class="rl">' + esc(r.label || '') + '</div>' +
+    return '<div class="room ' + (extraCls || '') + (mine ? ' mine' : '') + '" style="grid-area:' + MAP_AREAS[id] + ';"><div class="rh"><span>' + esc(r.name) + '</span><span class="cnt">' + n + '</span></div><div class="rl">' + esc(r.label && r.label !== r.name ? r.label : '') + '</div>' +
       '<div class="chips">' + x.vis.join('') + x.here.join('') + x.out.join('') + x.absent.join('') + '</div></div>';
   };
   let h = '<div class="map">' + ['2', '3', '4', '5', '6', '7', '8'].map(function(id){ return box(id, id === '3' || id === '7' ? 'svc' : ''); }).join('') +
-    box('LUNCH', 'ground') + box('1', 'svc') + box('OFFICE', 'svc') + box('RR', 'svc') + box('219') + box('218') +
-    '<div class="room ground hide-sm" style="grid-area:courts;"><div class="rh"><span>Athletic Courts</span></div><div class="rl">Main Gate · De Soto Ave</div></div>' +
-    '<div class="room ground hide-sm" style="grid-area:park; background:#f2f2f2; border-color:#ddd;"><div class="rh"><span>Staff Parking</span></div><div class="rl">Vintage Street</div></div></div>';
-  h += '<div class="trays">';
+    box('1', 'svc') + box('OFFICE', 'svc') + box('RR', 'svc') + box('219') + box('218') + '<div class="side">';
+  if(b && b.key === 'LUNCH') h += '<div class="tray"><div class="rh">Lunch / Nutrition (' + lunch.length + ')</div><div class="chips">' + (lunch.join('') || '<span class="small muted">none</span>') + '</div></div>';
   if(b && b.key === 'AFTER') h += '<div class="tray"><div class="rh">On the intervention list (not signed in)</div><div class="chips">' + (afterList.join('') || '<span class="small muted">none</span>') + '</div></div>';
   h += '<div class="tray"><div class="rh">No class this period</div><div class="chips">' + (none.join('') || '<span class="small muted">none</span>') + '</div></div>';
   h += '<div class="tray"><div class="rh">Not checked in today</div><div class="chips">' + (notIn.join('') || '<span class="small muted">none (also shown dashed in their room)</span>') + '</div></div>';
   if(unknownRoom.length) h += '<div class="tray"><div class="rh">Room not on the map</div><div class="chips">' + unknownRoom.join('') + '</div></div>';
-  h += '</div><div class="legend"><span><i style="background:#fff;border:1px solid #e0d6bd"></i>In class</span><span><i style="background:#fff3cf;border:1px solid #e8c45c"></i>Here on a pass (timer)</span><span><i style="background:#fde2df;border:1px solid var(--crit)"></i>Over time</span><span style="text-decoration:line-through;">Out of this room</span><span><i style="border:1px dashed #9a948a"></i>Not checked in</span>' + (D.staff.rooms.length ? '<span><i style="box-shadow:0 0 0 2px var(--gold)"></i>Your room</span>' : '') + '</div>';
+  h += '</div></div><div class="legend"><span><i style="background:#fff;border:1px solid #e0d6bd"></i>In class</span><span><i style="background:#fff3cf;border:1px solid #e8c45c"></i>Here on a pass (timer)</span><span><i style="background:#fde2df;border:1px solid var(--crit)"></i>Over time</span><span style="text-decoration:line-through;">Out of this room</span><span><i style="border:1px dashed #9a948a"></i>Not checked in</span>' + (D.staff.rooms.length ? '<span><i style="box-shadow:0 0 0 2px var(--gold)"></i>Your room</span>' : '') + '</div>';
   if(!live && b) h += '<div class="small muted" style="margin-top:4px;">This is where students are scheduled for ' + esc(b.label) + '. Live passes show only on the current period.</div>';
   const el = document.getElementById('tab-map'); el.innerHTML = h;
   el.querySelectorAll('.sc[data-sid]').forEach(function(c){ c.onclick = function(){ openStudent(c.getAttribute('data-sid')); }; });
