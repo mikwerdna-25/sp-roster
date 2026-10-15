@@ -140,8 +140,10 @@
   /* v40 menu */
   .m-head{ display:flex; justify-content:space-between; align-items:flex-end; gap:10px; margin-bottom:12px; }
   .m-hello{ font-size:0.72rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; }
-  .m-tools{ display:grid; grid-template-columns:1fr; gap:8px; margin:0 0 12px; }
-  .m-tool{ display:flex; align-items:center; gap:12px; width:100%; margin:0; padding:11px 14px; border:1.5px solid var(--rule); border-radius:12px; background:#fff; color:var(--navy); text-decoration:none; text-align:left; font-family:inherit; cursor:pointer; min-height:58px; }
+  .m-tools{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:8px; margin:0 0 12px; }
+  .m-pbtn{ width:auto; margin:0 0 10px; padding:8px 14px; border:1.5px solid var(--navy); border-radius:999px; background:#fff; color:var(--navy); font-weight:800; font-size:0.86rem; font-family:inherit; cursor:pointer; white-space:nowrap; }
+  .m-pbtn:hover{ background:var(--navy); color:#fff; }
+  .m-tool{ box-sizing:border-box; display:flex; align-items:center; gap:10px; width:100%; margin:0; padding:11px 14px; border:1.5px solid var(--rule); border-radius:12px; background:#fff; color:var(--navy); text-decoration:none; text-align:left; font-family:inherit; cursor:pointer; min-height:58px; }
   .m-tool:hover{ border-color:var(--navy); }
   .m-tool b{ display:block; font-size:0.95rem; }
   .m-tool small{ display:block; font-size:0.76rem; color:var(--muted); font-weight:500; margin-top:1px; }
@@ -156,7 +158,7 @@
   .m-look .btn-secondary{ flex:1; margin:0; padding:10px 12px; border:1.5px solid var(--navy); border-radius:8px; background:#fff; color:var(--navy); font-weight:700; font-size:0.9rem; text-decoration:none; font-family:inherit; cursor:pointer; }
   .m-look .btn-secondary:disabled{ opacity:0.4; cursor:default; }
   @media (min-width:900px){ .m-look{ max-width:420px; } }
-  @media (min-width:700px){ .m-tools{ grid-template-columns:repeat(3, 1fr); } }
+  @media (min-width:760px){ .m-tools{ grid-template-columns:repeat(4, minmax(0,1fr)); } }
   .class-row.all-students{ font-weight:700; background:var(--paper); border-style:dashed; }
   .student-course{ font-size:0.78rem; color:var(--muted); margin:-2px 0 6px; }
   .dbl-flag{ display:inline-block; font-size:0.74rem; font-weight:700; color:#6b4a00; background:#fff3cf; border:1px solid #f0d27a; border-radius:6px; padding:2px 7px; margin:0 0 6px; }
@@ -551,7 +553,9 @@
         <a href="hallmonitor.html" class="m-tool" id="hallMonitorLink" onclick="openHallMonitor(event)">
           <span class="m-ico">&#128694;</span><span><b>Hall Monitor &#8599;</b><small>Who is out of class right now</small></span></a>
         <button class="m-tool" id="rollLink" onclick="rlOpen('classListState')">
-          <span class="m-ico">&#9989;</span><span><b>Intervention &amp; program roll</b><small>Intervention, Cinema 107, ArtworxLA, Leadership, Percussion</small></span></button>
+          <span class="m-ico">&#9989;</span><span><b>Intervention &amp; program roll</b><small>Intervention, Cinema 107 &amp; other programs</small></span></button>
+        <button class="m-tool" id="printMineLink">
+          <span class="m-ico">&#128424;&#65039;</span><span><b>Print</b><small>Schedules &amp; IGPs for my classes</small></span></button>
         <button class="m-tool m-red" id="emBtn" onclick="emOpen()">
           <span class="m-ico">&#9888;&#65039;</span><span><b>Emergency roster</b><small>Print who is on campus now</small></span></button>
       </div>
@@ -559,8 +563,7 @@
       <div id="pointsDueBox"></div>
 
       <div class="m-sec">
-        <div class="m-sec-head"><h2>My classes <span>tap a class to enter points</span></h2>
-          <button class="small-link no-print" id="printMineLink">&#128424; Print schedules / IGPs&hellip;</button></div>
+        <div class="m-sec-head"><h2>My classes <span>tap a class to enter points</span></h2></div>
         <div id="periodGroups"></div>
       </div>
 
@@ -579,7 +582,7 @@
 
     <!-- CLASS ROSTER / POINT ENTRY -->
     <div class="state" id="rosterState">
-      <div style="display:flex; justify-content:space-between; gap:8px;"><button class="small-link" id="backToClassesBtn" style="margin-bottom:10px;">&lt; Back to my classes</button><button class="small-link" id="rosterPrintBtn" style="margin-bottom:10px;">&#128424; Print schedules / IGPs&hellip;</button></div>
+      <div style="display:flex; justify-content:space-between; gap:8px;"><button class="small-link" id="backToClassesBtn" style="margin-bottom:10px;">&lt; Back to my classes</button><button class="m-pbtn no-print" id="rosterPrintBtn">&#128424;&#65039; Print this class</button></div>
       <div class="roster-header">
         <div class="roster-title" id="rosterTitle"></div>
         <div class="roster-sub">Entering points for:</div>
@@ -594,7 +597,7 @@
       <button class="small-link" id="backFromStudentView" style="margin-bottom:10px;">&lt; Back</button>
       <div style="font-weight:800;color:var(--navy);font-size:1.05rem;" id="tvName"></div>
       <div class="ro-sub" id="tvSub" style="margin-bottom:6px;"></div>
-      <button class="small-link" id="tvPrintBtn" style="margin-bottom:10px;">&#128424; Print schedule or IGP&hellip;</button>
+      <button class="m-pbtn no-print" id="tvPrintBtn" style="margin:0 0 10px;">&#128424;&#65039; Print schedule or IGP</button>
       <div id="tvWeekly"></div>
       <div id="tvAttendance"></div>
       <div class="tv-head">In progress</div>
@@ -611,7 +614,7 @@
     </div>
 
     <div class="state" id="igpState">
-      <div style="display:flex; justify-content:space-between; gap:8px;"><button class="small-link" id="backFromIgpBtn" style="margin-bottom:10px;">&lt; Back to class</button><button class="small-link" id="igpPrintBtnT" style="margin-bottom:10px;">&#128424; Print&hellip;</button></div>
+      <div style="display:flex; justify-content:space-between; gap:8px;"><button class="small-link" id="backFromIgpBtn" style="margin-bottom:10px;">&lt; Back to class</button><button class="m-pbtn no-print" id="igpPrintBtnT">&#128424;&#65039; Print</button></div>
       <div class="igp-header">
         <div class="igp-title">Individual Graduation Plan (IGP)</div>
         <div class="igp-name" id="igpStudentName"></div>
@@ -1570,7 +1573,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v40-menu-redesign';
+document.getElementById('buildTag').textContent = 'v41-print-tile';
 document.getElementById('homeBtn').onclick = function(){
   const unsaved = (typeof rlMarks !== 'undefined' && Object.keys(rlMarks).length) || (typeof rlAsg !== 'undefined' && Object.keys(rlAsg).length);
   if(document.getElementById('progRollState').classList.contains('active') && unsaved && !confirm('You have unsaved roll changes. Leave without saving?')) return;
