@@ -493,6 +493,7 @@
   .rl-asg-l{ display:flex; flex-direction:column; font-size:0.68rem; color:#6b6457; margin:0; }
   .rl-asg-l select{ margin:2px 0 0; padding:6px; font-size:0.82rem; width:auto; min-width:110px; }
   .rl-seg button:disabled{ opacity:0.45; cursor:default; }
+  .rl-ghead{ font-size:0.74rem; font-weight:800; text-transform:uppercase; letter-spacing:0.05em; color:#1c2b4a; background:#eef1f7; padding:5px 8px; margin-top:8px; display:flex; justify-content:space-between; }
   #rlBody .hint{ font-size:0.82rem; color:#6b6457; margin:4px 0; }
 </style>
 </head>
@@ -1536,7 +1537,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v38-menu-button';
+document.getElementById('buildTag').textContent = 'v39-after-school';
 document.getElementById('homeBtn').onclick = function(){
   const unsaved = (typeof rlMarks !== 'undefined' && Object.keys(rlMarks).length) || (typeof rlAsg !== 'undefined' && Object.keys(rlAsg).length);
   if(document.getElementById('progRollState').classList.contains('active') && unsaved && !confirm('You have unsaved roll changes. Leave without saving?')) return;
@@ -1839,7 +1840,7 @@ function rlLoad(key, col){
   apiGet(q).then(function(d){
     rlData = d; rlMarks = {}; rlAsg = {}; rlAssignMode = false;
     if(d.key) rlKey = d.key;
-    if(d.students) rlMineOnly = d.students.some(function(s){ return s.mine; });
+    if(d.students) rlMineOnly = !d.assignedProgram && d.students.some(function(s){ return s.mine; });   // v102: Intervention opens with everyone, like the spreadsheet
     rlRender();
   }).catch(function(){ box.innerHTML = '<div class="rl-err">Could not reach the server.</div>'; });
 }
@@ -1852,7 +1853,7 @@ function rlRender(){
   if(!d.success){ box.innerHTML = h + '<div class="rl-err">' + rlE(d.error || 'Could not load.') + '</div>'; rlWire(); return; }
   if(!d.key){ box.innerHTML = h + (d.programs && d.programs.length ? '<div class="hint">Pick a program to take roll.</div>' : ''); rlWire(); return; }
   h += '<div class="rl-head"><div class="rl-title">' + rlE(d.title) + '</div><div class="hint" style="margin:0;">' + rlE(d.schedule) +
-    (d.leads && d.leads.length ? ' &middot; Roll: ' + rlE(d.leads.join(', ')) + ' (and the office)' : (d.assignedProgram ? ' &middot; Each teacher takes roll for their assigned students' : '')) + '</div></div>';
+    (d.leads && d.leads.length ? ' &middot; Roll: ' + rlE(d.leads.join(', ')) + ' (and the office)' : (d.assignedProgram ? ' &middot; Any intervention teacher (and the office) can mark any student &ndash; each change is saved under your name' : '')) + '</div></div>';
   if(d.canAssign){
     h += '<button class="small-link rl-asg-toggle">' + (rlAssignMode ? '\u2190 Back to roll' : 'Change teacher assignments') + '</button>';
     if(rlAssignMode){ box.innerHTML = h + rlAssignHtml(d); rlWire(); return; }
@@ -1867,7 +1868,10 @@ function rlRender(){
   }
   if(!d.col){ box.innerHTML = h; rlWire(); return; }
   const anyMine = d.students.some(function(s){ return s.mine; });
-  const list = d.students.filter(function(s){ return !rlMineOnly || s.mine; });
+  let list = d.students.filter(function(s){ return !rlMineOnly || s.mine; });
+  const grouped = d.assignedProgram && !rlMineOnly;           // v102: whole list, grouped by assigned teacher / room
+  if(grouped) list = list.slice().sort(function(a, b){ return (a.assigned ? 0 : 1) - (b.assigned ? 0 : 1) || String(a.assigned).localeCompare(String(b.assigned)) || a.name.localeCompare(b.name); });
+  let lastGroup = null;
   h += '<div class="rl-bar"><span><b>' + rlE(d.colLabel) + '</b> &middot; ' + d.hereCount + ' of ' + d.students.length + ' checked in today</span>' +
     (anyMine ? '<button class="small-link rl-mine">' + (rlMineOnly ? 'Show everyone' : 'Only my students') + '</button>' : '') + '</div>';
   if(!d.readOnly){
@@ -1876,6 +1880,9 @@ function rlRender(){
       : '<button class="btn-secondary rl-bulk-b" data-b="absent">Mark &ldquo;Absent Today&rdquo; for everyone not checked in</button>') + '</div>';
   }
   h += '<div class="rl-list">' + (list.length ? list.map(function(s){
+    let head = '';
+    if(grouped && (s.assigned || 'Not assigned') !== lastGroup){ lastGroup = s.assigned || 'Not assigned';
+      head = '<div class="rl-ghead">' + rlE(lastGroup) + ' <span>' + list.filter(function(x){ return (x.assigned || 'Not assigned') === lastGroup; }).length + '</span></div>'; }
     const v = rlValue(s), changed = Object.prototype.hasOwnProperty.call(rlMarks, s.row);
     let ctl;
     const ro = d.readOnly || s.editable === false;
@@ -1886,7 +1893,7 @@ function rlRender(){
       ctl = '<select class="rl-sel" data-row="' + s.row + '"' + (ro ? ' disabled' : '') + '>' + (d.options.indexOf(String(v)) === -1 && v ? '<option>' + rlE(v) + '</option>' : '') +
             d.options.map(function(o){ return '<option' + (o === v ? ' selected' : '') + '>' + rlE(o) + '</option>'; }).join('') + '</select>';
     }
-    return '<div class="rl-row' + (changed ? ' changed' : '') + (s.here ? '' : ' away') + '"><div class="rl-who"><div class="rl-nm">' + rlE(s.name) + '</div><div class="rl-sub">' +
+    return head + '<div class="rl-row' + (changed ? ' changed' : '') + (s.here ? '' : ' away') + '"><div class="rl-who"><div class="rl-nm">' + rlE(s.name) + '</div><div class="rl-sub">' +
       (s.here ? '<span class="rl-in">checked in</span>' : '<span class="rl-out">not checked in</span>') + (s.assigned ? ' &middot; ' + rlE(s.assigned) : '') + '</div></div>' + ctl + '</div>';
   }).join('') : '<div class="hint">No students.</div>') + '</div>';
   const n = Object.keys(rlMarks).length;
@@ -1974,6 +1981,7 @@ document.getElementById('rlBackBtn').onclick = function(){
 // Uses the shared print area from the printing module. One summary page, then one page per homeroom with a
 // check box per student for roll call. Every print is recorded in the AuditLog.
 function emBuild(d, onlyMine){
+  if(d.afterSchool) return emBuildAfter(d, onlyMine);
   const groups = d.groups.filter(function(g){ return !onlyMine || g.mine; });
   const head = function(title, sub){
     const logo = document.querySelector('img.logo');
@@ -2006,12 +2014,42 @@ function emBuild(d, onlyMine){
   });
   return h;
 }
+// v102: after 1:30 the roster comes from the program roll, not the morning check-in, so students who were
+// marked No Show / Absent / Left Early / Excused in Intervention are not counted as on campus.
+function emBuildAfter(d, onlyMine){
+  const groups = d.groups.filter(function(g){ return !onlyMine || g.mine; });
+  const logo = document.querySelector('img.logo');
+  const head = function(title, sub){
+    return '<div class="ph">' + (logo ? '<img src="' + logo.src + '" alt="">' : '') + '<div><div class="sch">Stoney Point Continuation High School</div><div class="ttl" style="color:#a32b2b;">' + prE(title) + '</div></div>' +
+      '<div class="yr">' + prE(d.printedAt) + '<br>After school</div></div>' + (sub ? '<div class="who">' + sub + '</div>' : '');
+  };
+  const foot = '<div class="pf"><span>Printed by ' + prE(d.printedBy) + ' &middot; from today&#39;s program roll (attendance sheet) and after-school sign-ins</span><span>Confidential &mdash; roll not yet taken = may have gone home</span></div>';
+  let h = '';
+  if(!onlyMine){
+    h += '<div class="pdoc">' + head('EMERGENCY ROSTER – After school', '') +
+      '<div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; margin:6px 0 12px; font-family:-apple-system, system-ui, Arial, sans-serif;">' +
+      [['On campus after school (roll + sign-ins)', d.onCampus], ['Roll not taken yet &ndash; check these', d.outNow], ['Marked gone (No Show, Absent, Left Early, Excused)', d.notHere]].map(function(x){
+        return '<div style="border:1.5pt solid #1c2b4a; border-radius:6pt; padding:6pt 8pt;"><div style="font-size:20pt; font-weight:800; color:#1c2b4a;">' + x[1] + '</div><div style="font-size:8.5pt;">' + x[0] + '</div></div>'; }).join('') + '</div>' +
+      '<h4>By room / program</h4>' + (groups.length ? '<table><tr><th>Group</th><th class="n">Students</th></tr>' + groups.map(function(g){
+        return '<tr><td>' + prE(g.teacher) + '</td><td class="n"><b>' + g.here.length + '</b></td></tr>'; }).join('') + '</table>' : '<div class="empty">No one is on today&#39;s after-school roll or signed in.</div>') +
+      '<h4>Not on campus (marked on the roll)</h4>' + ((d.gone || []).length ? '<div style="columns:2; font-family:-apple-system, system-ui, Arial, sans-serif; font-size:9pt;">' + d.gone.map(function(s){ return '<div>' + prE(s.name) + ' <span style="color:#6b6457;">&ndash; ' + prE(s.why) + '</span></div>'; }).join('') + '</div>' : '<div class="empty">No one marked gone.</div>') +
+      foot + '</div>';
+  }
+  groups.forEach(function(g){
+    h += '<div class="pdoc">' + head('EMERGENCY ROSTER – After school', '<span><span class="k">Group</span><b>' + prE(g.teacher) + '</b></span><span><span class="k">Students</span><b>' + g.here.length + '</b></span>') +
+      '<table><tr><th class="c">Here</th><th>Student</th><th>Student ID</th><th>Where</th></tr>' + g.here.map(function(s){
+        return '<tr><td class="c" style="font-size:13pt;">&#9744;</td><td><b>' + prE(s.name) + '</b></td><td class="tm">' + prE(s.id) + '</td><td' + (s.out ? ' style="color:#a32b2b; font-weight:700;"' : '') + '>' + prE(s.where) + '</td></tr>'; }).join('') + '</table>' +
+      '<div class="sig"><div>Teacher signature</div><div>Time accounted for</div><div>Missing students reported to</div></div>' + foot + '</div>';
+  });
+  return h;
+}
 function emOpen(){
   const old = document.querySelector('.pr-modal'); if(old) old.remove();
   const m = document.createElement('div'); m.className = 'pr-modal no-print';
   m.innerHTML = '<div class="pr-box" role="dialog" aria-label="Emergency roster"><h3 style="color:#a32b2b;">Emergency roster</h3><div class="pr-sub">Who is on campus right now, by homeroom, from today&#39;s check-ins and open hall passes. Each homeroom prints on its own page with a check box per student.</div>' +
     '<label class="pr-opt"><input type="radio" name="emWhich" value="all" checked><span>All homerooms<small>Summary page + every homeroom</small></span></label>' +
     '<label class="pr-opt"><input type="radio" name="emWhich" value="mine"><span>My homeroom only<small>Just your advisory list</small></span></label>' +
+    '<label class="pr-opt"><input type="checkbox" id="emDay"><span>Use the school-day roster<small>After 1:30 the roster comes from the Intervention / program roll. Check this to print everyone who checked in this morning instead.</small></span></label>' +
     '<div class="pr-btns"><button class="btn-secondary" data-act="cancel">Cancel</button><button class="btn-primary" data-act="print" style="background:#a32b2b;">Print now</button></div><div class="pr-msg"></div></div>';
   document.body.appendChild(m);
   m.addEventListener('click', function(ev){ if(ev.target === m) m.remove(); });
@@ -2020,10 +2058,10 @@ function emOpen(){
   btn.onclick = function(){
     const mine = m.querySelector('input[name="emWhich"]:checked').value === 'mine';
     btn.disabled = true; msg.style.color = '#6b6457'; msg.textContent = 'Getting the list...';
-    apiGet({ mode:'emergencyroster', code: myCode }).then(function(d){
+    apiGet({ mode:'emergencyroster', code: myCode, view: m.querySelector('#emDay').checked ? 'day' : '' }).then(function(d){
       btn.disabled = false;
       if(!d.success){ msg.style.color = '#a32b2b'; msg.textContent = d.error || 'Could not load.'; return; }
-      if(mine && !d.groups.some(function(g){ return g.mine; })){ msg.style.color = '#a32b2b'; msg.textContent = 'You don’t have a homeroom on record - choose All homerooms.'; return; }
+      if(mine && !d.groups.some(function(g){ return g.mine; })){ msg.style.color = '#a32b2b'; msg.textContent = d.afterSchool ? 'None of your students are on the after-school roll - choose All.' : 'You don’t have a homeroom on record - choose All homerooms.'; return; }
       m.remove();
       prArea().innerHTML = emBuild(d, mine);
       document.body.classList.add('printing');
