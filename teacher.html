@@ -137,6 +137,26 @@
   .search-empty{ padding:12px; color:var(--muted); font-size:0.85rem; }
 
   .period-group{ margin-bottom:18px; }
+  /* v40 menu */
+  .m-head{ display:flex; justify-content:space-between; align-items:flex-end; gap:10px; margin-bottom:12px; }
+  .m-hello{ font-size:0.72rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; }
+  .m-tools{ display:grid; grid-template-columns:1fr; gap:8px; margin:0 0 12px; }
+  .m-tool{ display:flex; align-items:center; gap:12px; width:100%; margin:0; padding:11px 14px; border:1.5px solid var(--rule); border-radius:12px; background:#fff; color:var(--navy); text-decoration:none; text-align:left; font-family:inherit; cursor:pointer; min-height:58px; }
+  .m-tool:hover{ border-color:var(--navy); }
+  .m-tool b{ display:block; font-size:0.95rem; }
+  .m-tool small{ display:block; font-size:0.76rem; color:var(--muted); font-weight:500; margin-top:1px; }
+  .m-ico{ font-size:1.35rem; width:28px; text-align:center; flex:none; }
+  .m-tool.m-red{ border-color:#a32b2b; background:#fdf1ef; color:#8a1f1f; }
+  .m-tool.m-red small{ color:#8a1f1f; opacity:0.8; }
+  .m-sec{ border-top:1px solid var(--rule); padding-top:12px; margin-top:16px; }
+  .m-sec-head{ display:flex; justify-content:space-between; align-items:baseline; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
+  .m-sec-head h2{ margin:0; font-size:1.02rem; color:var(--navy); font-weight:800; }
+  .m-sec-head h2 span{ font-size:0.76rem; font-weight:500; color:var(--muted); margin-left:6px; }
+  .m-look{ display:flex; gap:8px; margin-top:8px; }
+  .m-look .btn-secondary{ flex:1; margin:0; padding:10px 12px; border:1.5px solid var(--navy); border-radius:8px; background:#fff; color:var(--navy); font-weight:700; font-size:0.9rem; text-decoration:none; font-family:inherit; cursor:pointer; }
+  .m-look .btn-secondary:disabled{ opacity:0.4; cursor:default; }
+  @media (min-width:900px){ .m-look{ max-width:420px; } }
+  @media (min-width:700px){ .m-tools{ grid-template-columns:repeat(3, 1fr); } }
   .class-row.all-students{ font-weight:700; background:var(--paper); border-style:dashed; }
   .student-course{ font-size:0.78rem; color:var(--muted); margin:-2px 0 6px; }
   .dbl-flag{ display:inline-block; font-size:0.74rem; font-weight:700; color:#6b4a00; background:#fff3cf; border:1px solid #f0d27a; border-radius:6px; padding:2px 7px; margin:0 0 6px; }
@@ -335,7 +355,7 @@
   .igp-foot{ display:flex; justify-content:space-between; padding:6px 10px; font-size:0.78rem; font-weight:800; background:var(--paper); }
   .igp-sect{ font-size:0.78rem; font-weight:800; color:var(--navy); text-transform:uppercase; letter-spacing:0.05em; margin:18px 0 6px; }
   .student-row{ display:flex; justify-content:space-between; align-items:center; gap:8px; padding:8px 10px; border:1px solid var(--rule); border-radius:6px; margin-bottom:6px; font-size:0.88rem; }
-  #igpPick, #studentPick{ width:100%; padding:11px 12px; border:1px solid var(--rule); border-radius:8px; font-size:1rem; font-family:inherit; background:#fff; }
+  #studentPick{ width:100%; padding:11px 12px; border:1px solid var(--rule); border-radius:8px; font-size:1rem; font-family:inherit; background:#fff; }
   .student-card-ro{ padding:12px 14px; }
   .wk-wrap{ margin:0 0 16px; }
   .wk-chart{ position:relative; }
@@ -521,28 +541,40 @@
 
     <!-- CLASS LIST -->
     <div class="state" id="classListState">
-      <div class="top-row">
-        <div class="teacher-name" id="teacherNameLabel"></div>
-        <a href="hallmonitor.html" id="hallMonitorLink" onclick="openHallMonitor(event)" style="display:inline-block; margin-top:6px; font-weight:800; color:var(--navy); font-size:.85rem;">Hall Monitor &mdash; who is out of class &#8599;</a>
+      <!-- v40: menu redesign - header, quick tools, reminder, my classes, look up a student -->
+      <div class="m-head">
+        <div><div class="m-hello">Signed in as</div><div class="teacher-name" id="teacherNameLabel"></div></div>
         <button class="small-link" id="changeCodeLink">Change my code</button>
       </div>
 
-      <div class="search-box">
-        <label>View a student (current students, view only)</label>
-        <select id="studentPick"><option value="">Loading students...</option></select>
-        <div class="search-results" id="searchResults" style="display:none;"></div>
+      <div class="m-tools no-print">
+        <a href="hallmonitor.html" class="m-tool" id="hallMonitorLink" onclick="openHallMonitor(event)">
+          <span class="m-ico">&#128694;</span><span><b>Hall Monitor &#8599;</b><small>Who is out of class right now</small></span></a>
+        <button class="m-tool" id="rollLink" onclick="rlOpen('classListState')">
+          <span class="m-ico">&#9989;</span><span><b>Intervention &amp; program roll</b><small>Intervention, Cinema 107, ArtworxLA, Leadership, Percussion</small></span></button>
+        <button class="m-tool m-red" id="emBtn" onclick="emOpen()">
+          <span class="m-ico">&#9888;&#65039;</span><span><b>Emergency roster</b><small>Print who is on campus now</small></span></button>
       </div>
 
-      <div class="search-box">
-        <label>View a student's IGP</label>
-        <select id="igpPick"><option value="">Loading students...</option></select>
-      </div>
-
-      <button class="btn-primary no-print" id="emBtn" onclick="emOpen()" style="background:#a32b2b; margin:8px 0 2px;">&#9888; Emergency roster &mdash; who is on campus now</button>
       <div id="pointsDueBox"></div>
-      <button class="btn-primary" id="rollLink" onclick="rlOpen('classListState')" style="margin:8px 0 4px;">Program roll &mdash; Intervention, Cinema 107, ArtworxLA&hellip;</button>
-      <div style="text-align:right;"><button class="small-link" id="printMineLink">&#128424; Print schedules / IGPs for all my classes&hellip;</button></div>
-      <div id="periodGroups"></div>
+
+      <div class="m-sec">
+        <div class="m-sec-head"><h2>My classes <span>tap a class to enter points</span></h2>
+          <button class="small-link no-print" id="printMineLink">&#128424; Print schedules / IGPs&hellip;</button></div>
+        <div id="periodGroups"></div>
+      </div>
+
+      <div class="m-sec">
+        <div class="m-sec-head"><h2>Look up a student <span>any current student &middot; view only</span></h2></div>
+        <div class="search-box">
+          <select id="studentPick"><option value="">Loading students...</option></select>
+          <div class="m-look" id="lookBtns">
+            <button class="btn-secondary" id="lookPoints" disabled>Points &amp; attendance</button>
+            <button class="btn-secondary" id="lookIgp" disabled>IGP</button>
+          </div>
+          <div class="search-results" id="searchResults" style="display:none;"></div>
+        </div>
+      </div>
     </div>
 
     <!-- CLASS ROSTER / POINT ENTRY -->
@@ -804,10 +836,6 @@ function loadStudentPick(){
       o.value = String(i); o.textContent = st.last + ', ' + st.first;
       sel.appendChild(o);
     });
-    const ip = document.getElementById('igpPick');
-    ip.innerHTML = '';
-    const i0 = document.createElement('option'); i0.value = ''; i0.textContent = schoolStudents.length ? 'Choose a student (' + schoolStudents.length + ')' : 'Could not load students'; ip.appendChild(i0);
-    schoolStudents.forEach(function(st, i){ const o = document.createElement('option'); o.value = String(i); o.textContent = st.last + ', ' + st.first; ip.appendChild(o); });
   }).catch(function(){ sel.innerHTML = '<option value="">Could not load students - check your connection</option>'; });
 }
 function hEsc(t){ return String(t == null ? '' : t).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
@@ -878,7 +906,18 @@ function renderStudentPage(d){
     blockWeeks: d.blockWeeks || 5, blockMinPerWeek: d.blockMinPerWeek || 20, inProgress: cur, completed: done });
   loadAttendance('tvAttendance', myCode, st);   // v28
 }
+// v40: pick the student once, then choose Points & attendance or IGP
 document.getElementById('studentPick').addEventListener('change', function(e){
+  const on = e.target.value !== '';
+  document.getElementById('lookPoints').disabled = !on; document.getElementById('lookIgp').disabled = !on;
+  const r = document.getElementById('searchResults'); r.innerHTML = ''; r.style.display = 'none';
+});
+document.getElementById('lookIgp').onclick = function(){
+  const sel = document.getElementById('studentPick'), st = schoolStudents[Number(sel.value)];
+  if(st) openStudentIgp(st);
+};
+document.getElementById('lookPoints').onclick = function(){
+  const e = { target: document.getElementById('studentPick') };
   const resultsEl = document.getElementById('searchResults');
   resultsEl.innerHTML = ''; resultsEl.style.display = 'none';
   if(e.target.value === '') return;
@@ -889,10 +928,10 @@ document.getElementById('studentPick').addEventListener('change', function(e){
   apiGet({ mode:'teacherviewstudent', code: myCode, id: st.id || '', first: st.first, last: st.last }).then(function(d){
     if(e.target.value !== want) return;               // they picked someone else meanwhile
     if(!d || !d.success){ resultsEl.innerHTML = '<div class="search-empty">' + hEsc((d && d.error) || 'Could not load this student.') + '</div>'; return; }
-    resultsEl.innerHTML = ''; resultsEl.style.display = 'none'; e.target.value = '';
+    resultsEl.innerHTML = ''; resultsEl.style.display = 'none';
     renderStudentPage(d);
   }).catch(function(){ resultsEl.innerHTML = '<div class="search-empty">Could not reach the server.</div>'; });
-});
+};
 document.getElementById('backFromStudentView').onclick = function(){ showState('classListState'); };
 
 // ===================== View a Student: points by week (chart + table) =====================
@@ -1495,12 +1534,6 @@ function openStudentIgp(s){
       window.scrollTo(0, igpReturnScroll);
     });
 }
-document.getElementById('igpPick').addEventListener('change', function(e){
-  if(e.target.value === '') return;
-  const st = schoolStudents[Number(e.target.value)];
-  e.target.value = '';
-  if(st) openStudentIgp(st);
-});
 document.getElementById('backFromIgpBtn').onclick = function(){
   showState(igpReturnState);
   window.scrollTo(0, igpReturnScroll);
@@ -1537,7 +1570,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v39-after-school';
+document.getElementById('buildTag').textContent = 'v40-menu-redesign';
 document.getElementById('homeBtn').onclick = function(){
   const unsaved = (typeof rlMarks !== 'undefined' && Object.keys(rlMarks).length) || (typeof rlAsg !== 'undefined' && Object.keys(rlAsg).length);
   if(document.getElementById('progRollState').classList.contains('active') && unsaved && !confirm('You have unsaved roll changes. Leave without saving?')) return;
