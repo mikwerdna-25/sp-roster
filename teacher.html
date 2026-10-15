@@ -487,7 +487,11 @@
   .rl-sel{ width:auto; max-width:46%; margin:0; padding:8px; font-size:0.86rem; flex:none; }
   .rl-save{ position:sticky; bottom:0; background:#fffdf7; padding:10px 0 6px; box-shadow:0 -8px 10px -8px rgba(0,0,0,0.25); z-index:5; }
   .rl-save .btn-primary:disabled{ opacity:0.5; }
-
+  .rl-lead{ font-weight:500; font-size:0.78rem; opacity:0.85; }
+  .rl-asgs{ display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; flex:none; max-width:62%; }
+  .rl-asg-l{ display:flex; flex-direction:column; font-size:0.68rem; color:#6b6457; margin:0; }
+  .rl-asg-l select{ margin:2px 0 0; padding:6px; font-size:0.82rem; width:auto; min-width:110px; }
+  .rl-seg button:disabled{ opacity:0.45; cursor:default; }
   #rlBody .hint{ font-size:0.82rem; color:#6b6457; margin:4px 0; }
 </style>
 </head>
@@ -1527,7 +1531,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v36-emergency';
+document.getElementById('buildTag').textContent = 'v37-roll-leads';
 // ===================== Attendance & streak on the student page (v80) =====================
 // Check-ins come from the check-in station (a "school day" = a day anyone checked in). MiSiS days
 // (imported on the admin page) are the official record and win where both exist.
@@ -1806,7 +1810,7 @@ document.getElementById('printMineLink').onclick = function(){
 // ===================== v95: PROGRAM ROLL (shared by the counselor and teacher pages) =====================
 // Roll for Cinema 107, ArtworxLA, Intervention, Extended Intervention, Leadership and Percussion, written
 // into the Extra Curricular attendance spreadsheet. Every save is recorded in the AuditLog.
-let rlData = null, rlKey = '', rlMarks = {}, rlMineOnly = false, rlBack = '';
+let rlData = null, rlKey = '', rlMarks = {}, rlMineOnly = false, rlBack = '', rlAssignMode = false, rlAsg = {};
 function rlE(t){ return String(t == null ? '' : t).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 function rlOpen(backState){
   rlBack = backState; rlKey = rlKey || ''; rlData = null; rlMarks = {};
@@ -1818,7 +1822,7 @@ function rlLoad(key, col){
   box.innerHTML = '<div class="hint">Loading...</div>';
   const q = { mode:'progroll', code: myCode }; if(key) q.key = key; if(col) q.col = col;
   apiGet(q).then(function(d){
-    rlData = d; rlMarks = {};
+    rlData = d; rlMarks = {}; rlAsg = {}; rlAssignMode = false;
     if(d.key) rlKey = d.key;
     if(d.students) rlMineOnly = d.students.some(function(s){ return s.mine; });
     rlRender();
@@ -1828,10 +1832,16 @@ function rlValue(s){ return Object.prototype.hasOwnProperty.call(rlMarks, s.row)
 function rlRender(){
   const d = rlData || {}, box = document.getElementById('rlBody');
   let h = '<div class="rl-progs">' + (d.programs || []).map(function(p){
-    return '<button class="rl-prog' + (p.key === d.key ? ' on' : '') + '" data-key="' + rlE(p.key) + '">' + rlE(p.label) + '</button>'; }).join('') + '</div>';
+    return '<button class="rl-prog' + (p.key === d.key ? ' on' : '') + '" data-key="' + rlE(p.key) + '">' + rlE(p.label) + (p.leads && p.leads.length ? '<span class="rl-lead"> \u00b7 ' + rlE(p.leads.join(', ')) + '</span>' : '') + '</button>'; }).join('') + '</div>';
+  if(d.programs && !d.programs.length) h += '<div class="hint">You are not the lead teacher for a program. Program roll is taken by each program\u2019s lead teacher and the office.</div>';
   if(!d.success){ box.innerHTML = h + '<div class="rl-err">' + rlE(d.error || 'Could not load.') + '</div>'; rlWire(); return; }
-  if(!d.key){ box.innerHTML = h + '<div class="hint">Pick a program to take roll.</div>'; rlWire(); return; }
-  h += '<div class="rl-head"><div class="rl-title">' + rlE(d.title) + '</div><div class="hint" style="margin:0;">' + rlE(d.schedule) + '</div></div>';
+  if(!d.key){ box.innerHTML = h + (d.programs && d.programs.length ? '<div class="hint">Pick a program to take roll.</div>' : ''); rlWire(); return; }
+  h += '<div class="rl-head"><div class="rl-title">' + rlE(d.title) + '</div><div class="hint" style="margin:0;">' + rlE(d.schedule) +
+    (d.leads && d.leads.length ? ' &middot; Roll: ' + rlE(d.leads.join(', ')) + ' (and the office)' : (d.assignedProgram ? ' &middot; Each teacher takes roll for their assigned students' : '')) + '</div></div>';
+  if(d.canAssign){
+    h += '<button class="small-link rl-asg-toggle">' + (rlAssignMode ? '\u2190 Back to roll' : 'Change teacher assignments') + '</button>';
+    if(rlAssignMode){ box.innerHTML = h + rlAssignHtml(d); rlWire(); return; }
+  }
   if(d.choices.length > 1 || (d.admin && d.choices.length)){
     h += '<select id="rlDay">' + d.choices.map(function(c){ return '<option value="' + c.col + '"' + (c.col === d.col ? ' selected' : '') + '>' + rlE(c.label) + (c.today ? ' (today)' : '') + '</option>'; }).join('') + '</select>';
   }
@@ -1853,11 +1863,12 @@ function rlRender(){
   h += '<div class="rl-list">' + (list.length ? list.map(function(s){
     const v = rlValue(s), changed = Object.prototype.hasOwnProperty.call(rlMarks, s.row);
     let ctl;
+    const ro = d.readOnly || s.editable === false;
     if(d.kind === 'check'){
-      ctl = '<div class="rl-seg"><button class="rl-p' + (v === true ? ' on' : '') + '" data-row="' + s.row + '" data-v="true"' + (d.readOnly ? ' disabled' : '') + '>Present</button>' +
-            '<button class="rl-a' + (v === false ? ' on' : '') + '" data-row="' + s.row + '" data-v="false"' + (d.readOnly ? ' disabled' : '') + '>Absent</button></div>';
+      ctl = '<div class="rl-seg"><button class="rl-p' + (v === true ? ' on' : '') + '" data-row="' + s.row + '" data-v="true"' + (ro ? ' disabled' : '') + '>Present</button>' +
+            '<button class="rl-a' + (v === false ? ' on' : '') + '" data-row="' + s.row + '" data-v="false"' + (ro ? ' disabled' : '') + '>Absent</button></div>';
     } else {
-      ctl = '<select class="rl-sel" data-row="' + s.row + '"' + (d.readOnly ? ' disabled' : '') + '>' + (d.options.indexOf(String(v)) === -1 && v ? '<option>' + rlE(v) + '</option>' : '') +
+      ctl = '<select class="rl-sel" data-row="' + s.row + '"' + (ro ? ' disabled' : '') + '>' + (d.options.indexOf(String(v)) === -1 && v ? '<option>' + rlE(v) + '</option>' : '') +
             d.options.map(function(o){ return '<option' + (o === v ? ' selected' : '') + '>' + rlE(o) + '</option>'; }).join('') + '</select>';
     }
     return '<div class="rl-row' + (changed ? ' changed' : '') + (s.here ? '' : ' away') + '"><div class="rl-who"><div class="rl-nm">' + rlE(s.name) + '</div><div class="rl-sub">' +
@@ -1867,6 +1878,18 @@ function rlRender(){
   if(!d.readOnly) h += '<div class="rl-save"><button class="btn-primary" id="rlSave"' + (n ? '' : ' disabled') + '>' + (n ? 'Save roll (' + n + ' change' + (n === 1 ? '' : 's') + ')' : 'No changes yet') + '</button><div class="hint" id="rlMsg"></div></div>';
   if(d.key === 'intervention' && !d.readOnly) h += '<button class="small-link" id="rlToday">Refresh &ldquo;Todays Intervention List&rdquo; from today&#39;s check-ins</button>';
   box.innerHTML = h; rlWire();
+}
+function rlAssignHtml(d){
+  let h = '<div class="hint" style="margin:6px 0;">Choose the teacher (or room) for each student. Saved into the attendance spreadsheet; teachers then see these students on their roll. Every change is recorded.</div>';
+  h += '<div class="rl-list">' + d.students.map(function(s){
+    return '<div class="rl-row"><div class="rl-who"><div class="rl-nm">' + rlE(s.name) + '</div></div><div class="rl-asgs">' + d.assignCols.map(function(c, i){
+      const cur = (s.assign || [])[i] || '';
+      const opts = c.options.slice(); if(cur && opts.indexOf(cur) === -1 && !/^select/i.test(cur)) opts.unshift(cur);
+      return '<label class="rl-asg-l">' + rlE(c.label) + '<select class="rl-asel" data-row="' + s.row + '" data-col="' + c.col + '" data-old="' + rlE(/^select/i.test(cur) ? '' : cur) + '"><option value="">&mdash;</option>' +
+        opts.map(function(o){ return '<option' + (o === cur ? ' selected' : '') + '>' + rlE(o) + '</option>'; }).join('') + '</select></label>';
+    }).join('') + '</div></div>';
+  }).join('') + '</div>';
+  return h + '<div class="rl-save"><button class="btn-primary" id="rlAsgSave" disabled>No changes yet</button><div class="hint" id="rlAsgMsg"></div></div>';
 }
 function rlSet(row, v){
   const s = rlData.students.filter(function(x){ return x.row === row; })[0]; if(!s) return;
@@ -1888,7 +1911,7 @@ function rlWire(){
   box.querySelectorAll('.rl-sel').forEach(function(s){ s.onchange = function(){ rlSet(Number(s.getAttribute('data-row')), s.value); rlRender(); }; });
   box.querySelectorAll('.rl-bulk-b').forEach(function(b){ b.onclick = function(){
     const which = b.getAttribute('data-b');
-    rlData.students.filter(function(s){ return !rlMineOnly || s.mine; }).forEach(function(s){
+    rlData.students.filter(function(s){ return (!rlMineOnly || s.mine) && s.editable !== false; }).forEach(function(s){
       if(which === 'here' && s.here) rlSet(s.row, true);
       if(which === 'absent' && !s.here) rlSet(s.row, 'Absent Today');
     });
@@ -1900,8 +1923,27 @@ function rlWire(){
     apiGet({ mode:'progsave', code: myCode, key: rlKey, col: rlData.col, marks: JSON.stringify(marks) }).then(function(r){
       if(!r.success){ sv.disabled = false; document.getElementById('rlMsg').textContent = r.error || 'Not saved.'; return; }
       rlLoad(rlKey, rlData.col);
-      setTimeout(function(){ const m = document.getElementById('rlMsg'); if(m) m.textContent = 'Saved ✓ (' + r.changed + ' change' + (r.changed === 1 ? '' : 's') + ')'; }, 900);
+      setTimeout(function(){ const m = document.getElementById('rlMsg'); if(m) m.textContent = 'Saved ✓ (' + r.changed + ' change' + (r.changed === 1 ? '' : 's') + ')' + (r.skipped && r.skipped.length ? ' \u2013 not saved (assigned to another teacher): ' + r.skipped.join('; ') : ''); }, 900);
     }).catch(function(){ sv.disabled = false; document.getElementById('rlMsg').textContent = 'Could not reach the server - nothing was saved.'; });
+  };
+  const at = box.querySelector('.rl-asg-toggle');
+  if(at) at.onclick = function(){
+    if(rlAssignMode && Object.keys(rlAsg).length && !confirm('Leave without saving the assignment changes?')) return;
+    rlAssignMode = !rlAssignMode; rlAsg = {}; rlRender(); };
+  box.querySelectorAll('.rl-asel').forEach(function(sel){ sel.onchange = function(){
+    const k = sel.getAttribute('data-row') + '|' + sel.getAttribute('data-col');
+    if(sel.value === sel.getAttribute('data-old')) delete rlAsg[k]; else rlAsg[k] = sel.value;
+    sel.closest('.rl-row').classList.toggle('changed', !!Object.keys(rlAsg).filter(function(x){ return x.indexOf(sel.getAttribute('data-row') + '|') === 0; }).length);
+    const b = document.getElementById('rlAsgSave'), n = Object.keys(rlAsg).length;
+    b.disabled = !n; b.textContent = n ? 'Save assignments (' + n + ')' : 'No changes yet'; }; });
+  const as = document.getElementById('rlAsgSave');
+  if(as) as.onclick = function(){
+    const changes = Object.keys(rlAsg).map(function(k){ const p = k.split('|'); return [Number(p[0]), Number(p[1]), rlAsg[k]]; });
+    as.disabled = true; document.getElementById('rlAsgMsg').textContent = 'Saving...';
+    apiGet({ mode:'progassign', code: myCode, key: rlKey, changes: JSON.stringify(changes) }).then(function(r){
+      if(!r.success){ as.disabled = false; document.getElementById('rlAsgMsg').textContent = r.error || 'Not saved.'; return; }
+      rlLoad(rlKey, rlData.col);
+    }).catch(function(){ as.disabled = false; document.getElementById('rlAsgMsg').textContent = 'Could not reach the server.'; });
   };
   const tl = document.getElementById('rlToday');
   if(tl) tl.onclick = function(){ tl.disabled = true;
