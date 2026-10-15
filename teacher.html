@@ -531,6 +531,7 @@
         <select id="igpPick"><option value="">Loading students...</option></select>
       </div>
 
+      <button class="btn-primary no-print" id="emBtn" onclick="emOpen()" style="background:#a32b2b; margin:8px 0 2px;">&#9888; Emergency roster &mdash; who is on campus now</button>
       <div id="pointsDueBox"></div>
       <button class="btn-primary" id="rollLink" onclick="rlOpen('classListState')" style="margin:8px 0 4px;">Program roll &mdash; Intervention, Cinema 107, ArtworxLA&hellip;</button>
       <div style="text-align:right;"><button class="small-link" id="printMineLink">&#128424; Print schedules / IGPs for all my classes&hellip;</button></div>
@@ -1526,7 +1527,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v35-program-roll';
+document.getElementById('buildTag').textContent = 'v36-emergency';
 // ===================== Attendance & streak on the student page (v80) =====================
 // Check-ins come from the check-in station (a "school day" = a day anyone checked in). MiSiS days
 // (imported on the admin page) are the official record and win where both exist.
@@ -1911,6 +1912,71 @@ document.getElementById('rlBackBtn').onclick = function(){
   if(Object.keys(rlMarks).length && !confirm('You have unsaved changes. Leave without saving?')) return;
   rlMarks = {}; showState(rlBack);
 };
+
+// ===================== v97: EMERGENCY ROSTER (who is on campus now, by homeroom) =====================
+// Uses the shared print area from the printing module. One summary page, then one page per homeroom with a
+// check box per student for roll call. Every print is recorded in the AuditLog.
+function emBuild(d, onlyMine){
+  const groups = d.groups.filter(function(g){ return !onlyMine || g.mine; });
+  const head = function(title, sub){
+    const logo = document.querySelector('img.logo');
+    return '<div class="ph">' + (logo ? '<img src="' + logo.src + '" alt="">' : '') + '<div><div class="sch">Stoney Point Continuation High School</div><div class="ttl" style="color:#a32b2b;">' + prE(title) + '</div></div>' +
+      '<div class="yr">' + prE(d.printedAt) + (d.block ? '<br>Now: ' + prE(d.block) : '') + '</div></div>' + (sub ? '<div class="who">' + sub + '</div>' : '');
+  };
+  const foot = '<div class="pf"><span>Printed by ' + prE(d.printedBy) + ' &middot; from today&#39;s check-ins and open hall passes</span><span>Confidential &mdash; students who left campus without a pass may still be listed</span></div>';
+  let h = '';
+  if(!onlyMine){
+    const outs = [];
+    d.groups.forEach(function(g){ g.here.forEach(function(s){ if(s.out) outs.push({ s: s, hr: g.teacher }); }); });
+    h += '<div class="pdoc">' + head('EMERGENCY ROSTER – Who is on campus', '') +
+      '<div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; margin:6px 0 12px; font-family:-apple-system, system-ui, Arial, sans-serif;">' +
+      [['On campus (checked in)', d.onCampus], ['Out of class on a pass now', d.outNow], ['Not checked in today', d.notHere]].map(function(x){
+        return '<div style="border:1.5pt solid #1c2b4a; border-radius:6pt; padding:6pt 8pt;"><div style="font-size:20pt; font-weight:800; color:#1c2b4a;">' + x[1] + '</div><div style="font-size:8.5pt;">' + x[0] + '</div></div>'; }).join('') + '</div>' +
+      '<h4>Out of class right now</h4>' + (outs.length ? '<table><tr><th class="c">&#10003;</th><th>Student</th><th>Homeroom</th><th>Where</th></tr>' + outs.map(function(o){
+        return '<tr><td class="c">&#9744;</td><td><b>' + prE(o.s.name) + '</b></td><td>' + prE(o.hr) + '</td><td>' + prE(o.s.where.replace(/^OUT on pass: /, '')) + '</td></tr>'; }).join('') + '</table>' : '<div class="empty">No one is out on a hall pass.</div>') +
+      '<h4>By homeroom</h4><table><tr><th>Homeroom</th><th>Room</th><th class="n">On campus</th><th class="n">Out on pass</th><th class="n">Not checked in</th></tr>' + groups.map(function(g){
+        return '<tr><td>' + prE(g.teacher) + '</td><td>' + prE(g.room) + '</td><td class="n"><b>' + g.here.length + '</b></td><td class="n">' + g.here.filter(function(s){ return s.out; }).length + '</td><td class="n">' + g.notHere.length + '</td></tr>'; }).join('') +
+      '<tr><td colspan="2"><b>Total</b></td><td class="n"><b>' + d.onCampus + '</b></td><td class="n"><b>' + d.outNow + '</b></td><td class="n"><b>' + d.notHere + '</b></td></tr></table>' + foot + '</div>';
+  }
+  groups.forEach(function(g){
+    h += '<div class="pdoc">' + head('EMERGENCY ROSTER – Homeroom', '<span><span class="k">Homeroom</span><b>' + prE(g.teacher) + '</b></span>' + (g.room ? '<span><span class="k">Room</span>' + prE(g.room) + '</span>' : '') +
+      '<span><span class="k">On campus</span><b>' + g.here.length + '</b></span><span><span class="k">Not checked in</span>' + g.notHere.length + '</span>') +
+      (g.here.length ? '<table><tr><th class="c">Here</th><th>Student</th><th>Student ID</th><th>Where right now</th><th>Checked in</th></tr>' + g.here.map(function(s){
+        return '<tr><td class="c" style="font-size:13pt;">&#9744;</td><td><b>' + prE(s.name) + '</b></td><td class="tm">' + prE(s.id) + '</td><td' + (s.out ? ' style="color:#a32b2b; font-weight:700;"' : '') + '>' + prE(s.where) + '</td><td class="tm">' + prE(s.checkIn) + '</td></tr>'; }).join('') + '</table>'
+        : '<div class="empty">No one from this homeroom has checked in today.</div>') +
+      (g.notHere.length ? '<h4>Not checked in today</h4><div style="columns:3; font-family:-apple-system, system-ui, Arial, sans-serif; font-size:9pt;">' + g.notHere.map(function(s){ return '<div>' + prE(s.name) + '</div>'; }).join('') + '</div>' : '') +
+      '<div class="sig"><div>Teacher signature</div><div>Time accounted for</div><div>Missing students reported to</div></div>' + foot + '</div>';
+  });
+  return h;
+}
+function emOpen(){
+  const old = document.querySelector('.pr-modal'); if(old) old.remove();
+  const m = document.createElement('div'); m.className = 'pr-modal no-print';
+  m.innerHTML = '<div class="pr-box" role="dialog" aria-label="Emergency roster"><h3 style="color:#a32b2b;">Emergency roster</h3><div class="pr-sub">Who is on campus right now, by homeroom, from today&#39;s check-ins and open hall passes. Each homeroom prints on its own page with a check box per student.</div>' +
+    '<label class="pr-opt"><input type="radio" name="emWhich" value="all" checked><span>All homerooms<small>Summary page + every homeroom</small></span></label>' +
+    '<label class="pr-opt"><input type="radio" name="emWhich" value="mine"><span>My homeroom only<small>Just your advisory list</small></span></label>' +
+    '<div class="pr-btns"><button class="btn-secondary" data-act="cancel">Cancel</button><button class="btn-primary" data-act="print" style="background:#a32b2b;">Print now</button></div><div class="pr-msg"></div></div>';
+  document.body.appendChild(m);
+  m.addEventListener('click', function(ev){ if(ev.target === m) m.remove(); });
+  m.querySelector('[data-act="cancel"]').onclick = function(){ m.remove(); };
+  const btn = m.querySelector('[data-act="print"]'), msg = m.querySelector('.pr-msg');
+  btn.onclick = function(){
+    const mine = m.querySelector('input[name="emWhich"]:checked').value === 'mine';
+    btn.disabled = true; msg.style.color = '#6b6457'; msg.textContent = 'Getting the list...';
+    apiGet({ mode:'emergencyroster', code: myCode }).then(function(d){
+      btn.disabled = false;
+      if(!d.success){ msg.style.color = '#a32b2b'; msg.textContent = d.error || 'Could not load.'; return; }
+      if(mine && !d.groups.some(function(g){ return g.mine; })){ msg.style.color = '#a32b2b'; msg.textContent = 'You don’t have a homeroom on record - choose All homerooms.'; return; }
+      m.remove();
+      prArea().innerHTML = emBuild(d, mine);
+      document.body.classList.add('printing');
+      const done = function(){ document.body.classList.remove('printing'); window.removeEventListener('afterprint', done); };
+      window.addEventListener('afterprint', done);
+      setTimeout(function(){ window.print(); }, 60);
+    }).catch(function(){ btn.disabled = false; msg.style.color = '#a32b2b'; msg.textContent = 'Could not reach the server.'; });
+  };
+  if(typeof EM_ADMIN !== 'undefined' && EM_ADMIN){ m.querySelectorAll('.pr-opt')[1].style.display = 'none'; }
+}
 </script>
 </body>
 </html>
