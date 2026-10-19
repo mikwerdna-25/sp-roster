@@ -141,6 +141,10 @@
   .m-head{ display:flex; justify-content:space-between; align-items:flex-end; gap:10px; margin-bottom:12px; }
   .m-hello{ font-size:0.72rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; }
   .m-tools{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:8px; margin:0 0 12px; }
+  .rem-set{ border:1.5px solid var(--rule); border-radius:12px; background:#fff; padding:10px 12px; margin:0 0 12px; font-size:0.88rem; }
+  .rem-set label{ display:flex; gap:8px; align-items:flex-start; margin:4px 0; font-size:0.88rem; font-weight:500; text-transform:none; letter-spacing:0; color:var(--ink, #222); }
+  .rem-set input{ width:auto; margin-top:3px; min-height:0; }
+  .opt-count{ display:inline-block; margin-left:8px; font-size:0.7rem; font-weight:700; color:#6b6457; background:#efece4; border-radius:6px; padding:1px 6px; }
   .m-pbtn{ width:auto; margin:0 0 10px; padding:8px 14px; border:1.5px solid var(--navy); border-radius:999px; background:#fff; color:var(--navy); font-weight:800; font-size:0.86rem; font-family:inherit; cursor:pointer; white-space:nowrap; }
   .m-pbtn:hover{ background:var(--navy); color:#fff; }
   .m-tool{ box-sizing:border-box; display:flex; align-items:center; gap:10px; width:100%; margin:0; padding:11px 14px; border:1.5px solid var(--rule); border-radius:12px; background:#fff; color:var(--navy); text-decoration:none; text-align:left; font-family:inherit; cursor:pointer; min-height:58px; }
@@ -546,7 +550,7 @@
       <!-- v40: menu redesign - header, quick tools, reminder, my classes, look up a student -->
       <div class="m-head">
         <div><div class="m-hello">Signed in as</div><div class="teacher-name" id="teacherNameLabel"></div></div>
-        <button class="small-link" id="changeCodeLink">Change my code</button>
+        <div style="text-align:right;"><button class="small-link" id="remSetLink">&#128276; Reminder settings</button><br><button class="small-link" id="changeCodeLink">Change my code</button></div>
       </div>
 
       <div class="m-tools no-print">
@@ -560,6 +564,14 @@
           <span class="m-ico">&#9888;&#65039;</span><span><b>Emergency roster</b><small>Print who is on campus now</small></span></button>
       </div>
 
+      <div id="remSetBox" class="rem-set no-print" style="display:none;">
+        <div style="font-weight:800; color:var(--navy); margin-bottom:4px;">Points reminders</div>
+        <label><input type="checkbox" id="remEmail"> Email me when my weekly points are due or still blank</label>
+        <label><input type="checkbox" id="remBox"> Show the yellow &ldquo;points due&rdquo; box on this menu</label>
+        <div class="hint" style="margin:4px 0 6px;">Points are still due each week either way. The office can see who has blanks and may still send a reminder.</div>
+        <div style="display:flex; gap:8px;"><button class="btn-primary" id="remSave" style="width:auto; margin:0; padding:8px 16px;">Save</button><button class="small-link" id="remCancel">Cancel</button></div>
+        <div class="hint" id="remMsg"></div>
+      </div>
       <div id="pointsDueBox"></div>
 
       <div class="m-sec">
@@ -713,8 +725,9 @@ document.getElementById('loginBtn').onclick = function(){
     myCode = code;
     myTeacherName = data.teacherName;
     myPointsDue = data.pointsDue || null;
+    myRemPrefs = data.reminderPrefs || { email: true, box: true };
     myClasses = data.classes.map(function(c){
-      return { tab: c.tab, title: c.title, period: parsePeriodFromTitle(c.title), doubleBlocks: c.doubleBlocks || 0 };
+      return { tab: c.tab, title: c.title, period: parsePeriodFromTitle(c.title), doubleBlocks: c.doubleBlocks || 0, pointsOptional: !!c.pointsOptional };
     });
     renderClassList();
     showState('classListState');
@@ -727,10 +740,11 @@ document.getElementById('loginBtn').onclick = function(){
 };
 
 // v33: weekly points reminder - blank cells for this week (due the last school day, normally Friday)
-let myPointsDue = null;
+let myPointsDue = null, myRemPrefs = { email: true, box: true };
 function renderPointsDue(){
   const box = document.getElementById('pointsDueBox');
   box.innerHTML = '';
+  if(!myRemPrefs.box) return;                            // v105: the teacher turned the box off
   if(!myPointsDue || !myPointsDue.length) return;
   myPointsDue.forEach(function(wk, i){
     if(i > 0 && !wk.missing) return;                     // last week: only if something is still blank
@@ -810,6 +824,7 @@ function renderClassList(){
         dc.title = c.doubleBlocks + ' student(s) in this class also have this course in another period. Their points and grade are shared between the periods.';
         row.appendChild(dc);
       }
+      if(c.pointsOptional){ const po = document.createElement('span'); po.className = 'opt-count'; po.textContent = 'points optional'; po.title = 'The office marked this class as not needing weekly points. You can still enter them.'; row.appendChild(po); }
       const blanks = blankCountFor(c.tab);
       if(blanks){
         const bc = document.createElement('span'); bc.className = 'blank-count';
@@ -1573,7 +1588,27 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v41-print-tile';
+document.getElementById('buildTag').textContent = 'v42-reminder-settings';
+// v105: reminder settings (each teacher's own choice)
+document.getElementById('remSetLink').onclick = function(){
+  const b = document.getElementById('remSetBox');
+  if(b.style.display !== 'none'){ b.style.display = 'none'; return; }
+  document.getElementById('remEmail').checked = myRemPrefs.email; document.getElementById('remBox').checked = myRemPrefs.box;
+  document.getElementById('remMsg').textContent = ''; b.style.display = '';
+};
+document.getElementById('remCancel').onclick = function(){ document.getElementById('remSetBox').style.display = 'none'; };
+document.getElementById('remSave').onclick = function(){
+  const btn = this, msg = document.getElementById('remMsg');
+  const e = document.getElementById('remEmail').checked, bx = document.getElementById('remBox').checked;
+  btn.disabled = true; msg.textContent = 'Saving...';
+  apiGet({ mode:'teacherprefs', code: myCode, email: e ? 'on' : 'off', box: bx ? 'on' : 'off' }).then(function(r){
+    btn.disabled = false;
+    if(!r.success){ msg.textContent = r.error || 'Not saved.'; return; }
+    myRemPrefs = r.prefs; renderPointsDue();
+    msg.textContent = 'Saved \u2713';
+    setTimeout(function(){ document.getElementById('remSetBox').style.display = 'none'; }, 900);
+  }).catch(function(){ btn.disabled = false; msg.textContent = 'Could not reach the server.'; });
+};
 document.getElementById('homeBtn').onclick = function(){
   const unsaved = (typeof rlMarks !== 'undefined' && Object.keys(rlMarks).length) || (typeof rlAsg !== 'undefined' && Object.keys(rlAsg).length);
   if(document.getElementById('progRollState').classList.contains('active') && unsaved && !confirm('You have unsaved roll changes. Leave without saving?')) return;
