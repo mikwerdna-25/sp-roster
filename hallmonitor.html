@@ -130,6 +130,15 @@
   .prog-list{ max-height:340px; overflow:auto; border:1px solid var(--rule); border-radius:8px; padding:6px 10px; background:#fff; columns:2 220px; }
   @media print{ body{ background:#fff; } .sheet{ box-shadow:none; } .strip, .legend, .grid2 > .panel, .tabs, #toolbar, #dragHint, .top .who, .bar, .btn{ display:none !important; } .grid2{ display:block; } }
   .prog-list label{ display:block; font-size:.82rem; padding:2px 0; break-inside:avoid; }
+  .req{ border:1px solid var(--rule); border-radius:10px; padding:8px 10px; margin-bottom:8px; background:#fff; }
+  .req.mine{ border:2px solid #a32b2b; background:#fdf1ef; }
+  .req.done{ opacity:.75; background:transparent; }
+  .req .nm{ font-weight:800; color:var(--navy); cursor:pointer; }
+  .req .rt{ font-size:.86rem; margin:2px 0; }
+  .req .fl{ font-size:.76rem; color:var(--muted); }
+  .req .acts{ display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; }
+  .req .tag{ display:inline-block; font-size:.7rem; font-weight:800; color:#fff; background:#a32b2b; border-radius:6px; padding:1px 6px; margin-left:6px; }
+  .req .reply{ font-size:.8rem; color:#6b4a00; background:#fff3cf; border-radius:6px; padding:3px 6px; margin-top:4px; }
 </style>
 </head>
 <body>
@@ -159,10 +168,16 @@
     <div class="legend"><span><i style="background:var(--navy)"></i>Now</span><span><i style="background:#fff3cf;border:1px solid #f0d27a"></i>Programs (not on MiSiS)</span><span><i style="background:#e9f5e9;border:1px solid #b9dcb9"></i>After school</span><span>Tap a block to see that period.</span></div>
 
     <div class="grid2">
+      <div>
+      <div class="panel" id="reqPanel" style="margin-bottom:10px;">
+        <div class="ph"><span>Student requests <span class="chip alert" id="reqCount" style="display:none;"></span></span><button class="btn sm" id="reqNewBtn">Request a student</button></div>
+        <div id="reqList"></div>
+      </div>
       <div class="panel">
         <div class="ph"><span>Out of class now</span><span class="chip" id="outCount">0</span></div>
         <div id="outList"></div>
-        <div class="small muted" style="margin-top:6px;">Restroom: yellow after 8 min, red after 12. Other places have their own limits. <b>Sent</b> = sending teacher confirms, <b>Arrived</b> = receiving room confirms (both optional).</div>
+        <div class="small muted" style="margin-top:6px;">Restroom: yellow after 5 min, red after 8. Other places have their own limits. <b>Sent</b> = sending teacher confirms, <b>Arrived</b> = receiving room confirms (both optional).</div>
+      </div>
       </div>
       <div>
         <div class="tabs">
@@ -184,7 +199,7 @@
         <div id="tab-log" style="display:none;"></div>
       </div>
     </div>
-    <div class="small muted" style="margin-top:12px;">Student locations come from their MiSiS class schedule (points sheet), today's check-ins and hall passes. Updates every 20 seconds. <a href="#" id="signOut">Sign out</a> <span style="float:right;">hallmonitor v10</span></div>
+    <div class="small muted" style="margin-top:12px;">Student locations come from their MiSiS class schedule (points sheet), today's check-ins and hall passes. Updates every 20 seconds. <a href="#" id="signOut">Sign out</a> <span style="float:right;">hallmonitor v11</span></div>
   </div>
 </div></div>
 
@@ -299,7 +314,7 @@ function signIn(code){
   }).catch(function(){ document.getElementById('loginErr').textContent = 'Could not reach the server.'; });
 }
 function accept(d){
-  D = d; offset = d.nowMs - Date.now();
+  D = d; offset = d.nowMs - Date.now(); if(!D.requests) D.requests = [];
   if(!selKey || !blocksToday().some(function(b){ return b.key === selKey; })){ const b = curBlock(d.minute); selKey = b ? b.key : (d.minute < DAY_START ? 'P01' : blocksToday()[blocksToday().length - 1].key); }
   document.getElementById('whoName').textContent = d.staff.name + (d.staff.readOnly ? ' (view only)' : '');
   const bk = document.getElementById('backToPage'); bk.style.display = ''; bk.textContent = '\u2190 Back to ' + (d.staff.admin ? 'Counselor / Admin page' : 'my Teacher page');
@@ -336,7 +351,7 @@ setInterval(function(){
   document.querySelectorAll('.needle').forEach(function(n){ n.style.left = 'calc(' + pct(info.minute) + '% )'; n.style.display = info.minute >= DAY_START && info.minute <= dayEnd() && D.dow <= 5 ? '' : 'none'; });
 }, 1000);
 
-function renderAll(){ renderStrip(); renderOut(); renderTab(); }
+function renderAll(){ renderStrip(); renderReqs(); renderOut(); renderTab(); }
 function needle(){ const m = ptInfo(nowMs()).minute; return '<div class="needle" style="left:' + pct(m) + '%;' + (m >= DAY_START && m <= dayEnd() && D.dow <= 5 ? '' : 'display:none;') + '"></div>'; }
 function shortRoom(id){ return { RR:'restroom', OFFICE:'office', LUNCH:'lunch' }[id] || String(id); }
 
@@ -662,11 +677,13 @@ function openStudent(id){
         '<select id="drRoom" style="flex:1; min-width:140px; display:none;">' + cfg().rooms.filter(function(r){ return /^\d+$/.test(r.id); }).map(function(r){ return '<option value="' + r.id + '">' + esc(roomFull(r.id)) + '</option>'; }).join('') + '</select>' +
         '<input type="text" id="drNote" placeholder="Where (for Somewhere else)" style="flex:1; min-width:140px; display:none;"></div><button class="btn good" id="drSend" style="margin-top:8px;">Start pass (you approve it)</button>';
     }
+    h += '<button class="btn light" id="drReq" style="margin-top:8px;">Request this student (ask their teacher to send them)</button>';   // v108
   }
   const dr = document.getElementById('drawer'); dr.innerHTML = h;
   document.getElementById('drawerBack').style.display = 'flex';
   document.getElementById('drClose').onclick = closeDrawer;
   const de = document.getElementById('drEnd'); if(de) de.onclick = function(){ passAction(p.id, 'end', de); };
+  const dq = document.getElementById('drReq'); if(dq) dq.onclick = function(){ openRequest(st.id); };
   const ds = document.getElementById('drDest');
   if(ds){
     ds.onchange = function(){ document.getElementById('drRoom').style.display = ds.value === 'class' ? '' : 'none'; document.getElementById('drNote').style.display = ds.value === 'other' ? '' : 'none'; };
@@ -680,6 +697,118 @@ function openStudent(id){
     };
   }
 }
+
+// ===================== v108: REQUEST A STUDENT =====================
+const REQ_PLACES = [['1', 'Counseling Office'], ['OFFICE', 'Main Office'], ['7', 'Health & Wellness (Room 7)'], ['3', 'Kitchen (Room 3)']];
+function reqWhereNow(st){
+  if(!st) return '';
+  const p = activePass(st);
+  if(p) return 'out on a pass: ' + placeOf(p);
+  if(!st.checkedIn) return 'not checked in today';
+  const here = scheduledAt(st, ptInfo(nowMs()).minute);
+  return here.length ? 'now in ' + roomFull(here[0].room) : 'no class right now';
+}
+function reqIsMine(st){
+  if(!st || !D.staff.rooms.length) return false;
+  const here = scheduledAt(st, ptInfo(nowMs()).minute);
+  return !!(here.length && D.staff.rooms.indexOf(here[0].room) !== -1);
+}
+function reqPlace(q){ return placeOf({ to: q.to, type: q.type }); }
+function renderReqs(){
+  const all = D.requests || [], open = all.filter(function(q){ return q.status === 'Waiting' || q.status === 'Not now'; });
+  const ro = D.staff.readOnly, stOf = function(id){ return D.students.filter(function(s){ return s.id === id; })[0] || null; };
+  open.sort(function(a, b){ return (reqIsMine(stOf(b.studentId)) - reqIsMine(stOf(a.studentId))) || (a.at - b.at); });
+  const mineN = open.filter(function(q){ return reqIsMine(stOf(q.studentId)); }).length;
+  const rc = document.getElementById('reqCount');
+  rc.style.display = open.length ? '' : 'none';
+  rc.textContent = mineN ? mineN + ' for your room' : open.length + ' open';
+  document.title = (mineN ? '(' + mineN + ') ' : '') + 'Hall Monitor';
+  document.getElementById('reqNewBtn').style.display = ro ? 'none' : '';
+  const card = function(q){
+    const st = stOf(q.studentId), mine = reqIsMine(st), isOpen = q.status === 'Waiting' || q.status === 'Not now';
+    const pass = q.passId ? D.passes.filter(function(p){ return p.id === q.passId; })[0] : null;
+    let h = '<div class="req' + (mine && isOpen ? ' mine' : '') + (isOpen ? '' : ' done') + '" data-rid="' + esc(q.id) + '">' +
+      '<div><span class="nm" data-sid="' + esc(q.studentId) + '">' + esc(q.first + ' ' + q.last) + '</span>' + (mine && isOpen ? '<span class="tag">in your room</span>' : '') + '</div>' +
+      '<div class="rt">&rarr; <b>' + esc(reqPlace(q)) + '</b>' + (q.note ? ' &middot; ' + esc(q.note) : '') + '</div>' +
+      '<div class="fl">Asked by ' + esc(q.by) + ' at ' + esc(fmtHM.format(new Date(q.at))) + (isOpen ? ' &middot; ' + esc(reqWhereNow(st)) : '') + '</div>';
+    if(q.status === 'Not now') h += '<div class="reply">Not now (' + esc(q.handledBy) + '): ' + esc(q.reply) + '</div>';
+    if(q.status === 'Sent') h += '<div class="fl"><b style="color:#1d7a3a;">Sent</b> ' + esc(q.handledAt ? fmtHM.format(new Date(q.handledAt)) : '') + ' by ' + esc(q.handledBy) +
+      (pass ? ' &middot; ' + (pass.status === 'Out' ? (pass.arrivedOk ? 'arrived ✓' : 'on the way') : 'pass ' + esc(pass.status.toLowerCase())) : '') + '</div>';
+    if(q.status === 'Cancelled') h += '<div class="fl">Cancelled by ' + esc(q.handledBy) + '</div>';
+    if(isOpen && !ro){
+      h += '<div class="acts"><button class="btn sm good" data-ra="send">Send now</button>' +
+        (q.status === 'Waiting' ? '<button class="btn sm light" data-ra="notnow">Not now…</button>' : '') +
+        (q.by === D.staff.name || D.staff.admin ? '<button class="btn sm light" data-ra="cancel">Cancel</button>' : '') + '</div>';
+    }
+    if(pass && pass.status === 'Out' && !pass.arrivedOk && q.by === D.staff.name && !ro) h += '<div class="acts"><button class="btn sm light" data-ra="arrived" data-pid="' + esc(pass.id) + '">Arrived ✓</button></div>';
+    return h + '</div>';
+  };
+  const done = all.filter(function(q){ return !(q.status === 'Waiting' || q.status === 'Not now'); }).sort(function(a, b){ return b.at - a.at; });
+  let h = open.length ? open.map(card).join('') : '<div class="small muted">No open requests. Use <b>Request a student</b> to ask for a student to be sent to you.</div>';
+  if(done.length) h += '<details style="margin-top:6px;"><summary class="small muted" style="cursor:pointer;">Earlier today (' + done.length + ')</summary>' + done.map(card).join('') + '</details>';
+  const el = document.getElementById('reqList');
+  const wasOpen = el.querySelector('details') && el.querySelector('details').open;
+  el.innerHTML = h;
+  if(wasOpen && el.querySelector('details')) el.querySelector('details').open = true;
+  el.querySelectorAll('.req .nm').forEach(function(n){ n.onclick = function(){ openStudent(n.getAttribute('data-sid')); }; });
+  el.querySelectorAll('[data-ra]').forEach(function(b){ b.onclick = function(){ reqAct(b.closest('.req').getAttribute('data-rid'), b.getAttribute('data-ra'), b); }; });
+}
+function reqAct(rid, action, btn){
+  const q = D.requests.filter(function(x){ return x.id === rid; })[0]; if(!q) return;
+  if(action === 'arrived'){ passAction(btn.getAttribute('data-pid'), 'arrived', btn); return; }
+  let reply = '';
+  if(action === 'notnow'){ reply = prompt('Short reply for ' + q.by + ' (e.g., "testing - send at 10:10"):', ''); if(reply === null) return; }
+  if(action === 'cancel' && !confirm('Cancel the request for ' + q.first + ' ' + q.last + '?')) return;
+  if(action === 'send' && !confirm('Send ' + q.first + ' ' + q.last + ' to ' + reqPlace(q) + ' now? This starts a hall pass that you approve.')) return;
+  btn.disabled = true;
+  apiGet({ mode:'hpreqaction', code: myCode, req: rid, action: action, reply: reply }).then(function(r){
+    if(!r.success){ alert(r.error || 'Not saved.'); btn.disabled = false; return; }
+    D.requests = D.requests.map(function(x){ return x.id === rid ? r.request : x; });
+    if(r.pass) D.passes.push(r.pass);
+    renderAll();
+  }).catch(function(){ alert('Could not reach the server.'); btn.disabled = false; });
+}
+function openRequest(presetId){
+  const mineRoom = D.staff.rooms[0] || '';
+  const places = (mineRoom ? [[mineRoom, 'My room (' + roomFull(mineRoom) + ')']] : []).concat(REQ_PLACES)
+    .concat(cfg().rooms.filter(function(r){ return /^\d+$/.test(r.id) && r.id !== mineRoom && REQ_PLACES.every(function(p){ return p[0] !== r.id; }); }).map(function(r){ return [r.id, roomFull(r.id)]; }));
+  const pre = presetId ? D.students.filter(function(s){ return s.id === presetId; })[0] : null;
+  let h = '<div style="display:flex; justify-content:space-between; gap:8px;"><div class="h1" style="font-size:1.05rem;">Request a student</div><button class="btn sm light" id="rqClose">Close</button></div>' +
+    '<div class="small muted" style="margin:4px 0 10px;">The student&rsquo;s teacher sees this on their Hall Monitor and can send them on a pass. The student also sees it on their hall pass page.</div>' +
+    '<label class="small" style="font-weight:800;">Student</label>' +
+    '<input type="text" id="rqFind" placeholder="Type a name or ID" autocomplete="off" value="' + (pre ? esc(pre.first + ' ' + pre.last) : '') + '" style="width:100%; box-sizing:border-box;">' +
+    '<div id="rqPick" style="max-height:200px; overflow:auto;"></div>' +
+    '<label class="small" style="font-weight:800; display:block; margin-top:8px;">Send them to</label>' +
+    '<select id="rqTo" style="width:100%;">' + places.map(function(p){ return '<option value="' + esc(p[0]) + '">' + esc(p[1]) + '</option>'; }).join('') + '</select>' +
+    '<label class="small" style="font-weight:800; display:block; margin-top:8px;">Note (optional, the teacher and student see it)</label>' +
+    '<input type="text" id="rqNote" maxlength="120" placeholder="e.g., schedule change, bring your Chromebook" style="width:100%; box-sizing:border-box;">' +
+    '<button class="btn good" id="rqSend" style="width:100%; margin-top:10px;" disabled>Send request</button><div class="small" id="rqMsg" style="color:#a32b2b; margin-top:4px;"></div>';
+  const dr = document.getElementById('drawer'); dr.innerHTML = h;
+  document.getElementById('drawerBack').style.display = 'flex';
+  document.getElementById('rqClose').onclick = closeDrawer;
+  let picked = pre ? pre.id : '';
+  const find = document.getElementById('rqFind'), pick = document.getElementById('rqPick'), send = document.getElementById('rqSend');
+  const draw = function(){
+    const q = find.value.trim().toLowerCase();
+    if(picked){ const st = D.students.filter(function(s){ return s.id === picked; })[0]; pick.innerHTML = '<div class="small" style="margin:4px 0;">' + esc(reqWhereNow(st)) + '</div>'; send.disabled = false; return; }
+    send.disabled = true;
+    const list = q.length < 2 ? [] : D.students.filter(function(s){ return (s.first + ' ' + s.last + ' ' + s.last + ' ' + s.id).toLowerCase().indexOf(q) !== -1; }).slice(0, 8);
+    pick.innerHTML = list.map(function(s){ return '<div class="kv" data-pk="' + esc(s.id) + '" style="cursor:pointer;"><span><b>' + esc(s.last + ', ' + s.first) + '</b></span><span class="small muted">' + esc(reqWhereNow(s)) + '</span></div>'; }).join('') ||
+      (q.length >= 2 ? '<div class="small muted">No match.</div>' : '');
+    pick.querySelectorAll('[data-pk]').forEach(function(r){ r.onclick = function(){ picked = r.getAttribute('data-pk'); const st = D.students.filter(function(s){ return s.id === picked; })[0]; find.value = st.first + ' ' + st.last; draw(); }; });
+  };
+  find.oninput = function(){ picked = ''; draw(); };
+  draw(); if(!pre) find.focus();
+  send.onclick = function(){
+    send.disabled = true; document.getElementById('rqMsg').textContent = '';
+    apiGet({ mode:'hprequest', code: myCode, id: picked, to: document.getElementById('rqTo').value, note: document.getElementById('rqNote').value }).then(function(r){
+      if(!r.success){ document.getElementById('rqMsg').textContent = r.error || 'Not sent.'; send.disabled = false; return; }
+      D.requests.push(r.request); closeDrawer(); renderAll();
+    }).catch(function(){ document.getElementById('rqMsg').textContent = 'Could not reach the server.'; send.disabled = false; });
+  };
+}
+document.getElementById('reqNewBtn').onclick = function(){ openRequest(''); };
+
 function closeDrawer(){ document.getElementById('drawerBack').style.display = 'none'; }
 document.getElementById('drawerBack').onclick = function(e){ if(e.target === this) closeDrawer(); };
 document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeDrawer(); });
