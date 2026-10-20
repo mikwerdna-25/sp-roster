@@ -722,6 +722,57 @@
     font-family:-apple-system, system-ui, sans-serif;
     font-size:0.85rem;
   }
+
+  /* ===== build-36: Where now ===== */
+  .wn-sheet{ max-width:720px; }
+  .wn-top{ display:flex; gap:8px; align-items:center; margin-top:4px; font-variant-numeric:tabular-nums; font-weight:700; }
+  .wn-now{ background:#fff; color:var(--navy); border-radius:999px; padding:2px 10px; font-size:0.75rem; }
+  .wn-pills{ display:flex; gap:4px; flex-wrap:wrap; margin-top:8px; }
+  .wn-pill{ border:1px solid rgba(255,255,255,.5); background:transparent; color:#fff; border-radius:999px; padding:5px 10px; font-size:0.78rem; font-weight:700; cursor:pointer; font-family:inherit; }
+  .wn-pill.now{ border-color:#f0d27a; }
+  .wn-pill.on{ background:#fff; color:var(--navy); }
+  #wnSearch{ flex:1; padding:8px 10px; border-radius:6px; border:none; font-size:16px; font-family:inherit; }
+  .wn-btn{ border:none; border-radius:6px; padding:0 14px; font-size:1rem; cursor:pointer; }
+  .wn-sync{ font-size:0.72rem; opacity:.85; margin-top:6px; }
+  .wn-sync a{ color:#f0d27a; }
+  .wn-body{ padding:10px 12px 16px; }
+  .wn-msg{ padding:20px 4px; color:var(--muted); }
+  .wn-note{ font-size:0.8rem; background:#eef1f7; border-radius:6px; padding:6px 8px; margin:6px 0; }
+  .wn-stats{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-bottom:6px; }
+  .wn-stats div{ background:#f3f1ea; border-radius:8px; padding:6px 8px; }
+  .wn-stats b{ display:block; font-size:1.25rem; color:var(--navy); }
+  .wn-stats span{ font-size:0.7rem; color:var(--muted); }
+  .wn-h{ font-size:0.72rem; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin:12px 0 6px; }
+  .wn-pass{ display:flex; flex-wrap:wrap; gap:4px 8px; align-items:baseline; border:1px solid #e6c35c; background:#fff8e1; border-radius:8px; padding:7px 9px; margin-bottom:6px; cursor:pointer; }
+  .wn-pass.over{ border-color:#d03b3b; background:#fde2df; }
+  .wn-tm{ font-variant-numeric:tabular-nums; font-weight:800; min-width:44px; }
+  .wn-sub{ width:100%; font-size:0.78rem; color:var(--muted); }
+  .wn-grid{ display:grid; grid-template-columns:1fr; gap:6px; }
+  @media (min-width:520px){ .wn-grid{ grid-template-columns:1fr 1fr; } }
+  .wn-room, .wn-tray{ border:1px solid #e0d6bd; border-radius:8px; padding:7px 9px; background:#fffdf6; }
+  .wn-room.svc{ background:#f4f6fb; border-color:#d6dbe7; }
+  .wn-tray{ margin-top:6px; background:#fff; border-style:dashed; }
+  .wn-rh{ display:flex; justify-content:space-between; align-items:baseline; font-weight:800; color:var(--navy); font-size:0.9rem; }
+  .wn-rh small{ font-weight:500; color:var(--muted); font-size:0.72rem; }
+  .wn-rh b{ background:var(--navy); color:#fff; border-radius:999px; padding:0 7px; font-size:0.72rem; }
+  .wn-chips{ display:flex; flex-wrap:wrap; gap:4px; margin-top:5px; }
+  .wn-chip{ display:inline-block; border:1px solid #e0d6bd; background:#fff; border-radius:6px; padding:3px 7px; font-size:0.8rem; cursor:pointer; }
+  .wn-chip.vis{ background:#fff3cf; border-color:#e8c45c; }
+  .wn-chip.vis.warn{ background:#ffe9a8; }
+  .wn-chip.vis.over{ background:#fde2df; border-color:#d03b3b; }
+  .wn-chip.out{ text-decoration:line-through; color:var(--muted); }
+  .wn-chip.absent{ border-style:dashed; color:var(--muted); }
+  .wn-chip i{ font-style:normal; font-weight:700; font-variant-numeric:tabular-nums; }
+  .wn-empty{ font-size:0.78rem; color:var(--muted); }
+  .wn-legend{ display:flex; flex-wrap:wrap; gap:4px; margin-top:12px; }
+  .wn-legend .wn-chip{ cursor:default; font-size:0.7rem; }
+  .wn-detail{ display:none; position:fixed; left:0; right:0; bottom:0; max-height:75vh; overflow:auto; background:#fff; border-radius:14px 14px 0 0; box-shadow:0 -6px 24px rgba(0,0,0,.35); padding:12px 14px 24px; z-index:80; font-family:-apple-system, system-ui, sans-serif; }
+  .wn-detail.active{ display:block; }
+  @media (min-width:720px){ .wn-detail{ left:50%; right:auto; width:600px; transform:translateX(-50%); } }
+  .wn-det-h{ display:flex; justify-content:space-between; align-items:center; font-size:1.05rem; color:var(--navy); }
+  .wn-det-h button{ border:1px solid var(--rule); background:#fff; border-radius:6px; padding:4px 10px; cursor:pointer; }
+  .wn-kv{ display:flex; justify-content:space-between; gap:10px; font-size:0.84rem; padding:4px 0; border-bottom:1px solid #eee; }
+  .wn-kv.cur{ background:#eef1f7; }
 </style>
 </head>
 <body>
@@ -749,6 +800,7 @@
   <button class="primary" id="studyBtn">Study mode</button>
   <button class="primary" id="cameraBtn">📷 Camera</button>
   <button class="primary" id="rollBtn">✅ Take Roll</button>
+  <button class="primary" id="whereBtn">📍 Where now</button>
   <button class="gold" id="exportBtn">⬇ Backup</button>
   <button class="gold" id="importBtn">⬆ Restore</button>
   <button class="gold" id="addBtn">+ Add student</button>
@@ -919,6 +971,24 @@
 </div>
 
 <!-- Take Roll -->
+<div class="roll-overlay" id="whereOverlay">
+  <div class="roll-sheet wn-sheet">
+    <div class="roll-header">
+      <button class="profile-close" id="wnClose">&times;</button>
+      <div style="font-weight:800;">📍 Where students are</div>
+      <div class="wn-top"><span id="wnClock">--:--</span><span class="wn-now" id="wnChip">Loading…</span></div>
+      <div class="wn-pills" id="wnPills"></div>
+      <div style="display:flex; gap:6px; margin-top:8px;">
+        <input type="search" id="wnSearch" placeholder="Find a student" autocomplete="off">
+        <button type="button" id="wnRefresh" class="wn-btn">↻</button>
+      </div>
+      <div class="wn-sync"><span id="wnSync"></span> · view only · <a href="hallmonitor.html" target="_blank" rel="noopener">Open full Hall Monitor</a></div>
+    </div>
+    <div id="wnBody" class="wn-body"></div>
+  </div>
+  <div id="wnDetail" class="wn-detail"></div>
+</div>
+
 <div class="roll-overlay" id="rollOverlay">
   <div class="roll-sheet">
     <div class="roll-header">
@@ -1093,7 +1163,7 @@
 <input type="file" id="photoInput" accept="image/*" style="display:none;">
 
 <script>
-const APP_BUILD = 'build-35-not-on-misis';
+const APP_BUILD = 'build-36-where-now';
 const GRADE_COLORS = {9:'g9',10:'g10',11:'g11',12:'g12'};
 const AVATAR_HUES = ['#5b7a9d','#6f8f5b','#b8862f','#a34b3f','#7a6a9d','#4a8f8f'];
 
@@ -2945,6 +3015,159 @@ function showCompare(s){
 document.getElementById('compareAgainBtn').onclick=()=>{
   resetCameraStage();
 };
+
+// ===================== build-36: WHERE NOW (who is where, live from the Hall Monitor) =====================
+// Reads the same data as the Hall Monitor (mode=hpboard) with the sync secret from Settings. View only.
+const WN = { D:null, offset:0, sel:null, follow:true, poll:null, tick:null, q:'' };
+const WN_TZ = 'America/Los_Angeles';
+const wnFmtHM = new Intl.DateTimeFormat('en-US', { timeZone: WN_TZ, hour:'numeric', minute:'2-digit' });
+const wnFmtClock = new Intl.DateTimeFormat('en-US', { timeZone: WN_TZ, hour:'numeric', minute:'2-digit', second:'2-digit' });
+const wnParts = new Intl.DateTimeFormat('en-US', { timeZone: WN_TZ, hour:'2-digit', minute:'2-digit', second:'2-digit', hourCycle:'h23', weekday:'short' });
+const WN_CLASSROOMS = ['2', '4', '5', '6', '8', '218', '219'], WN_SERVICE = ['1', 'OFFICE', 'RR', '3', '7'];
+function wnEsc(t){ return String(t == null ? '' : t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function wnNow(){ return Date.now() + WN.offset; }
+function wnInfo(ms){ const o = {}; wnParts.formatToParts(new Date(ms)).forEach(p => { o[p.type] = p.value; }); return { minute: Number(o.hour) * 60 + Number(o.minute) + Number(o.second) / 60 }; }
+function wnHm(s){ const p = String(s).split(':'); return Number(p[0]) * 60 + Number(p[1]); }
+function wnT12(s){ const m = wnHm(s), h = Math.floor(m / 60); return ((h + 11) % 12 + 1) + ':' + ('0' + (m % 60)).slice(-2); }
+function wnMmss(ms){ const s = Math.max(0, Math.floor(ms / 1000)), m = Math.floor(s / 60); return m + ':' + ('0' + (s % 60)).slice(-2); }
+function wnCfg(){ return WN.D.config; }
+function wnRoom(id){ return wnCfg().rooms.filter(r => r.id === String(id))[0] || null; }
+function wnRoomName(id){ const r = wnRoom(id); return r ? r.name : (id || '—'); }
+function wnRoomFull(id){ const r = wnRoom(id); return r ? r.name + (r.label && r.label !== r.name ? ' · ' + r.label : '') : (id || '—'); }
+function wnProgsToday(){ return wnCfg().programs.filter(p => p.days.indexOf(WN.D.dow) !== -1); }
+function wnBlocks(){
+  const list = wnCfg().bell.map(b => ({ key: b.key, label: b.label, start: b.start, end: b.end }));
+  const end = Math.max(wnHm('13:30'), wnProgsToday().reduce((m, p) => Math.max(m, wnHm(p.end)), 0));
+  if(end > wnHm('13:30')) list.push({ key:'AFTER', label:'After school', start:'13:30', end: ('0' + Math.floor(end / 60)).slice(-2) + ':' + ('0' + end % 60).slice(-2) });
+  return list;
+}
+function wnCur(minute){ return wnBlocks().filter(b => minute >= wnHm(b.start) && minute < wnHm(b.end))[0] || null; }
+function wnPlace(p){
+  const pr = wnCfg().programs.filter(x => x.key === p.type)[0], d = wnCfg().destinations.filter(x => x.key === p.type)[0];
+  if(pr) return pr.name;
+  if(d && d.key === 'class') return wnRoomFull(p.to);
+  if(d && d.key === 'other') return p.note || 'Somewhere else';
+  return d ? d.label : wnRoomName(p.to);
+}
+function wnPassOf(st){ return WN.D.passes.filter(p => p.studentId === st.id && p.status === 'Out')[0] || null; }
+function wnLevel(p){
+  const d = wnCfg().destinations.filter(x => x.key === p.type)[0], m = (wnNow() - p.out) / 60000;
+  if(!d) return '';
+  return m >= d.over ? 'over' : (m >= d.warn ? 'warn' : '');
+}
+function wnSched(st, minute){
+  const pr = wnProgsToday().filter(p => !p.afterSchool && st.programs.indexOf(p.key) !== -1 && minute >= wnHm(p.start) && minute < wnHm(p.end))[0];
+  if(pr) return [{ room: pr.room, course: pr.name }];
+  const b = wnCur(minute);
+  if(!b) return [];
+  if(b.key === 'LUNCH') return [{ room:'LUNCH', course:'Lunch / Nutrition' }];
+  return (st.periods || {})[b.key] || [];
+}
+async function wnLoad(first){
+  const url = await storeGet('meta:checkinUrl'), secret = await storeGet('meta:syncSecret');
+  const body = document.getElementById('wnBody');
+  if(!url || !secret){ body.innerHTML = '<div class="wn-msg">Add your Apps Script Web app URL and sync secret in ⚙️ Settings first.</div>'; return; }
+  if(first) body.innerHTML = '<div class="wn-msg">Loading…</div>';
+  try{
+    const res = await fetch(url + '?' + new URLSearchParams({ mode:'hpboard', secret: secret, _: Date.now() }), { cache:'no-store' });
+    const d = await res.json();
+    if(!d.success){ body.innerHTML = '<div class="wn-msg">' + wnEsc(d.error || 'Could not load.') + (/code/i.test(d.error || '') ? ' (Check the sync secret in Settings, and that the Apps Script is v109 or later.)' : '') + '</div>'; return; }
+    WN.D = d; WN.offset = d.nowMs - Date.now();
+    const cur = wnCur(d.minute);
+    if(WN.follow || !WN.sel) WN.sel = cur ? cur.key : (d.minute < wnHm('08:30') ? 'P01' : wnBlocks()[wnBlocks().length - 1].key);
+    document.getElementById('wnSync').textContent = 'updated ' + wnFmtHM.format(new Date(d.nowMs));
+    wnRender();
+  }catch(e){ document.getElementById('wnSync').textContent = 'offline – retrying'; if(first) body.innerHTML = '<div class="wn-msg">Could not reach the Apps Script. Check the Web app URL in Settings.</div>'; }
+}
+function wnChip(st, cls, extra){ return '<span class="wn-chip ' + (cls || '') + '" data-sid="' + wnEsc(st.id) + '">' + wnEsc(st.first + ' ' + st.last.charAt(0) + '.') + (extra || '') + '</span>'; }
+function wnRender(){
+  const D = WN.D; if(!D) return;
+  const info = wnInfo(wnNow()), cur = wnCur(info.minute), blocks = wnBlocks();
+  const b = blocks.filter(x => x.key === WN.sel)[0] || null;
+  const live = !!(cur && b && cur.key === b.key);
+  const minute = live ? info.minute : (b ? (wnHm(b.start) + wnHm(b.end)) / 2 : info.minute);
+  const q = WN.q.trim().toLowerCase();
+  const hit = st => !q || (st.first + ' ' + st.last + ' ' + st.id).toLowerCase().indexOf(q) !== -1;
+  // period pills
+  document.getElementById('wnPills').innerHTML = blocks.map(x => '<button type="button" class="wn-pill' + (x.key === WN.sel ? ' on' : '') + (cur && x.key === cur.key ? ' now' : '') + '" data-k="' + x.key + '">' + wnEsc(x.key === 'LUNCH' ? 'Lunch' : x.key === 'PH' ? 'HR' : x.key === 'AFTER' ? 'After' : 'P' + x.key.slice(-1)) + '</button>').join('');
+  document.querySelectorAll('#wnPills .wn-pill').forEach(el => { el.onclick = () => { WN.sel = el.getAttribute('data-k'); WN.follow = !!(cur && cur.key === WN.sel); wnRender(); }; });
+  const boxes = {}; WN_CLASSROOMS.concat(WN_SERVICE).forEach(id => { boxes[id] = { here: [], vis: [], out: [], absent: [] }; });
+  const lunch = [], none = [], notIn = [], other = [], outs = [];
+  D.students.forEach(st => {
+    if(!hit(st)) return;
+    const p = live ? wnPassOf(st) : null, sch = wnSched(st, minute);
+    if(p){ outs.push({ st, p }); }
+    if(b && b.key === 'AFTER'){
+      if(p){ (boxes[p.to] ? boxes[p.to].vis : other).push(wnChip(st, 'vis', ' · ' + wnEsc(wnPlace(p)))); }
+      return;
+    }
+    if(!st.checkedIn && !p){ notIn.push(wnChip(st, 'absent', sch.length ? ' · ' + wnEsc(wnRoomName(sch[0].room)) : '')); return; }
+    if(p){
+      const v = wnChip(st, 'vis ' + wnLevel(p), ' <i data-wnt="' + p.out + '">' + wnMmss(wnNow() - p.out) + '</i>');
+      (boxes[p.to] ? boxes[p.to].vis : other).push(v);
+      const from = p.from || (sch[0] && sch[0].room);
+      if(from && boxes[from]) boxes[from].out.push(wnChip(st, 'out', ' → ' + wnEsc(wnPlace(p))));
+      return;
+    }
+    if(!sch.length){ none.push(wnChip(st)); return; }
+    if(sch[0].room === 'LUNCH'){ lunch.push(wnChip(st)); return; }
+    (boxes[sch[0].room] ? boxes[sch[0].room].here : other).push(wnChip(st));
+  });
+  const checkedIn = D.students.filter(s => s.checkedIn).length, outN = D.passes.filter(p => p.status === 'Out').length;
+  let h = '<div class="wn-stats"><div><b>' + checkedIn + '</b><span>checked in</span></div><div><b>' + outN + '</b><span>out on a pass</span></div><div><b>' + (D.students.length - checkedIn) + '</b><span>not checked in</span></div></div>';
+  if(!b){ h += '<div class="wn-msg">No school right now.</div>'; }
+  else if(!live) h += '<div class="wn-note">Showing where students are <b>scheduled</b> for ' + wnEsc(b.label) + ' (' + wnT12(b.start) + '–' + wnT12(b.end) + '). Live passes show on the current period.</div>';
+  if(live && outs.length){
+    h += '<div class="wn-h">Out of class now (' + outs.length + ')</div>' + outs.sort((a, c) => a.p.out - c.p.out).map(o => '<div class="wn-pass ' + wnLevel(o.p) + '" data-sid="' + wnEsc(o.st.id) + '"><span class="wn-tm" data-wnt="' + o.p.out + '">' + wnMmss(wnNow() - o.p.out) + '</span><b>' + wnEsc(o.st.first + ' ' + o.st.last) + '</b><span class="wn-sub">' + (o.p.from ? wnEsc(wnRoomName(o.p.from)) + ' → ' : '') + wnEsc(wnPlace(o.p)) + '</span></div>').join('');
+  }
+  const room = id => { const r = wnRoom(id) || { name:id, label:'' }, x = boxes[id], n = x.here.length + x.vis.length;
+    if(q && !n && !x.out.length && !x.absent.length) return '';
+    return '<div class="wn-room' + (WN_SERVICE.indexOf(id) !== -1 ? ' svc' : '') + '"><div class="wn-rh"><span>' + wnEsc(r.name) + (r.label && r.label !== r.name ? ' <small>' + wnEsc(r.label) + '</small>' : '') + '</span><b>' + n + '</b></div><div class="wn-chips">' + x.vis.join('') + x.here.join('') + x.out.join('') + '</div></div>'; };
+  h += '<div class="wn-h">Classrooms</div><div class="wn-grid">' + WN_CLASSROOMS.map(room).join('') + '</div>';
+  h += '<div class="wn-h">Offices &amp; other rooms</div><div class="wn-grid">' + WN_SERVICE.map(room).join('') + '</div>';
+  const tray = (t, arr, empty) => arr.length || !q ? '<div class="wn-tray"><div class="wn-rh"><span>' + t + '</span><b>' + arr.length + '</b></div><div class="wn-chips">' + (arr.join('') || '<span class="wn-empty">' + empty + '</span>') + '</div></div>' : '';
+  if(b && b.key === 'LUNCH') h += tray('Lunch / Nutrition', lunch, 'none');
+  if(other.length) h += tray('Other places', other, '');
+  if(b && b.key !== 'AFTER') h += tray('No class this period', none, 'none') + tray('Not checked in today', notIn, 'everyone has checked in');
+  h += '<div class="wn-legend"><span class="wn-chip">In class</span><span class="wn-chip vis">On a pass</span><span class="wn-chip vis over">Over time</span><span class="wn-chip out">Left this room</span><span class="wn-chip absent">Not checked in</span></div>';
+  const body = document.getElementById('wnBody'); body.innerHTML = h;
+  body.querySelectorAll('[data-sid]').forEach(el => { el.onclick = () => wnStudent(el.getAttribute('data-sid')); });
+}
+function wnStudent(id){
+  const D = WN.D, st = D.students.filter(s => s.id === id)[0]; if(!st) return;
+  const p = wnPassOf(st), info = wnInfo(wnNow()), here = wnSched(st, info.minute);
+  let h = '<div class="wn-det-h"><b>' + wnEsc(st.first + ' ' + st.last) + '</b><button type="button" id="wnDetClose">Close</button></div>' +
+    '<div class="wn-kv"><span>Right now</span><b>' + (p ? wnEsc(wnPlace(p)) + ' · <i data-wnt="' + p.out + '">' + wnMmss(wnNow() - p.out) + '</i>' : (st.checkedIn ? wnEsc(here.length ? wnRoomFull(here[0].room) : 'No class scheduled') : 'Not checked in today')) + '</b></div>' +
+    '<div class="wn-kv"><span>Checked in</span><span>' + (st.checkedIn ? wnEsc(wnFmtHM.format(new Date(st.checkedIn))) : '—') + '</span></div><div class="wn-h" style="margin-top:8px;">Today</div>';
+  wnBlocks().filter(b => b.key !== 'AFTER').forEach(b => {
+    const c = b.key === 'LUNCH' ? [{ room:'LUNCH', course:'' }] : (st.periods[b.key] || []), now = info.minute >= wnHm(b.start) && info.minute < wnHm(b.end);
+    h += '<div class="wn-kv' + (now ? ' cur' : '') + '"><span>' + wnT12(b.start) + ' ' + wnEsc(b.label) + '</span><span>' + (c.length ? wnEsc(wnRoomFull(c[0].room)) + (c[0].course ? ' · ' + wnEsc(c.map(x => x.course).join(', ')) : '') : '—') + '</span></div>';
+  });
+  const mine = D.passes.filter(x => x.studentId === st.id);
+  h += '<div class="wn-h" style="margin-top:8px;">Passes today (' + mine.length + ')</div>' + (mine.map(x => '<div class="wn-kv"><span>' + wnEsc(wnFmtHM.format(new Date(x.out))) + ' ' + wnEsc(wnPlace(x)) + '</span><span>' + (x.status === 'Out' ? '<b>out now</b>' : wnEsc(x.minutes) + ' min') + '</span></div>').join('') || '<div class="wn-empty">None.</div>');
+  const det = document.getElementById('wnDetail'); det.innerHTML = h; det.classList.add('active');
+  document.getElementById('wnDetClose').onclick = () => det.classList.remove('active');
+}
+function wnOpen(){
+  document.getElementById('whereOverlay').classList.add('active');
+  WN.follow = true; WN.q = ''; document.getElementById('wnSearch').value = '';
+  wnLoad(true);
+  clearInterval(WN.poll); WN.poll = setInterval(() => wnLoad(false), 30000);
+  clearInterval(WN.tick); WN.tick = setInterval(() => {
+    if(!WN.D) return;
+    const ms = wnNow(), cur = wnCur(wnInfo(ms).minute);
+    document.getElementById('wnClock').textContent = wnFmtClock.format(new Date(ms));
+    document.getElementById('wnChip').textContent = cur ? cur.label + ' · ' + Math.ceil(wnHm(cur.end) - wnInfo(ms).minute) + ' min left' : 'Between periods / no school';
+    if(WN.follow && cur && cur.key !== WN.sel){ WN.sel = cur.key; wnRender(); }
+    document.querySelectorAll('[data-wnt]').forEach(el => { el.textContent = wnMmss(ms - Number(el.getAttribute('data-wnt'))); });
+  }, 1000);
+}
+function wnClose(){ document.getElementById('whereOverlay').classList.remove('active'); clearInterval(WN.poll); clearInterval(WN.tick); }
+document.getElementById('whereBtn').onclick = wnOpen;
+document.getElementById('wnClose').onclick = wnClose;
+document.getElementById('wnRefresh').onclick = () => wnLoad(false);
+document.getElementById('wnSearch').oninput = e => { WN.q = e.target.value; wnRender(); };
+// ===================== end WHERE NOW =====================
 
 document.getElementById('buildTag').textContent = APP_BUILD;
 loadAll();
