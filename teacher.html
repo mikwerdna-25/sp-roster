@@ -141,6 +141,22 @@
   .m-head{ display:flex; justify-content:space-between; align-items:flex-end; gap:10px; margin-bottom:12px; }
   .m-hello{ font-size:0.72rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; }
   .m-tools{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:8px; margin:0 0 12px; }
+  /* ===== v107 prev ===== */
+  .pv-box{ margin:4px 0 6px; font-size:0.84rem; }
+  .pv-line{ color:#4b463c; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .pv-link{ width:auto; margin:0; padding:0; background:none; border:none; color:#1c2b4a; text-decoration:underline; font-size:0.8rem; cursor:pointer; font-family:inherit; }
+  .pv-edit{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .pv-in{ width:90px !important; margin:0 !important; padding:6px 8px !important; font-size:0.95rem; }
+  .pv-btn{ width:auto; margin:0; padding:6px 12px; border:1.5px solid #1c2b4a; border-radius:8px; background:#fff; color:#1c2b4a; font-weight:700; font-size:0.84rem; cursor:pointer; font-family:inherit; }
+  .pv-go{ background:#a32b2b; border-color:#a32b2b; color:#fff; }
+  .pv-warn{ background:#fff3cf; border:1.5px solid #e6c35c; color:#5a4100; border-radius:10px; padding:10px 12px; }
+  .pv-warn-h{ font-weight:800; margin-bottom:4px; }
+  .pv-small{ font-size:0.78rem; margin:4px 0 6px; }
+  .pv-reason{ width:100%; box-sizing:border-box; margin:0 0 8px !important; padding:8px !important; font-size:0.9rem; }
+  .pv-btns{ display:flex; gap:12px; align-items:center; }
+  .pv-err{ color:#a32b2b; font-size:0.8rem; margin-top:4px; }
+  .pv-ok{ color:#1d7a3a; font-size:0.8rem; margin-top:2px; }
+  /* ===== end v107 prev ===== */
   .rem-set{ border:1.5px solid var(--rule); border-radius:12px; background:#fff; padding:10px 12px; margin:0 0 12px; font-size:0.88rem; }
   .rem-set label{ display:flex; gap:8px; align-items:flex-start; margin:4px 0; font-size:0.88rem; font-weight:500; text-transform:none; letter-spacing:0; color:var(--ink, #222); }
   .rem-set input{ width:auto; margin-top:3px; min-height:0; }
@@ -1161,6 +1177,7 @@ function renderStudentList(students){
     total.textContent = totalText(s.total);
     top.appendChild(name); top.appendChild(total);
     card.appendChild(top);
+    card.appendChild(pvBox(s, s._tab || currentTab, { canEdit: true, onSaved: function(res){ total.textContent = totalText(res.newTotal); } }));   // v107
     if(s.doubleBlock && s.doubleBlock.others && s.doubleBlock.others.length){
       // v27: double block - same course in another period; points and the grade are shared (linked)
       const fl = document.createElement('div');
@@ -1588,7 +1605,85 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v42-reminder-settings';
+document.getElementById('buildTag').textContent = 'v44-roll-from-monitor';
+// ===================== v107: PREV (points from earlier semesters) - view and change with a warning =====================
+// pvBox(student, tab, { canEdit, onSaved(res) }) -> an element for the student's card/row.
+function pvFmt(v){ return v === null || v === undefined || v === '' ? '—' : String(Math.round(Number(v) * 100) / 100); }
+function pvBox(s, tab, opts){
+  opts = opts || {};
+  const box = document.createElement('div'); box.className = 'pv-box';
+  function show(){
+    box.innerHTML = '';
+    const line = document.createElement('div'); line.className = 'pv-line';
+    line.innerHTML = 'Previous semesters (Prev): <b>' + pvFmt(s.prev) + '</b>' + (s.prev !== null && s.prev !== undefined ? ' pts' : '');
+    if(opts.canEdit){
+      const b = document.createElement('button'); b.className = 'pv-link'; b.type = 'button'; b.textContent = 'Change';
+      b.onclick = edit; line.appendChild(b);
+    }
+    box.appendChild(line);
+  }
+  function edit(){
+    box.innerHTML = '';
+    const row = document.createElement('div'); row.className = 'pv-edit';
+    const lbl = document.createElement('span'); lbl.textContent = 'Prev:';
+    const inp = document.createElement('input'); inp.type = 'number'; inp.min = '0'; inp.step = 'any'; inp.value = s.prev === null || s.prev === undefined ? '' : s.prev; inp.className = 'pv-in';
+    const ok = document.createElement('button'); ok.type = 'button'; ok.className = 'pv-btn'; ok.textContent = 'Next';
+    const no = document.createElement('button'); no.type = 'button'; no.className = 'pv-link'; no.textContent = 'Cancel';
+    no.onclick = show;
+    const err = document.createElement('div'); err.className = 'pv-err';
+    ok.onclick = function(){
+      const raw = inp.value.trim();
+      if(raw !== '' && (isNaN(Number(raw)) || Number(raw) < 0)){ err.textContent = 'Type a number (0 or more), or leave it blank.'; return; }
+      const nv = raw === '' ? null : Number(raw);
+      if(nv === (s.prev === undefined ? null : s.prev)){ show(); return; }
+      warn(nv);
+    };
+    inp.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); ok.click(); } });
+    row.appendChild(lbl); row.appendChild(inp); row.appendChild(ok); row.appendChild(no);
+    box.appendChild(row); box.appendChild(err);
+    inp.focus(); inp.select();
+  }
+  function warn(nv){
+    const oldP = s.prev === null || s.prev === undefined ? 0 : Number(s.prev);
+    const newTotal = Math.round(((Number(s.total) || 0) - oldP + (nv || 0)) * 100) / 100;
+    box.innerHTML = '';
+    const w = document.createElement('div'); w.className = 'pv-warn';
+    w.innerHTML = '<div class="pv-warn-h">&#9888;&#65039; You are changing points from earlier semesters</div>' +
+      '<div>' + pvEsc(s.first + ' ' + s.last) + ': Prev <b>' + pvFmt(s.prev) + ' &rarr; ' + pvFmt(nv) + '</b>, total <b>' + pvFmt(s.total) + ' &rarr; ' + pvFmt(newTotal) + '</b>.</div>' +
+      '<div class="pv-small">Prev is like a transcript: change it only to correct a mistake. Your name, the old and new numbers and your reason are recorded.' + (s.grade ? ' This student already has a grade in this class.' : '') +
+      (s.doubleBlock && s.doubleBlock.others && s.doubleBlock.others.length ? ' The other period(s) of this double block get the same Prev.' : '') + '</div>';
+    const r = document.createElement('input'); r.type = 'text'; r.maxLength = 200; r.className = 'pv-reason'; r.placeholder = 'Reason (required), e.g. FileMaker showed 15';
+    const go = document.createElement('button'); go.type = 'button'; go.className = 'pv-btn pv-go'; go.textContent = 'Yes, change Prev';
+    const no = document.createElement('button'); no.type = 'button'; no.className = 'pv-link'; no.textContent = 'Cancel';
+    const msg = document.createElement('div'); msg.className = 'pv-err';
+    no.onclick = show;
+    go.onclick = function(){
+      const reason = r.value.trim();
+      if(reason.length < 3){ msg.textContent = 'Write a short reason first.'; r.focus(); return; }
+      go.disabled = true; msg.textContent = 'Saving...';
+      apiGet({ mode:'setprev', code: myCode, tab: tab, first: s.first, last: s.last, id: s.studentId || '', value: nv === null ? '' : nv, reason: reason }).then(function(res){
+        go.disabled = false;
+        if(!res.success){ msg.textContent = res.error || 'Not saved.'; return; }
+        s.prev = res.prev; s.total = res.newTotal;
+        show();
+        const done = document.createElement('div'); done.className = 'pv-ok';
+        done.textContent = 'Saved. New total: ' + pvFmt(res.newTotal) + (res.mirrored && res.mirrored.length ? ' (also changed in the double-block period)' : '');
+        box.appendChild(done);
+        if(opts.onSaved) opts.onSaved(res);
+      }).catch(function(){ go.disabled = false; msg.textContent = 'Could not reach the server.'; });
+    };
+    w.appendChild(r);
+    const btns = document.createElement('div'); btns.className = 'pv-btns'; btns.appendChild(go); btns.appendChild(no);
+    w.appendChild(btns); w.appendChild(msg);
+    box.appendChild(w);
+    r.focus();
+  }
+  show();
+  return box;
+}
+function pvEsc(t){ return String(t == null ? '' : t).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+// ===================== end v107 PREV =====================
+
 // v105: reminder settings (each teacher's own choice)
 document.getElementById('remSetLink').onclick = function(){
   const b = document.getElementById('remSetBox');
@@ -2143,6 +2238,21 @@ function emOpen(){
   };
   if(typeof EM_ADMIN !== 'undefined' && EM_ADMIN){ m.querySelectorAll('.pr-opt')[1].style.display = 'none'; }
 }
+</script>
+<script>
+// v111: opened from the Hall Monitor's "Take roll": sign in with the handed-over code and open that program's roll
+(function(){
+  let ho = null;
+  try{ ho = JSON.parse(localStorage.getItem('rollHandoff') || 'null'); localStorage.removeItem('rollHandoff'); }catch(e){}
+  if(!ho || !ho.code || Date.now() - ho.t > 60000) return;
+  document.getElementById('codeInput').value = ho.code;
+  document.getElementById('loginBtn').click();
+  let n = 0; const iv = setInterval(function(){
+    n++; const el = document.getElementById('classListState');
+    if(myCode && el && el.classList.contains('active')){ clearInterval(iv); rlKey = ho.key || ''; rlOpen('classListState'); }
+    else if(n > 80) clearInterval(iv);
+  }, 250);
+})();
 </script>
 </body>
 </html>

@@ -84,6 +84,9 @@
   .chips{ display:flex; flex-wrap:wrap; gap:3px; }
   .sc{ font-size:.7rem; border-radius:5px; padding:2px 5px; background:#fff; border:1px solid #e0d6bd; cursor:pointer; white-space:nowrap; max-width:100%; overflow:hidden; text-overflow:ellipsis; }
   .sc.out{ opacity:.5; text-decoration:line-through; }
+  .sc.prog{ background:#eaf0fb; border:1px dashed #6b86b8; color:#2c4a7a; }
+  .prog-ban{ background:#eaf0fb; border:1px solid #9fb4d9; color:#1c2b4a; border-radius:10px; padding:8px 10px; margin:0 0 8px; font-size:.84rem; display:flex; gap:8px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+  .prog-ban .btn{ margin:0; }
   .sc.vis{ background:#fff3cf; border-color:#e8c45c; font-weight:700; }
   .sc.vis.over{ background:#fde2df; border-color:var(--crit); color:#8a1f1a; }
   .sc.absent{ color:#9a948a; border-style:dashed; background:transparent; }
@@ -199,7 +202,7 @@
         <div id="tab-log" style="display:none;"></div>
       </div>
     </div>
-    <div class="small muted" style="margin-top:12px;">Student locations come from their MiSiS class schedule (points sheet), today's check-ins and hall passes. Updates every 20 seconds. <a href="#" id="signOut">Sign out</a> <span style="float:right;">hallmonitor v11</span></div>
+    <div class="small muted" style="margin-top:12px;">Student locations come from their MiSiS class schedule (points sheet), today's check-ins and hall passes. Updates every 20 seconds. <a href="#" id="signOut">Sign out</a> <span style="float:right;">hallmonitor v12</span></div>
   </div>
 </div></div>
 
@@ -314,7 +317,7 @@ function signIn(code){
   }).catch(function(){ document.getElementById('loginErr').textContent = 'Could not reach the server.'; });
 }
 function accept(d){
-  D = d; offset = d.nowMs - Date.now(); if(!D.requests) D.requests = [];
+  D = d; offset = d.nowMs - Date.now(); if(!D.requests) D.requests = []; if(!D.rollAccess) D.rollAccess = {};
   if(!selKey || !blocksToday().some(function(b){ return b.key === selKey; })){ const b = curBlock(d.minute); selKey = b ? b.key : (d.minute < DAY_START ? 'P01' : blocksToday()[blocksToday().length - 1].key); }
   document.getElementById('whoName').textContent = d.staff.name + (d.staff.readOnly ? ' (view only)' : '');
   const bk = document.getElementById('backToPage'); bk.style.display = ''; bk.textContent = '\u2190 Back to ' + (d.staff.admin ? 'Counselor / Admin page' : 'my Teacher page');
@@ -452,6 +455,10 @@ function renderMap(){
       return;
     }
     if(!sch.length){ none.push(chip(st)); return; }
+    if(sch[0].program){                                   // v111: in a program (College Class...) instead of their regular class
+      const reg = b && st.periods[b.key] ? st.periods[b.key][0] : null, pg = progOf(sch[0].program);
+      if(reg && reg.room !== sch[0].room && boxes[reg.room]) boxes[reg.room].out.push(chip(st, 'prog', ' → ' + esc(pg ? pg.name.split(' ')[0] : 'program')));
+    }
     if(sch[0].room === 'LUNCH'){ lunch.push(chip(st)); return; }
     if(!boxes[sch[0].room]){ unknownRoom.push(chip(st, '', ' · ' + esc(sch[0].teacher || sch[0].course))); return; }
     boxes[sch[0].room].here.push(chip(st));
@@ -464,7 +471,8 @@ function renderMap(){
       '<div class="chips">' + x.vis.join('') + x.here.join('') + x.out.join('') + x.absent.join('') + '</div></div>';
   };
   // top row: classroom teachers; bottom row: counseling, office, restrooms, kitchen, health & wellness
-  let h = '<div class="map">' + ['2', '4', '5', '6', '8', '218', '219'].map(function(id){ return box(id); }).join('') +
+  let h = progBanner(minute, live);
+  h += '<div class="map">' + ['2', '4', '5', '6', '8', '218', '219'].map(function(id){ return box(id); }).join('') +
     ['1', 'OFFICE', 'RR', '3', '7'].map(function(id){ return box(id, 'svc'); }).join('') + '<div class="side">';
   if(b && b.key === 'LUNCH') h += '<div class="tray"><div class="rh">Lunch / Nutrition (' + lunch.length + ')</div><div class="chips">' + (lunch.join('') || '<span class="small muted">none</span>') + '</div></div>';
   if(b && b.key === 'AFTER') h += '<div class="tray"><div class="rh">On the intervention list (not signed in)</div><div class="chips">' + (afterList.join('') || '<span class="small muted">none</span>') + '</div></div>';
@@ -475,6 +483,7 @@ function renderMap(){
   if(!live && b) h += '<div class="small muted" style="margin-top:4px;">This is where students are scheduled for ' + esc(b.label) + '. Live passes show only on the current period.</div>';
   const el = document.getElementById('tab-map'); el.innerHTML = h;
   el.querySelectorAll('.sc[data-sid]').forEach(function(c){ c.onclick = function(){ if(dragJustEnded) return; openStudent(c.getAttribute('data-sid')); }; });
+  el.querySelectorAll('[data-roll]').forEach(function(bt){ bt.onclick = function(){ openRoll(bt.getAttribute('data-roll')); }; });
   if(canDrag()){ el.querySelectorAll('.room .sc[data-sid]').forEach(function(c){ c.classList.add('drag'); c.addEventListener('pointerdown', dragStart); }); }
   const hint = document.getElementById('dragHint'); if(hint) hint.style.display = canDrag() ? '' : 'none';
 }
@@ -616,11 +625,11 @@ function renderTimeline(){
 
 function renderPrograms(){
   const ro = D.staff.readOnly;
-  let h = '<div class="small muted" style="margin-bottom:8px;">These programs are not on MiSiS. Students checked here are shown in the program’s room while it runs.</div>';
+  let h = '<div class="small muted" style="margin-bottom:8px;">These programs are not on MiSiS. While a program runs, its students show in the program’s room (and as “→ program” in their regular room). The list comes from each program’s tab in the Extra Curricular attendance spreadsheet, plus anyone checked here.</div>';
   cfg().programs.forEach(function(pg){
     const days = pg.days.map(function(d){ return ['Mon','Tue','Wed','Thu','Fri'][d - 1]; }).join(', ');
     h += '<div class="panel" style="margin-bottom:10px;"><div class="ph"><span>' + esc(pg.name) + ' <span class="muted small">' + esc(days) + ' · ' + t12(pg.start) + '–' + t12(pg.end) + (pg.room ? ' · ' + esc(roomFull(pg.room)) : '') + '</span></span>' +
-      (pg.roster && !ro ? '<button class="btn sm" data-save="' + pg.key + '">Save list</button>' : '') + '</div>';
+      '<span>' + (D.rollAccess[pg.key] ? '<button class="btn sm light" data-roll="' + pg.key + '">Take roll</button> ' : '') + (pg.roster && !ro ? '<button class="btn sm" data-save="' + pg.key + '">Save list</button>' : '') + '</span></div>';
     if(pg.roster){
       const ids = D.rosters[pg.key] || [];
       h += '<div class="prog-list" data-prog="' + pg.key + '">' + D.students.map(function(st){ return '<label><input type="checkbox" value="' + esc(st.id) + '"' + (ids.indexOf(st.id) !== -1 ? ' checked' : '') + (ro ? ' disabled' : '') + '> ' + esc(st.last + ', ' + st.first) + '</label>'; }).join('') + '</div><div class="small muted" style="margin-top:4px;" data-msg="' + pg.key + '">' + ids.length + ' student(s)</div>';
@@ -634,6 +643,7 @@ function renderPrograms(){
     h += '</div>';
   });
   const el = document.getElementById('tab-programs'); el.innerHTML = h;
+  el.querySelectorAll('[data-roll]').forEach(function(bt){ bt.onclick = function(){ openRoll(bt.getAttribute('data-roll')); }; });
   el.querySelectorAll('[data-save]').forEach(function(b){ b.onclick = function(){
     const k = b.getAttribute('data-save');
     const ids = Array.from(el.querySelectorAll('.prog-list[data-prog="' + k + '"] input:checked')).map(function(i){ return i.value; });
@@ -644,6 +654,25 @@ function renderPrograms(){
       if(r.success) D.rosters[k] = ids;
     }).catch(function(){ b.disabled = false; alert('Could not reach the server.'); });
   }; });
+}
+
+
+// ===================== v111: programs in session + Take roll =====================
+function progBanner(minute, live){
+  return progsToday().filter(function(pg){ return minute >= hm(pg.start) && minute < hm(pg.end); }).map(function(pg){
+    const n = pg.roster ? D.students.filter(function(st){ return st.programs.indexOf(pg.key) !== -1 && st.checkedIn; }).length : 0;
+    const txt = pg.roster
+      ? '<b>' + esc(pg.name) + '</b> is meeting ' + t12(pg.start) + '–' + t12(pg.end) + (pg.room ? ' in ' + esc(roomFull(pg.room)) : '') + ': ' + n + ' checked-in student' + (n === 1 ? ' is' : 's are') + ' there instead of their regular class (shown <span class="sc prog" style="cursor:default;">→ ' + esc(pg.name.split(' ')[0]) + '</span> in that room).'
+      : '<b>' + esc(pg.name) + '</b> ' + t12(pg.start) + '–' + t12(pg.end) + ' &mdash; students sign in on the hall pass page.';
+    return '<div class="prog-ban"><span>' + txt + '</span>' + (live && D.rollAccess[pg.key] ? '<button class="btn sm" data-roll="' + esc(pg.key) + '">Take roll</button>' : '') + '</div>';
+  }).join('');
+}
+// Opens this person's own page (teacher or counselor/admin) signed in, straight to that program's roll.
+function openRoll(hpKey){
+  const key = D.rollAccess[hpKey]; if(!key) return;
+  try{ localStorage.setItem('rollHandoff', JSON.stringify({ code: myCode, t: Date.now(), key: key })); }catch(e){}
+  const page = D.staff.admin ? 'admin.html' : 'teacher.html';
+  const w = window.open(page, '_blank'); if(!w) location.href = page;
 }
 
 // ---- one student ----
