@@ -577,6 +577,13 @@
    :is(#printArea, .psheet).psheet .i1-cols{ grid-template-columns:1fr; } :is(#printArea, .psheet).psheet .i1-top{ flex-wrap:wrap; } :is(#printArea, .psheet).psheet .i1-top .bar{ flex-basis:100%; }
     :is(#printArea, .psheet).psheet .sn-glance{ grid-template-columns:1fr 1fr; } :is(#printArea, .psheet).psheet .sn-ag{ grid-template-columns:repeat(4, 1fr); } :is(#printArea, .psheet).psheet .sn-box{ border-bottom:0.6pt solid #999; }
   }
+  /* v118: required courses inside each box */
+  :is(#printArea, .psheet) .i1-code{ display:inline-block; background:#fff; color:#1c2b4a; border-radius:2pt; padding:0 3pt; margin-right:4pt; font-weight:900; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  :is(#printArea, .psheet) tr.needrow td{ color:#7a2318; background:#fbf1ef; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  :is(#printArea, .psheet) tr.needrow td:first-child{ font-style:italic; }
+  :is(#printArea, .psheet) tr.iprow td{ color:#5a4100; background:#fbf6e6; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  :is(#printArea, .psheet) .ipt{ font-size:6pt; text-transform:uppercase; letter-spacing:.04em; border:0.5pt solid #b58a00; border-radius:2pt; padding:0 2pt; }
+  :is(#printArea, .psheet) .i1-key{ font-family:-apple-system, system-ui, Arial, sans-serif; font-size:7.5pt; color:#7a2318; margin:0 0 5px; }
 
   /* ===== v95 program roll ===== */
   .rl-progs{ display:flex; flex-wrap:wrap; gap:6px; margin:6px 0 10px; }
@@ -1745,7 +1752,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v48-igp-sheet';
+document.getElementById('buildTag').textContent = 'v49-igp-required';
 // ===================== v107: PREV (points from earlier semesters) - view and change with a warning =====================
 // pvBox(student, tab, { canEdit, onSaved(res) }) -> an element for the student's card/row.
 function pvFmt(v){ return v === null || v === undefined || v === '' ? '—' : String(Math.round(Number(v) * 100) / 100); }
@@ -2042,7 +2049,7 @@ function prIgp(st, pack, opt){
     '<div><span>Grade level (by credits)</span><b>' + (tr.hasData ? prGradeLevel(earned) : '&ndash;') + '</b></div>' +
     '<div class="bar"><i style="width:' + Math.min(100, Math.round(earned / PR_TOTAL_CREDITS * 100)) + '%"></i></div></div>';
   if(!tr.hasData) h += '<div class="empty">No transcript on file yet for this student &mdash; the requirement boxes fill in once the transcript is uploaded.</div>';
-  let anyMoved = false;
+  let anyMoved = false, nNeeded = 0;
   const box = function(name){
     const cat = getCat(name);
     const m = PR_IGP_META[name] || { req: null, label: name, years: '', code: '' };
@@ -2054,37 +2061,36 @@ function prIgp(st, pack, opt){
                      : 'Counselor moved this from ' + prE((PR_IGP_META[r.moved.from] || {}).label || r.moved.from)) + '</div>';
       if(opt.canMove && r.key && r.credit > 0) t += '<button type="button" class="i1-mv rw-only" data-mv="' + prE(r.key) + '">' + (r.moved ? 'Undo move' : 'Move') + '</button>';
       return '<tr><td>' + t + '</td><td class="n">' + prNum(r.credit) + '</td><td class="c">' + prE(r.mark) + '</td></tr>'; });
+    // v118: courses still required go right in the box, with Cr and Mark left blank
+    const done = prReqDone(name, cat);
+    (cat.inProgressFor || []).forEach(function(x){ rows.push('<tr class="iprow"><td>' + prE(x) + ' <span class="ipt">in progress</span></td><td></td><td></td></tr>'); });
+    if(tr.hasData){
+      if(name === 'General Elective'){
+        const left = Math.max(0, PR_ELECTIVE_CREDITS - cat.totalCredits);
+        if(left) rows.push('<tr class="needrow"><td>Electives &ndash; ' + prNum(left) + ' more credits</td><td></td><td></td></tr>');
+      } else {
+        (cat.needed || []).forEach(function(x){ nNeeded++; rows.push('<tr class="needrow"><td>' + prE(x) + '</td><td></td><td></td></tr>'); });
+        if(!done && !(cat.needed || []).length && !(cat.inProgressFor || []).length)
+          rows.push('<tr class="needrow"><td>' + prNum(Math.max(0, (m.req || 5) - cat.totalCredits)) + ' more credits</td><td></td><td></td></tr>');
+      }
+    }
     if(!opt.screen) for(let i = rows.length; i < (PR_IGP_ROWS[name] || 2); i++) rows.push('<tr class="blank"><td>&nbsp;</td><td></td><td></td></tr>');
     else if(!rows.length) rows.push('<tr><td colspan="3" class="muted">No courses yet</td></tr>');
-    const done = prReqDone(name, cat);
-    return '<div class="i1-box">' + (m.code ? '<span class="i1-letter l' + m.code + '">' + m.code + '</span>' : '') +
-      '<div class="i1-h"><span>' + prE(m.label) + (m.req ? ' (' + m.req + ')' : name === 'Health' || name === 'Ethnic Studies' ? ' (5)' : name === 'General Elective' ? ' (' + PR_ELECTIVE_CREDITS + ')' : '') + '</span>' +
+    return '<div class="i1-box">' +
+      '<div class="i1-h"><span>' + (m.code ? '<span class="i1-code">' + m.code + '</span>' : '') + prE(m.label) + (m.req ? ' (' + m.req + ')' : name === 'Health' || name === 'Ethnic Studies' ? ' (5)' : name === 'General Elective' ? ' (' + PR_ELECTIVE_CREDITS + ')' : '') + '</span>' +
       (done ? '<span class="ok">Complete</span>' : '') + '</div>' +
       '<table><tr><th>Course</th><th class="n">Cr</th><th class="c">Mark</th></tr>' + rows.join('') + '</table>' +
       '<div class="i1-tot"><b>' + prNum(cat.totalCredits) + '</b> Total credits</div></div>';
   };
-  // courses required to graduate
-  let nNeeded = 0;
-  const reqRows = PR_REQ_GROUPS.map(function(g){
-    const cat = getCat(g[1]), m = PR_IGP_META[g[1]] || {}, need = (cat.needed || []).slice(), ipl = cat.inProgressFor || [];
-    let body;
-    if(g[1] === 'General Elective'){
-      const left = Math.max(0, PR_ELECTIVE_CREDITS - cat.totalCredits);
-      body = left ? '<div>' + prNum(left) + ' more elective credits</div>' : '';
-    } else { nNeeded += need.length; body = need.map(function(x){ return '<div>' + prE(x) + '</div>'; }).join(''); }
-    if(!body && !ipl.length && tr.hasData) body = prReqDone(g[1], cat) ? '<div class="ok">Complete</div>' : '<div>' + prNum(Math.max(0, (m.req || 5) - cat.totalCredits)) + ' more credits</div>';
-    return '<tr><td class="rq-l">' + g[0] + '</td><td><b>' + prE(m.label || g[1]) + '</b>' + body +
-      (ipl.length ? '<div class="ipn">In progress: ' + prE(ipl.join(', ')) + '</div>' : '') + '</td></tr>';
-  }).join('');
   const failed = tr.failed || [];
   const ip = st.inProgress || [], doneHere = st.completedHere || [];
-  h += '<div class="i1-cols"><div>' + PR_IGP_COLS[0].map(box).join('') + '</div><div>' + PR_IGP_COLS[1].map(box).join('') + '</div><div>' +
+  const col1 = PR_IGP_COLS[0].map(box).join(''), col2 = PR_IGP_COLS[1].map(box).join('');
+  if(tr.hasData) h += '<div class="i1-key"><b>' + nNeeded + '</b> course' + (nNeeded === 1 ? '' : 's') + ' still required &ndash; listed in each box with Cr and Mark left blank.</div>';
+  h += '<div class="i1-cols"><div>' + col1 + '</div><div>' + col2 + '</div><div>' +
     (opt.failed ? '<div class="i1-box fail"><div class="i1-h"><span>Failed courses &middot; counselor only</span><span>' + failed.length + '</span></div>' +
       '<table><tr><th>Course</th><th class="c">Mark</th><th>Term</th></tr>' + (failed.length ? failed.map(function(r){
         return '<tr><td>' + prE(r.title) + '<div class="sub">' + prE((PR_IGP_META[r.category] || {}).label || r.category) + '</div></td><td class="c">' + prE(r.mark) + '</td><td class="tm">' + prE(r.termEnd) + '</td></tr>'; }).join('')
         : '<tr><td colspan="3" class="muted">None</td></tr>') + '</table><div class="sub" style="padding:2px 5px;">Not counted for credit and not printed. A course passed later drops off.</div></div>' : '') +
-    '<div class="i1-box req"><div class="i1-h"><span>Courses required to graduate</span><span>' + (tr.hasData ? nNeeded : '') + '</span></div>' +
-      (tr.hasData ? '<table>' + reqRows + '</table>' : '<div class="sub" style="padding:4px 5px;">Fills in once the transcript is uploaded.</div>') + '</div>' +
     '<div class="i1-box"><div class="i1-h"><span>In progress at Stoney Point</span></div><table><tr><th>Per</th><th>Course</th><th class="n">Pts</th></tr>' + (ip.length ? ip.map(function(c){
       return '<tr><td class="tm">' + prE(String(c.period || '').replace(/^P0?/, '')) + '</td><td>' + prE(c.course) + '</td><td class="n">' + (c.advisory ? prNum(c.total) + '*' : prNum(c.total)) + '</td></tr>'; }).join('') : '<tr><td colspan="3" class="muted">None</td></tr>') + '</table></div>' +
     (doneHere.length ? '<div class="i1-box"><div class="i1-h"><span>Completed here this term</span></div><table>' + doneHere.map(function(c){
