@@ -157,6 +157,11 @@
   .pv-err{ color:#a32b2b; font-size:0.8rem; margin-top:4px; }
   .pv-ok{ color:#1d7a3a; font-size:0.8rem; margin-top:2px; }
   /* ===== end v107 prev ===== */
+  .save-all-bar{ position:sticky; top:56px; z-index:30; display:flex; justify-content:space-between; align-items:center; gap:10px; background:#fffdf7; border:1.5px solid var(--rule); border-radius:10px; padding:8px 10px; margin:8px 0 10px; font-size:0.86rem; color:var(--muted); box-shadow:0 4px 10px -6px rgba(0,0,0,.3); }
+  .save-all-bar.dirty{ border-color:#e6c35c; background:#fff8e1; color:#5a4100; font-weight:700; }
+  .save-all-bar button{ width:auto; margin:0; padding:9px 16px; border:none; border-radius:8px; background:var(--navy); color:#fff; font-weight:800; font-size:0.9rem; cursor:pointer; white-space:nowrap; }
+  .save-all-bar button:disabled{ opacity:.45; cursor:default; }
+  .student-card.unsaved{ border-color:#e6c35c; background:#fffaf0; }
   .rem-set{ border:1.5px solid var(--rule); border-radius:12px; background:#fff; padding:10px 12px; margin:0 0 12px; font-size:0.88rem; }
   .rem-set label{ display:flex; gap:8px; align-items:flex-start; margin:4px 0; font-size:0.88rem; font-weight:500; text-transform:none; letter-spacing:0; color:var(--ink, #222); }
   .rem-set input{ width:auto; margin-top:3px; min-height:0; }
@@ -615,8 +620,9 @@
         <div class="roster-title" id="rosterTitle"></div>
         <div class="roster-sub">Entering points for:</div>
         <select id="weekSelect" style="margin-top:4px;"></select>
-        <div class="hint-tip desktop-only">Tip: type a number and press Enter to save and jump to the next student.</div>
+        <div class="hint-tip desktop-only">Tip: type everyone&rsquo;s points, then press <b>Save all</b>. (Enter still saves one student and jumps to the next.)</div>
       </div>
+      <div class="save-all-bar no-print" id="saveAllBar"><span id="saveAllInfo">Type points for each student, then Save all.</span><button type="button" id="saveAllBtn" disabled>Save all</button></div>
       <div id="studentList"></div>
     </div>
 
@@ -1147,7 +1153,9 @@ function renderRoster(data){
   // A teacher who switched to an earlier week to fix something is back on this week next time.
   currentWeek = thisWeek || currentWeekLabels[0];
   weekSelect.value = currentWeek;
-  weekSelect.onchange = function(){ currentWeek = weekSelect.value; renderStudentList(data.students); };
+  weekSelect.onchange = function(){
+    if(saDirty().length && !confirm('You have points typed that are not saved yet. Switch weeks and lose them?')){ weekSelect.value = currentWeek; return; }
+    currentWeek = weekSelect.value; renderStudentList(data.students); };
 
   renderStudentList(data.students);
 }
@@ -1160,6 +1168,7 @@ function renderStudentList(students){
   const list = document.getElementById('studentList');
   list.innerHTML = '';
   const entryInputs = [];
+  saRows = [];                                            // v113: rows for "Save all"
   students.forEach(function(s){
     const key = (s.first+'|'+s.last).toLowerCase();
     const card = document.createElement('div');
@@ -1200,6 +1209,8 @@ function renderStudentList(students){
     input.type = 'number';
     input.placeholder = currentWeek;
     entryInputs.push(input);
+    input.dataset.saved = '';
+    input.addEventListener('input', function(){ card.classList.toggle('unsaved', input.value !== '' && input.value !== input.dataset.saved); saUpdate(); });
     input.addEventListener('keydown', function(ev){
       if(ev.key !== 'Enter') return;
       ev.preventDefault();
@@ -1224,6 +1235,7 @@ function renderStudentList(students){
         .then(function(res){
           saveBtn.disabled = false;
           if(res.success){
+            input.dataset.saved = savedVal; card.classList.remove('unsaved'); saUpdate();
             status.textContent = 'Saved. New total: ' + res.newTotal + (res.mirrored && res.mirrored.length ? ' (also saved in ' + res.mirrored.map(function(t){ const m = String(t).match(/\((P\w+)/); return m ? m[1] : t; }).join(', ') + ' - double block)' : '');
             status.className = 'save-status ok';
             total.textContent = totalText(res.newTotal);
@@ -1250,6 +1262,7 @@ function renderStudentList(students){
     entryRow.appendChild(input);
     entryRow.appendChild(saveBtn);
     entryRow.appendChild(status);
+    saRows.push({ s: s, input: input, status: status, card: card, setTotal: function(t){ total.textContent = totalText(t); s.total = t; }, hist: function(){ return histGrid; } });
     card.appendChild(entryRow);
 
     const histToggle = document.createElement('div');
@@ -1574,7 +1587,53 @@ document.getElementById('backFromIgpBtn').onclick = function(){
   window.scrollTo(0, igpReturnScroll);
 };
 
+// ===================== v113: SAVE ALL =====================
+let saRows = [];
+function saDirty(){ return saRows.filter(function(x){ return x.input.value !== '' && x.input.value !== x.input.dataset.saved; }); }
+function saUpdate(){
+  const n = saDirty().length, b = document.getElementById('saveAllBtn');
+  b.disabled = !n; b.textContent = n ? 'Save all (' + n + ')' : 'Save all';
+  document.getElementById('saveAllInfo').textContent = n ? n + ' student' + (n === 1 ? '' : 's') + ' not saved yet' : 'Type points for each student, then Save all.';
+  document.getElementById('saveAllBar').classList.toggle('dirty', !!n);
+}
+document.getElementById('saveAllBtn').onclick = function(){
+  const rows = saDirty(); if(!rows.length) return;
+  const bad = rows.filter(function(x){ return isNaN(Number(x.input.value)); });
+  if(bad.length){ alert('Check the points for ' + bad.map(function(x){ return x.s.first + ' ' + x.s.last; }).join(', ') + ' - they must be numbers.'); return; }
+  const btn = this, week = currentWeek; btn.disabled = true; btn.textContent = 'Saving ' + rows.length + '...';
+  rows.forEach(function(x){ x.status.textContent = 'Saving...'; x.status.className = 'save-status'; });
+  const chunks = []; for(let i = 0; i < rows.length; i += 25) chunks.push(rows.slice(i, i + 25));
+  let saved = 0, failed = 0;
+  const next = function(k){
+    if(k >= chunks.length){
+      saUpdate();
+      document.getElementById('saveAllInfo').textContent = 'Saved ' + saved + ' student' + (saved === 1 ? '' : 's') + (failed ? ' - ' + failed + ' not saved (see red notes)' : ' \u2713');
+      if(typeof refreshPointsDue === 'function') refreshPointsDue();
+      return;
+    }
+    const part = chunks[k];
+    apiGet({ mode:'submitpointsbatch', code: myCode, week: week, entries: JSON.stringify(part.map(function(x){ return { tab: x.s._tab || currentTab, first: x.s.first, last: x.s.last, id: x.s.studentId || '', value: x.input.value }; })) })
+      .then(function(res){
+        if(!res.success){ part.forEach(function(x){ x.status.textContent = res.error || 'Not saved.'; x.status.className = 'save-status err'; }); failed += part.length; return next(k + 1); }
+        part.forEach(function(x, i){
+          const r = res.results[i];
+          if(r && r.success){
+            saved++; x.input.dataset.saved = x.input.value; x.card.classList.remove('unsaved');
+            x.setTotal(r.newTotal);
+            x.status.textContent = 'Saved. New total: ' + r.newTotal + (r.mirrored && r.mirrored.length ? ' (also saved in the double-block period)' : ''); x.status.className = 'save-status ok';
+            const wi = currentWeekLabels.indexOf(week);
+            if(wi !== -1){ if(!x.s.weeks) x.s.weeks = []; while(x.s.weeks.length <= wi) x.s.weeks.push(null); x.s.weeks[wi] = Number(x.input.value); }
+          } else { failed++; x.status.textContent = (r && r.error) || 'Not saved.'; x.status.className = 'save-status err'; }
+        });
+        next(k + 1);
+      }).catch(function(){ part.forEach(function(x){ x.status.textContent = 'Network error - press Save all again.'; x.status.className = 'save-status err'; }); failed += part.length; next(k + 1); });
+  };
+  next(0);
+};
+window.addEventListener('beforeunload', function(e){ if(saDirty().length){ e.preventDefault(); e.returnValue = ''; } });
+
 document.getElementById('backToClassesBtn').onclick = function(){
+  if(saDirty().length && !confirm('You have points typed that are not saved yet. Leave without saving?')) return;
   renderClassList();
   showState('classListState');
   refreshPointsDue();
@@ -1605,7 +1664,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v44-roll-from-monitor';
+document.getElementById('buildTag').textContent = 'v45-save-all';
 // ===================== v107: PREV (points from earlier semesters) - view and change with a warning =====================
 // pvBox(student, tab, { canEdit, onSaved(res) }) -> an element for the student's card/row.
 function pvFmt(v){ return v === null || v === undefined || v === '' ? '—' : String(Math.round(Number(v) * 100) / 100); }
@@ -1707,6 +1766,7 @@ document.getElementById('remSave').onclick = function(){
 document.getElementById('homeBtn').onclick = function(){
   const unsaved = (typeof rlMarks !== 'undefined' && Object.keys(rlMarks).length) || (typeof rlAsg !== 'undefined' && Object.keys(rlAsg).length);
   if(document.getElementById('progRollState').classList.contains('active') && unsaved && !confirm('You have unsaved roll changes. Leave without saving?')) return;
+  if(document.getElementById('rosterState').classList.contains('active') && saDirty().length && !confirm('You have points typed that are not saved yet. Leave without saving?')) return;
   if(typeof rlMarks !== 'undefined') rlMarks = {};
   const pm = document.querySelector('.pr-modal'); if(pm) pm.remove();
   renderClassList();
