@@ -601,6 +601,7 @@
   :is(#printArea, .psheet) .trkbox .cb{ display:inline-block; width:7pt; height:7pt; border:0.8pt solid #1c2b4a; vertical-align:-1px; }
   :is(#printArea, .psheet) .trkbox .cb.on{ background:#1c2b4a; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   :is(#printArea, .psheet).psheet .i1-trkbtn{ align-self:center; margin:0 !important; }
+  :is(#printArea, .psheet) .nc-row .cb.on{ background:#1c2b4a; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
 
   /* ===== v95 program roll ===== */
   .rl-progs{ display:flex; flex-wrap:wrap; gap:6px; margin:6px 0 10px; }
@@ -1769,7 +1770,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v55-no-failed-move';
+document.getElementById('buildTag').textContent = 'v56-term-labels';
 // ===================== v107: PREV (points from earlier semesters) - view and change with a warning =====================
 // pvBox(student, tab, { canEdit, onSaved(res) }) -> an element for the student's card/row.
 function pvFmt(v){ return v === null || v === undefined || v === '' ? '—' : String(Math.round(Number(v) * 100) / 100); }
@@ -2133,7 +2134,7 @@ function prIgp(st, pack, opt){
     (opt.failed ? '<div class="i1-box fail"><div class="i1-h"><span>Failed courses &middot; counselor only</span><span>' + failed.length + '</span></div>' +
       '<table><tr><th>Course</th><th class="c">Mark</th><th>Term</th></tr>' + (failed.length ? failed.map(function(r){
         return '<tr><td>' + prE(r.title) + '<div class="sub">' + prE((PR_IGP_META[r.category] || {}).label || r.category) + (r.validatedBy ? ' &middot; <b>validated by ' + prE(r.validatedBy) + '</b>' : '') + (r.moved ? ' &middot; moved from ' + prE((PR_IGP_META[r.moved.from] || {}).label || r.moved.from) : '') + '</div>' +
-          (opt.canMove && r.key && r.moved ? '<button type="button" class="i1-mv rw-only" data-mv="' + prE(r.key) + '">Undo move</button>' : '') + '</td><td class="c">' + prE(r.mark) + '</td><td class="tm">' + prE(r.termEnd) + '</td></tr>'; }).join('')
+          (opt.canMove && r.key && r.moved ? '<button type="button" class="i1-mv rw-only" data-mv="' + prE(r.key) + '">Undo move</button>' : '') + '</td><td class="c">' + prE(r.mark) + '</td><td class="tm">' + prE(r.term || r.termEnd) + '</td></tr>'; }).join('')
         : '<tr><td colspan="3" class="muted">None</td></tr>') + '</table><div class="sub" style="padding:2px 5px;">Not counted for credit and not printed. A course passed later drops off.</div></div>' : '') +
     '<div class="i1-box"><div class="i1-h"><span>In progress at Stoney Point</span></div><table><tr><th>Per</th><th>Course</th><th class="n">Pts</th></tr>' + (ip.length ? ip.map(function(c){
       return '<tr><td class="tm">' + prE(String(c.period || '').replace(/^P0?/, '')) + '</td><td>' + prE(c.course) + '</td><td class="n">' + (c.advisory ? prNum(c.total) + '*' : prNum(c.total)) + '</td></tr>'; }).join('') : '<tr><td colspan="3" class="muted">None</td></tr>') + '</table></div>' +
@@ -2142,7 +2143,7 @@ function prIgp(st, pack, opt){
     trkBox + (nonL ? '' :
     '<div class="i1-box nonc"><div class="i1-h"><span>Non-course requirements</span></div>' +
       '<div class="nc-row"><span class="cb"></span><b>Career Pathway</b> identified &amp; recorded in MiSiS <small>(by end of 11th grade)</small></div>' +
-      '<div class="nc-row"><span class="cb"></span><b>Service Learning</b> project completed &amp; recorded in MiSiS</div>' +
+      '<div class="nc-row"><span class="cb' + (tr.serviceLearning ? ' on' : '') + '"></span><b>Service Learning</b> project completed &amp; recorded in MiSiS' + (tr.serviceLearning ? ' <small>(on the transcript)</small>' : '') + '</div>' +
       '<div class="sub" style="padding:1px 5px 3px;">REF-103912 &middot; 210 credits &middot; promote at 50 / 105 / 160</div></div>') +
     (opt.screen ? '' : '<div class="i1-box notes"><div class="i1-h"><span>Notes / plan</span></div><div class="lines"></div></div>') + '</div></div>';
   if(!opt.screen) h += '<div class="sig"><div>Student signature / date</div><div>Parent or guardian signature / date</div><div>Counselor signature / date</div></div>';
@@ -2228,11 +2229,11 @@ function prTranscript(st, pack){
   if(!t.courses.length) h += '<div class="empty">No transcript on file for this student.</div>';
   else {
     h += '<table><tr><th>Term</th><th>School</th><th>Course #</th><th>Course</th><th class="c">Mark</th><th class="n">Credits</th></tr>' + t.courses.map(function(r){
-      return '<tr><td class="tm">' + prE(r.termEnd) + '</td><td>' + prE(r.school) + '</td><td class="tm">' + prE(r.crsId) + '</td><td>' + prE(r.title) + '</td><td class="c">' + prE(r.mark) + '</td><td class="n">' + prNum(r.credit) + '</td></tr>';
+      return '<tr><td class="tm">' + prE(r.term || r.termEnd) + '</td><td>' + prE(r.school) + '</td><td class="tm">' + prE(r.crsId) + '</td><td>' + prE(r.title) + '</td><td class="c">' + prE(r.mark) + '</td><td class="n">' + prNum(r.credit) + '</td></tr>';
     }).join('') + '<tr><td colspan="5" class="n"><b>Total credits earned</b></td><td class="n"><b>' + prNum(t.credits) + '</b></td></tr></table>';
   }
   if(t.inProgress.length) h += '<h4>In progress (from the transcript)</h4><table><tr><th>Term</th><th>School</th><th>Course</th></tr>' + t.inProgress.map(function(r){
-    return '<tr><td class="tm">' + prE(r.termEnd) + '</td><td>' + prE(r.school) + '</td><td>' + prE(r.title) + '</td></tr>'; }).join('') + '</table>';
+    return '<tr><td class="tm">' + prE(r.term || r.termEnd) + '</td><td>' + prE(r.school) + '</td><td>' + prE(r.title) + '</td></tr>'; }).join('') + '</table>';
   if(t.completedHere && t.completedHere.length) h += '<h4>Completed at Stoney Point (points system &mdash; may not be on the transcript yet)</h4><table><tr><th>Course</th><th>Teacher</th><th class="c">Grade</th></tr>' + t.completedHere.map(function(c){
     return '<tr><td>' + prE(c.course) + '</td><td>' + prE(c.teacher) + '</td><td class="c">' + prE(c.grade) + '</td></tr>'; }).join('') + '</table>';
   return h + prFoot(pack, 'UNOFFICIAL') + '</div>';
