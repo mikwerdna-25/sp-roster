@@ -743,7 +743,7 @@
 
     <div class="state" id="igpState">
       <div style="display:flex; justify-content:space-between; gap:8px;"><button class="small-link" id="backFromIgpBtn" style="margin-bottom:10px;">&lt; Back to class</button><button class="m-pbtn no-print" id="igpPrintBtnT">&#128424;&#65039; Print</button></div>
-      <div class="igp-tabs" id="igpTabs"><button type="button" data-v="igp" class="on">IGP</button><button type="button" data-v="snapshot">Graduation snapshot</button></div>
+      <div class="igp-tabs" id="igpTabs"><button type="button" data-v="igp" class="on">IGP</button><button type="button" data-v="snapshot">Graduation snapshot</button><button type="button" data-v="schedule">Class schedule</button></div>
       <div class="psheet" id="igpSheet"></div>
     </div>
 
@@ -1665,7 +1665,7 @@ function openStudentIgp(s){
   document.getElementById('backFromIgpBtn').innerHTML = '&lt; Back';
   showLoading('Loading IGP...');
   igpViewT = 'igp';
-  apiGet({ mode:'printpack', view:'screen', code: myCode, scope:'student', id: s.id || s.studentId || '', first: s.first, last: s.last, parts:'igp,snapshot' })
+  apiGet({ mode:'printpack', view:'screen', code: myCode, scope:'student', id: s.id || s.studentId || '', first: s.first, last: s.last, parts:'igp,snapshot,schedule' })
     .then(function(pk){
       if(!pk.success){ alert(pk.error || 'Could not load this IGP.'); showState(igpReturnState); window.scrollTo(0, igpReturnScroll); return; }
       const st = pk.students[0];
@@ -1769,7 +1769,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v52-diploma-tracks';
+document.getElementById('buildTag').textContent = 'v53-student-records';
 // ===================== v107: PREV (points from earlier semesters) - view and change with a warning =====================
 // pvBox(student, tab, { canEdit, onSaved(res) }) -> an element for the student's card/row.
 function pvFmt(v){ return v === null || v === undefined || v === '' ? '—' : String(Math.round(Number(v) * 100) / 100); }
@@ -2154,8 +2154,9 @@ function prIgp(st, pack, opt){
 function prShow(el, pack, which, opt){
   opt = Object.assign({ screen: true }, opt || {});
   const st = pack.students[0];
-  el.innerHTML = which === 'snapshot' ? prSnapshot(st, pack) : prIgp(st, pack, opt);
-  if(which !== 'snapshot' && opt.canMove){
+  el.innerHTML = which === 'snapshot' ? prSnapshot(st, pack) : which === 'schedule' ? prSchedule(st, pack)     // v121: schedule and transcript on screen too
+    : which === 'transcript' ? prTranscript(st, pack) : prIgp(st, pack, opt);
+  if(which === 'igp' && opt.canMove){
     const byKey = {};
     ((st.igp || {}).categories || []).forEach(function(c){
       c.courses.forEach(function(r){ if(r.key && !r.dual) byKey[r.key] = r; });
