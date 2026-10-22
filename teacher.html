@@ -602,6 +602,7 @@
   :is(#printArea, .psheet) .trkbox .cb.on{ background:#1c2b4a; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   :is(#printArea, .psheet).psheet .i1-trkbtn{ align-self:center; margin:0 !important; }
   :is(#printArea, .psheet) .nc-row .cb.on{ background:#1c2b4a; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  :is(#printArea, .psheet) .sub.pend{ color:#1d7a3a !important; font-style:italic; } :is(#printArea, .psheet) .i1-top small.pendnote{ font-size:6.5pt; color:#1d7a3a; }
 
   /* ===== v95 program roll ===== */
   .rl-progs{ display:flex; flex-wrap:wrap; gap:6px; margin:6px 0 10px; }
@@ -1770,7 +1771,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v56-term-labels';
+document.getElementById('buildTag').textContent = 'v57-pending-igp';
 // ===================== v107: PREV (points from earlier semesters) - view and change with a warning =====================
 // pvBox(student, tab, { canEdit, onSaved(res) }) -> an element for the student's card/row.
 function pvFmt(v){ return v === null || v === undefined || v === '' ? '—' : String(Math.round(Number(v) * 100) / 100); }
@@ -2067,7 +2068,8 @@ function prIgp(st, pack, opt){
   const cats = {}; (tr.categories || []).forEach(function(c){ cats[c.category] = c; });
   const getCat = function(name){ return cats[name] || { courses: [], totalCredits: 0, needed: [], inProgressFor: [] }; };
   let h = '<div class="pdoc one igp1">' + prHead('Individual Graduation Plan (IGP)', st, pack);
-  h += '<div class="i1-top"><div><span>Total credits</span><b>' + (tr.hasData ? prNum(earned) : '&ndash;') + '</b></div>' +
+  const pendCr = (tr.categories || []).reduce(function(n, c){ return n + c.courses.reduce(function(m, r){ return m + (r.pending && !r.dual && r.credit > 0 ? r.credit : 0); }, 0); }, 0);   // v126
+  h += '<div class="i1-top"><div><span>Total credits</span><b>' + (tr.hasData ? prNum(earned) : '&ndash;') + '</b>' + (pendCr ? '<small class="pendnote">incl. ' + prNum(pendCr) + ' pending MiSiS</small>' : '') + '</div>' +
     '<div><span>Credits to graduate</span><b class="red">' + (tr.hasData ? prNum(Math.max(0, gTotal - earned, trk.shortCredits || 0)) : '&ndash;') + '</b></div>' +
     '<div><span>Graduation credits</span><b>' + gTotal + '</b></div>' +
     '<div><span>Diploma track</span><b class="trk' + (nonL ? ' alt' : '') + '">' + prE(trk.short) + '</b></div>' +
@@ -2085,9 +2087,10 @@ function prIgp(st, pack, opt){
       if(opt.screen && r.moved) t += '<div class="sub mvnote' + (/RESTRICTED/.test(r.moved.policy || '') ? ' restricted' : '') + '">&#8644; ' +
         (opt.canMove ? 'Moved from ' + prE((PR_IGP_META[r.moved.from] || {}).label || r.moved.from) + ' by ' + prE(r.moved.by) + ', ' + prE(r.moved.when) + ' &ndash; ' + prE(r.moved.reason)
                      : 'Counselor moved this from ' + prE((PR_IGP_META[r.moved.from] || {}).label || r.moved.from)) + '</div>';
+      if(r.pending) t += '<div class="sub pend">Completed at Stoney Point &ndash; pending MiSiS transcript</div>';   // v126
       if(r.noReq) t += '<div class="sub noreq">Statistics &ndash; not toward the 3-year math minimum (REF-103912)</div>';
       if(r.dual) t += '<div class="sub dual">Approved Ethnic Studies course &ndash; also counts in ' + prE((PR_IGP_META[r.dual] || {}).label || r.dual) + ' (credits counted once)</div>';
-      if(opt.canMove && r.key) t += '<button type="button" class="i1-mv rw-only" data-mv="' + prE(r.key) + '">' + (r.moved ? 'Undo move' : 'Move') + '</button>';
+      if(opt.canMove && r.key && !r.pending) t += '<button type="button" class="i1-mv rw-only" data-mv="' + prE(r.key) + '">' + (r.moved ? 'Undo move' : 'Move') + '</button>';
       return '<tr' + (r.dual ? ' class="dualrow"' : '') + '><td>' + t + '</td><td class="n">' + (r.dual ? '(' + prNum(r.credit) + ')' : prNum(r.credit)) + '</td><td class="c">' + prE(r.mark) + '</td></tr>'; });
     // v118: validation (C or better in a higher course) and IEP waivers meet a line without credits (REF-103912)
     (cat.validated || []).forEach(function(v){ rows.push('<tr class="valrow"><td>' + prE(v.name) + '<div class="sub">Validated by ' + prE(v.by) + ' &ndash; no credits' + (opt.screen && v.reason ? ' &ndash; ' + prE(v.reason) : '') + '</div>' +
