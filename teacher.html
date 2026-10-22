@@ -989,7 +989,7 @@ function renderStudentCard(el, d, pickEl){
   const cur = d.classes.filter(function(c){ return !c.completed; }), done = d.classes.filter(function(c){ return c.completed; });
   const row = function(c, i){
     return '<div class="ro-class"><div style="flex:1;"><div>' + (c.notInMisis ? '<b style="color:#a32b2b;">\u2691</b> ' : '<b>' + hEsc(c.period || '') + '</b> ') + hEsc(c.course) + (c.mine ? ' <span class="mine-tag">your class</span>' : '') + '</div>' +
-      '<div class="ro-sub"' + (c.notInMisis ? ' style="color:#a32b2b;"' : '') + '>' + (c.notInMisis ? 'Not on MiSiS schedule (from FileMaker)' : hEsc(c.teacher || 'Teacher not listed')) + (c.doubleBlock ? ' &middot; <b style="color:#6b4a00;">\u21c4 double block ' + hEsc(c.doubleBlock.periods.join(' + ')) + '</b>' : '') + ' &middot; ' + (c.completed ? 'Completed' + (c.grade ? ' (' + hEsc(c.grade) + ')' : '') : ptsFmt(c.total) + (c.advisory ? ' points (go to College & Career)' : ' / 75 points')) + '</div></div>' +
+      '<div class="ro-sub"' + (c.notInMisis ? ' style="color:#a32b2b;"' : '') + '>' + (c.notInMisis ? 'Not on MiSiS schedule' + (c.teacher ? ' &middot; ' + hEsc(c.teacher) : '') + ' (from FileMaker)' : hEsc(c.teacher || 'Teacher not listed')) + (c.doubleBlock ? ' &middot; <b style="color:#6b4a00;">\u21c4 double block ' + hEsc(c.doubleBlock.periods.join(' + ')) + '</b>' : '') + ' &middot; ' + (c.completed ? 'Completed' + (c.grade ? ' (' + hEsc(c.grade) + ')' : '') : ptsFmt(c.total) + (c.advisory ? ' points (go to College & Career)' : ' / 75 points')) + '</div></div>' +
       (c.mine && c.tab ? '<button class="save-btn open-mine" data-i="' + i + '">Open</button>' : '') + '</div>';
   };
   html += '<div class="ro-head">Current classes</div>' + (cur.length ? cur.map(function(c){ return row(c, d.classes.indexOf(c)); }).join('') : '<div class="ro-sub">No current classes on record.</div>');
@@ -1011,7 +1011,7 @@ function tvRow(c, i, d){
   const right = c.completed ? 'Grade: ' + hEsc(c.grade || '') : (c.advisory ? ptsFmt(c.total) + ' pts to C&amp;C' : ptsFmt(c.total) + ' / 75');
   return '<div class="tv-row"><div style="flex:1;min-width:0;"><div>' + (c.notInMisis ? '<b style="color:#a32b2b;">⚑</b> ' : '<b>' + hEsc(c.period || '') + '</b> ') + hEsc(c.course) +
     (c.mine ? ' <span class="mine-tag">your class</span>' : '') + '</div><div class="sub"' + (c.notInMisis ? ' style="color:#a32b2b;"' : '') + '>' +
-    (c.notInMisis ? 'Not on MiSiS schedule (from FileMaker)' : hEsc(c.teacher || 'Teacher not listed')) + (c.doubleBlock ? ' &middot; <b style="color:#6b4a00;">\u21c4 double block ' + hEsc(c.doubleBlock.periods.join(' + ')) + ' (points shared)</b>' : '') + '</div></div>' +
+    (c.notInMisis ? 'Not on MiSiS schedule' + (c.teacher ? ' &middot; ' + hEsc(c.teacher) : '') + ' (from FileMaker)' : hEsc(c.teacher || 'Teacher not listed')) + (c.doubleBlock ? ' &middot; <b style="color:#6b4a00;">\u21c4 double block ' + hEsc(c.doubleBlock.periods.join(' + ')) + ' (points shared)</b>' : '') + '</div></div>' +
     '<div class="right">' + right + '</div>' + (c.mine && c.tab && !c.completed ? '<button class="save-btn open-mine" data-i="' + i + '">Open</button>' : '') + '</div>';
 }
 function renderStudentPage(d){
@@ -1769,7 +1769,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v53-student-records';
+document.getElementById('buildTag').textContent = 'v54-nim-teacher';
 // ===================== v107: PREV (points from earlier semesters) - view and change with a warning =====================
 // pvBox(student, tab, { canEdit, onSaved(res) }) -> an element for the student's card/row.
 function pvFmt(v){ return v === null || v === undefined || v === '' ? '—' : String(Math.round(Number(v) * 100) / 100); }

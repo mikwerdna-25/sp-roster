@@ -745,6 +745,7 @@
   .wn-h{ font-size:0.72rem; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin:12px 0 6px; }
   .wn-pass{ display:flex; flex-wrap:wrap; gap:4px 8px; align-items:baseline; border:1px solid #e6c35c; background:#fff8e1; border-radius:8px; padding:7px 9px; margin-bottom:6px; cursor:pointer; }
   .wn-pass.over{ border-color:#d03b3b; background:#fde2df; }
+  .wn-stale{ background:#a32b2b; color:#fff; font-size:0.7rem; font-weight:800; border-radius:5px; padding:1px 6px; }
   .wn-tm{ font-variant-numeric:tabular-nums; font-weight:800; min-width:44px; }
   .wn-sub{ width:100%; font-size:0.78rem; color:var(--muted); }
   .wn-grid{ display:grid; grid-template-columns:1fr; gap:6px; }
@@ -1163,7 +1164,7 @@
 <input type="file" id="photoInput" accept="image/*" style="display:none;">
 
 <script>
-const APP_BUILD = 'build-36-where-now';
+const APP_BUILD = 'build-38-nim-teacher';
 const GRADE_COLORS = {9:'g9',10:'g10',11:'g11',12:'g12'};
 const AVATAR_HUES = ['#5b7a9d','#6f8f5b','#b8862f','#a34b3f','#7a6a9d','#4a8f8f'];
 
@@ -1797,7 +1798,7 @@ function drawSchedule(box, courses){
   const row = c => `<div style="display:flex;gap:10px;padding:5px 0;border-bottom:1px solid #e3e6ec;${c.completed?'opacity:.6;':''}">
       <div style="min-width:48px;font-weight:800;${c.notInMisis?'color:#a32b2b;':''}">${c.notInMisis?'\u2691':(escHtml(c.period)||'&ndash;')}</div>
       <div style="flex:1;"><div style="font-weight:600;">${escHtml(c.course)}</div>
-        <div style="color:${c.notInMisis?'#a32b2b':'var(--muted)'};font-size:0.78rem;">${c.notInMisis?'Not on MiSiS schedule (from FileMaker)':(escHtml(c.teacher)||'Teacher not listed')}${c.completed?' &middot; Completed'+(c.grade?' ('+escHtml(c.grade)+')':''):' &middot; '+escHtml(c.total)+' pts'+(c.advisory?' (to College &amp; Career)':'')}</div></div></div>`;
+        <div style="color:${c.notInMisis?'#a32b2b':'var(--muted)'};font-size:0.78rem;">${c.notInMisis?'Not on MiSiS schedule'+(c.teacher?' &middot; '+escHtml(c.teacher):'')+' (from FileMaker)':(escHtml(c.teacher)||'Teacher not listed')}${c.completed?' &middot; Completed'+(c.grade?' ('+escHtml(c.grade)+')':''):' &middot; '+escHtml(c.total)+' pts'+(c.advisory?' (to College &amp; Career)':'')}</div></div></div>`;
   box.innerHTML = courses.map(row).join('');
 }
 async function loadScheduleSection(s){
@@ -3049,6 +3050,11 @@ function wnPlace(p){
   if(d && d.key === 'other') return p.note || 'Somewhere else';
   return d ? d.label : wnRoomName(p.to);
 }
+function wnStale(p){                                       // a pass still open from an earlier period
+  if(!p || p.status !== 'Out' || !p.period || wnCfg().programs.some(x => x.key === p.type)) return '';
+  const cur = wnCur(wnInfo(wnNow()).minute); if(!cur || cur.key === p.period) return '';
+  const b = wnBlocks().filter(x => x.key === p.period)[0]; return b ? b.label : p.period;
+}
 function wnPassOf(st){ return WN.D.passes.filter(p => p.studentId === st.id && p.status === 'Out')[0] || null; }
 function wnLevel(p){
   const d = wnCfg().destinations.filter(x => x.key === p.type)[0], m = (wnNow() - p.out) / 60000;
@@ -3118,7 +3124,7 @@ function wnRender(){
   if(!b){ h += '<div class="wn-msg">No school right now.</div>'; }
   else if(!live) h += '<div class="wn-note">Showing where students are <b>scheduled</b> for ' + wnEsc(b.label) + ' (' + wnT12(b.start) + '–' + wnT12(b.end) + '). Live passes show on the current period.</div>';
   if(live && outs.length){
-    h += '<div class="wn-h">Out of class now (' + outs.length + ')</div>' + outs.sort((a, c) => a.p.out - c.p.out).map(o => '<div class="wn-pass ' + wnLevel(o.p) + '" data-sid="' + wnEsc(o.st.id) + '"><span class="wn-tm" data-wnt="' + o.p.out + '">' + wnMmss(wnNow() - o.p.out) + '</span><b>' + wnEsc(o.st.first + ' ' + o.st.last) + '</b><span class="wn-sub">' + (o.p.from ? wnEsc(wnRoomName(o.p.from)) + ' → ' : '') + wnEsc(wnPlace(o.p)) + '</span></div>').join('');
+    h += '<div class="wn-h">Out of class now (' + outs.length + ')</div>' + outs.sort((a, c) => (wnStale(c.p) ? 1 : 0) - (wnStale(a.p) ? 1 : 0) || a.p.out - c.p.out).map(o => '<div class="wn-pass ' + wnLevel(o.p) + (wnStale(o.p) ? ' over' : '') + '" data-sid="' + wnEsc(o.st.id) + '"><span class="wn-tm" data-wnt="' + o.p.out + '">' + wnMmss(wnNow() - o.p.out) + '</span><b>' + wnEsc(o.st.first + ' ' + o.st.last) + '</b>' + (wnStale(o.p) ? '<span class="wn-stale">from ' + wnEsc(wnStale(o.p)) + ' – never returned</span>' : '') + '<span class="wn-sub">' + (o.p.from ? wnEsc(wnRoomName(o.p.from)) + ' → ' : '') + wnEsc(wnPlace(o.p)) + '</span></div>').join('');
   }
   const room = id => { const r = wnRoom(id) || { name:id, label:'' }, x = boxes[id], n = x.here.length + x.vis.length;
     if(q && !n && !x.out.length && !x.absent.length) return '';
