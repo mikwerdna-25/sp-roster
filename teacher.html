@@ -1769,7 +1769,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v54-nim-teacher';
+document.getElementById('buildTag').textContent = 'v55-no-failed-move';
 // ===================== v107: PREV (points from earlier semesters) - view and change with a warning =====================
 // pvBox(student, tab, { canEdit, onSaved(res) }) -> an element for the student's card/row.
 function pvFmt(v){ return v === null || v === undefined || v === '' ? '—' : String(Math.round(Number(v) * 100) / 100); }
@@ -2133,7 +2133,7 @@ function prIgp(st, pack, opt){
     (opt.failed ? '<div class="i1-box fail"><div class="i1-h"><span>Failed courses &middot; counselor only</span><span>' + failed.length + '</span></div>' +
       '<table><tr><th>Course</th><th class="c">Mark</th><th>Term</th></tr>' + (failed.length ? failed.map(function(r){
         return '<tr><td>' + prE(r.title) + '<div class="sub">' + prE((PR_IGP_META[r.category] || {}).label || r.category) + (r.validatedBy ? ' &middot; <b>validated by ' + prE(r.validatedBy) + '</b>' : '') + (r.moved ? ' &middot; moved from ' + prE((PR_IGP_META[r.moved.from] || {}).label || r.moved.from) : '') + '</div>' +
-          (opt.canMove && r.key ? '<button type="button" class="i1-mv rw-only" data-mv="' + prE(r.key) + '">' + (r.moved ? 'Undo move' : 'Move') + '</button>' : '') + '</td><td class="c">' + prE(r.mark) + '</td><td class="tm">' + prE(r.termEnd) + '</td></tr>'; }).join('')
+          (opt.canMove && r.key && r.moved ? '<button type="button" class="i1-mv rw-only" data-mv="' + prE(r.key) + '">Undo move</button>' : '') + '</td><td class="c">' + prE(r.mark) + '</td><td class="tm">' + prE(r.termEnd) + '</td></tr>'; }).join('')
         : '<tr><td colspan="3" class="muted">None</td></tr>') + '</table><div class="sub" style="padding:2px 5px;">Not counted for credit and not printed. A course passed later drops off.</div></div>' : '') +
     '<div class="i1-box"><div class="i1-h"><span>In progress at Stoney Point</span></div><table><tr><th>Per</th><th>Course</th><th class="n">Pts</th></tr>' + (ip.length ? ip.map(function(c){
       return '<tr><td class="tm">' + prE(String(c.period || '').replace(/^P0?/, '')) + '</td><td>' + prE(c.course) + '</td><td class="n">' + (c.advisory ? prNum(c.total) + '*' : prNum(c.total)) + '</td></tr>'; }).join('') : '<tr><td colspan="3" class="muted">None</td></tr>') + '</table></div>' +
