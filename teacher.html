@@ -603,6 +603,8 @@
   :is(#printArea, .psheet).psheet .i1-trkbtn{ align-self:center; margin:0 !important; }
   :is(#printArea, .psheet) .nc-row .cb.on{ background:#1c2b4a; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   :is(#printArea, .psheet) .sub.pend{ color:#1d7a3a !important; font-style:italic; } :is(#printArea, .psheet) .i1-top small.pendnote{ font-size:6.5pt; color:#1d7a3a; }
+  :is(#printArea, .psheet) .sn-body .ipl{ color:#5a4100; } :is(#printArea, .psheet) .sn-body .ipl i{ font-size:6.3pt; }
+  :is(#printArea, .psheet) .sn-body > div{ margin-bottom:1px; }
 
   /* ===== v95 program roll ===== */
   .rl-progs{ display:flex; flex-wrap:wrap; gap:6px; margin:6px 0 10px; }
@@ -1772,7 +1774,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v61-in-progress';
+document.getElementById('buildTag').textContent = 'v62-snapshot-lines';
 // ===================== v107: PREV (points from earlier semesters) - view and change with a warning =====================
 // pvBox(student, tab, { canEdit, onSaved(res) }) -> an element for the student's card/row.
 function pvFmt(v){ return v === null || v === undefined || v === '' ? '—' : String(Math.round(Number(v) * 100) / 100); }
@@ -2219,12 +2221,19 @@ function prSnapshot(st, pack){
       (tk.checks || []).map(function(c){ return '<div class="sn-box"><div class="sn-l" style="font-size:8pt;">Test</div><div class="sn-body">' + (c.done ? '<div class="ok">Passed</div>' : '<div>' + prE(c.name) + '</div>') + '</div><div class="sn-n">' + (c.done ? '&#10003;' : '&nbsp;') + '</div></div>'; }).join('') + '</div>';
     return h + prFoot(pack, 'Points from the points sheet; credits from the transcript on file; credits alone do not qualify') + '</div>';
   }
-  h += '<h4 class="sn-h">A&ndash;G courses required for graduation <span>Number of courses still needed: <b>' + (s.coursesNeeded || 0) + '</b></span></h4><div class="sn-ag">' + PR_SNAP_BOXES.map(function(b){
-    const need = [], ipl = [];
-    b[2].forEach(function(cat){ const r = reqs[cat]; if(!r) return; r.needed.forEach(function(x){ need.push(x); }); r.inProgress.forEach(function(x){ ipl.push(x); }); });
+  // v132: every required course on its own line; a course being taken now is marked "(in progress)"
+  const ipName = function(x){ return String(x).replace(/\s*\([^()]*\)\s*$/, ''); };
+  let nNeed = 0, nIp = 0;
+  (s.reqs || []).forEach(function(r){ nNeed += r.needed.length; nIp += r.inProgress.length; });
+  h += '<h4 class="sn-h">A&ndash;G courses required for graduation <span>Courses still required: <b>' + (nNeed + nIp) + '</b>' + (nIp ? ' (' + nIp + ' in progress)' : '') + '</span></h4><div class="sn-ag">' + PR_SNAP_BOXES.map(function(b){
+    const lines = [];
+    b[2].forEach(function(cat){ const r = reqs[cat]; if(!r) return;
+      r.needed.forEach(function(x){ lines.push('<div>' + prE(x) + '</div>'); });
+      r.inProgress.forEach(function(x){ lines.push('<div class="ipl">' + prE(ipName(x)) + ' <i>(in progress)</i></div>'); });
+      if(cat === 'General Elective' && s.hasTranscript && r.credits < PR_ELECTIVE_CREDITS) lines.push('<div>Electives &ndash; ' + prNum(PR_ELECTIVE_CREDITS - r.credits) + ' more credits</div>'); });
     return '<div class="sn-box"><div class="sn-l">' + (b[0] || '&nbsp;') + '</div><div class="sn-body">' +
-      (need.length ? need.map(function(x){ return '<div>' + prE(x) + '</div>'; }).join('') : (s.hasTranscript && !ipl.length ? '<div class="ok">Complete</div>' : '')) +   // v131: not complete while a course is in progress
-      (ipl.length ? '<div class="ipn">In progress: ' + prE(ipl.join(', ')) + '</div>' : '') + '</div><div class="sn-n">' + prE(b[1]) + '</div></div>';
+      (lines.length ? lines.join('') : (s.hasTranscript ? '<div class="ok">Complete</div>' : '')) +
+      '</div><div class="sn-n">' + prE(b[1]) + '</div></div>';
   }).join('') + '</div>';
   return h + prFoot(pack, 'Points from the points sheet; credits from the transcript on file') + '</div>';
 }
