@@ -1772,7 +1772,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v59-extended-periods';
+document.getElementById('buildTag').textContent = 'v60-waivers';
 // ===================== v107: PREV (points from earlier semesters) - view and change with a warning =====================
 // pvBox(student, tab, { canEdit, onSaved(res) }) -> an element for the student's card/row.
 function pvFmt(v){ return v === null || v === undefined || v === '' ? '—' : String(Math.round(Number(v) * 100) / 100); }
@@ -2076,6 +2076,7 @@ function prIgp(st, pack, opt){
     '<div><span>Diploma track</span><b class="trk' + (nonL ? ' alt' : '') + '">' + prE(trk.short) + '</b></div>' +
     (nonL ? '' : '<div><span>Grade level (by credits)</span><b>' + (tr.hasData ? prGradeLevel(earned) : '&ndash;') + '</b></div>') +
     (opt.canMove ? '<button type="button" class="i1-mv rw-only i1-trkbtn" data-trk="1">Change track</button>' : '') +
+    (opt.canMove ? '<button type="button" class="i1-mv rw-only i1-trkbtn" data-wvr="1">IEP waivers</button>' : '') +
     '<div class="bar"><i style="width:' + Math.min(100, Math.round(earned / gTotal * 100)) + '%"></i></div></div>';
   if(!tr.hasData) h += '<div class="empty">No transcript on file yet for this student &mdash; the requirement boxes fill in once the transcript is uploaded.</div>';
   let anyMoved = false, nNeeded = 0;
@@ -2173,6 +2174,7 @@ function prShow(el, pack, which, opt){
       b.onclick = function(){ const r = byKey[b.getAttribute('data-mv')]; if(r && opt.onMove) opt.onMove(r, b.closest('tr')); };
     });
     el.querySelectorAll('[data-trk]').forEach(function(b){ b.onclick = function(){ if(opt.onTrack) opt.onTrack(st, b); }; });   // v120
+    el.querySelectorAll('[data-wvr]').forEach(function(b){ b.onclick = function(){ if(opt.onWaivers) opt.onWaivers(st, b); }; });   // v130
     el.querySelectorAll('[data-vl]').forEach(function(b){            // v119: validate an open line
       b.onclick = function(){ if(opt.onValidate) opt.onValidate(b.getAttribute('data-vc'), b.getAttribute('data-vl'), b.closest('tr'), st); };
     });
