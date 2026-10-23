@@ -1029,7 +1029,7 @@ function renderStudentPage(d){
   });
   showState('studentViewState');
   renderStudentWeekly({ weekTotals: d.weeks, currentWeek: d.currentWeek, honorMin: d.honorMin, probationBelow: d.probationBelow,
-    blockWeeks: d.blockWeeks || 5, blockMinPerWeek: d.blockMinPerWeek || 20, inProgress: cur, completed: done });
+    blockWeeks: d.blockWeeks || 5, blockMinPerWeek: d.blockMinPerWeek || 20, blockMin: d.blockMin, inProgress: cur, completed: done });
   loadAttendance('tvAttendance', myCode, st);   // v28
 }
 // v40: pick the student once, then choose Points & attendance or IGP
@@ -1108,14 +1108,15 @@ function renderStudentWeekly(d){
 
   // 5-week blocks: need 20 per week with points (100 for a full block)
   let blocks = '';
-  const bwk = d.blockWeeks || 5, per = d.blockMinPerWeek || 20, done = Math.max(0, (d.currentWeek || 1) - 1);
+  const bwk = d.blockWeeks || 5, done = Math.max(0, (d.currentWeek || 1) - 1);
   for(let b = 0; b * bwk < n; b++){
+    const per = d.blockMin && d.blockMin[b] != null ? d.blockMin[b] : (d.blockMinPerWeek || 20);   // v127: fewer classes, smaller minimum
     let tot = 0, cnt = 0;
     const last = Math.min((b + 1) * bwk, n);
     for(let w = b * bwk; w < last; w++){ if(totals[w] !== null){ tot += totals[w]; cnt++; } }
     if(!cnt) continue;
     const need = cnt * per, finished = (b + 1) * bwk <= done, ok = tot >= need;
-    blocks += '<div class="wk-block' + (finished && !ok ? ' bad' : '') + '">Weeks ' + (b * bwk + 1) + '–' + ((b + 1) * bwk) + ': <b>' + wkFmt(tot) + '</b> / ' + need +
+    blocks += '<div class="wk-block' + (finished && !ok ? ' bad' : '') + '">Weeks ' + (b * bwk + 1) + '–' + ((b + 1) * bwk) + ': <b>' + wkFmt(tot) + '</b> / ' + need + (per < (d.blockMinPerWeek || 20) ? ' <span style="color:var(--muted);font-weight:400;">(' + Math.round(per / ((d.blockMinPerWeek || 20) / 5)) + ' classes)</span>' : '') +
       ' &middot; <span class="st" style="color:' + (ok ? '#2b6b2b' : '#a32b2b') + ';">' + (ok ? '✓ Met' : (finished ? '! Intervention' : 'so far, short')) + '</span></div>';
   }
 
@@ -1771,7 +1772,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v57-pending-igp';
+document.getElementById('buildTag').textContent = 'v58-block-by-classes';
 // ===================== v107: PREV (points from earlier semesters) - view and change with a warning =====================
 // pvBox(student, tab, { canEdit, onSaved(res) }) -> an element for the student's card/row.
 function pvFmt(v){ return v === null || v === undefined || v === '' ? '—' : String(Math.round(Number(v) * 100) / 100); }
