@@ -1772,7 +1772,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v60-waivers';
+document.getElementById('buildTag').textContent = 'v61-in-progress';
 // ===================== v107: PREV (points from earlier semesters) - view and change with a warning =====================
 // pvBox(student, tab, { canEdit, onSaved(res) }) -> an element for the student's card/row.
 function pvFmt(v){ return v === null || v === undefined || v === '' ? '—' : String(Math.round(Number(v) * 100) / 100); }
@@ -2223,7 +2223,7 @@ function prSnapshot(st, pack){
     const need = [], ipl = [];
     b[2].forEach(function(cat){ const r = reqs[cat]; if(!r) return; r.needed.forEach(function(x){ need.push(x); }); r.inProgress.forEach(function(x){ ipl.push(x); }); });
     return '<div class="sn-box"><div class="sn-l">' + (b[0] || '&nbsp;') + '</div><div class="sn-body">' +
-      (need.length ? need.map(function(x){ return '<div>' + prE(x) + '</div>'; }).join('') : (s.hasTranscript ? '<div class="ok">Complete</div>' : '')) +
+      (need.length ? need.map(function(x){ return '<div>' + prE(x) + '</div>'; }).join('') : (s.hasTranscript && !ipl.length ? '<div class="ok">Complete</div>' : '')) +   // v131: not complete while a course is in progress
       (ipl.length ? '<div class="ipn">In progress: ' + prE(ipl.join(', ')) + '</div>' : '') + '</div><div class="sn-n">' + prE(b[1]) + '</div></div>';
   }).join('') + '</div>';
   return h + prFoot(pack, 'Points from the points sheet; credits from the transcript on file') + '</div>';
