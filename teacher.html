@@ -1813,7 +1813,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v67-non-course';
+document.getElementById('buildTag').textContent = 'v68-transcript-date';
 // ===================== v107: PREV (points from earlier semesters) - view and change with a warning =====================
 // pvBox(student, tab, { canEdit, onSaved(res) }) -> an element for the student's card/row.
 function pvFmt(v){ return v === null || v === undefined || v === '' ? '—' : String(Math.round(Number(v) * 100) / 100); }
@@ -2058,6 +2058,7 @@ function prHead(title, st, pack){
     (st.id ? '<span><span class="k">Student ID</span>' + prE(st.id) + '</span>' : '') +
     (st.gradYear ? '<span><span class="k">Class of</span>' + prE(st.gradYear) + '</span>' : '') + '</div>';
 }
+function prTrAt(st){ return st && st.transcriptAt ? ' (MiSiS transcript uploaded ' + prE(st.transcriptAt) + ')' : ''; }   // v141
 function prFoot(pack, extra){
   return '<div class="pf"><span>Printed ' + prE(pack.printedAt) + ' by ' + prE(pack.printedBy) + (extra ? ' &middot; ' + extra : '') + '</span>' +
     '<span>Confidential student record &mdash; do not leave unattended.</span></div>';
@@ -2225,7 +2226,7 @@ function prIgp(st, pack, opt){
     (opt.screen ? '' : '<div class="i1-box notes"><div class="i1-h"><span>Notes / plan</span></div><div class="lines"></div></div>') + '</div></div>';
   if(!opt.screen) h += '<div class="sig"><div>Student signature / date</div><div>Parent or guardian signature / date</div><div>Counselor signature / date</div></div>';
   if(anyMoved) h += '<div class="note">&dagger; Counted toward this requirement by the counselor (REF-103912); MiSiS may list it under a different requirement. V = validated, W = IEP waiver (no credits), S = English substitution.</div>';
-  return h + prFoot(pack, 'Credits from the transcript on file; MiSiS is the official record') + '</div>';
+  return h + prFoot(pack, 'Credits from the transcript on file' + prTrAt(st) + '; MiSiS is the official record') + '</div>';
 }
 // v117: show the IGP or the graduation snapshot ON SCREEN (same layout as the printout) inside el (class "psheet").
 // opt: { failed: counselor page, canMove: counselor with full access, onMove(course, trElement) }
@@ -2290,7 +2291,7 @@ function prSnapshot(st, pack){
         (a.done ? '<div class="ok">Complete</div>' : '<div><b>' + prNum(Math.max(0, a.required - a.counted)) + '</b> more credits</div>' + a.missing.map(function(x){ return '<div>' + prE(x) + '</div>'; }).join('')) +
         '</div><div class="sn-n">' + prNum(a.counted) + ' / ' + prNum(a.required) + '</div></div>'; }).join('') +
       (tk.checks || []).map(function(c){ return '<div class="sn-box"><div class="sn-l" style="font-size:8pt;">Test</div><div class="sn-body">' + (c.done ? '<div class="ok">Passed</div>' : '<div>' + prE(c.name) + '</div>') + '</div><div class="sn-n">' + (c.done ? '&#10003;' : '&nbsp;') + '</div></div>'; }).join('') + '</div>';
-    return h + prFoot(pack, 'Points from the points sheet; credits from the transcript on file; credits alone do not qualify') + '</div>';
+    return h + prFoot(pack, 'Points from the points sheet; credits from the transcript on file' + prTrAt(st) + '; credits alone do not qualify') + '</div>';
   }
   // v133: same requirement lines and the same "Complete" rule as the IGP (prReqStatus); one course per line
   const asCat = function(r){ return r ? { category: r.category, courses: r.courses || [], totalCredits: r.credits || 0, needed: r.needed || [], inProgressFor: r.inProgress || [], validated: r.validated || [], waived: r.waived || [] } : null; };
@@ -2307,7 +2308,7 @@ function prSnapshot(st, pack){
     const o = snc[k[0]] || {};
     return '<div class="sn-ncb' + (o.level ? ' ' + o.level : '') + '"><b>' + k[1] + '</b> ' + (o.done ? '<span class="ok">&#10003; Done' + (o.detail ? ' &ndash; ' + prE(o.detail) : '') + '</span>' + (o.misis ? '' : ' <i>(not yet in MiSiS)</i>') : '<span>Still needed</span>') +
       (o.flag && o.done === false ? '<div class="ncf">' + prE(o.flag) + '</div>' : '') + '</div>'; }).join('') + '</div>';
-  return h + prFoot(pack, 'Points from the points sheet; credits from the transcript on file') + '</div>';
+  return h + prFoot(pack, 'Points from the points sheet; credits from the transcript on file' + prTrAt(st)) + '</div>';
 }
 function prTranscript(st, pack){
   const t = st.transcript || { courses: [], inProgress: [], credits: 0, completedHere: [] };
@@ -2323,7 +2324,7 @@ function prTranscript(st, pack){
     return '<tr><td class="tm">' + prE(r.term || r.termEnd) + '</td><td>' + prE(r.school) + '</td><td>' + prE(r.title) + '</td></tr>'; }).join('') + '</table>';
   if(t.completedHere && t.completedHere.length) h += '<h4>Completed at Stoney Point (points system &mdash; may not be on the transcript yet)</h4><table><tr><th>Course</th><th>Teacher</th><th class="c">Grade</th></tr>' + t.completedHere.map(function(c){
     return '<tr><td>' + prE(c.course) + '</td><td>' + prE(c.teacher) + '</td><td class="c">' + prE(c.grade) + '</td></tr>'; }).join('') + '</table>';
-  return h + prFoot(pack, 'UNOFFICIAL') + '</div>';
+  return h + prFoot(pack, 'UNOFFICIAL' + prTrAt(st)) + '</div>';
 }
 // Builds the pages for every student in the pack (each student's documents start on a new page).
 function prBuild(pack){
