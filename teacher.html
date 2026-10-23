@@ -378,6 +378,10 @@
   .igp-row.colhead{ font-size:0.66rem; color:var(--muted); font-weight:700; text-transform:uppercase; background:var(--paper); }
   .igp-row .sub{ display:block; font-size:0.66rem; color:var(--muted); }
   .igp-row.failed{ color:var(--muted); }
+  .done-box{ margin-top:14px; border:1px solid var(--rule, #d9d2bf); border-radius:10px; background:#f6f3ea; padding:4px 10px 6px; }
+  .done-box > summary{ cursor:pointer; font-weight:800; color:var(--navy, #1c2b4a); padding:6px 0; }
+  .done-box > summary span{ font-weight:400; color:var(--muted, #6b6457); font-size:0.8rem; margin-left:6px; }
+  .done-box .student-card{ opacity:0.92; }
   .igp-row .igp-moved{ color:#1d4fa3; font-style:italic; }
   .igp-failcard{ border-color:#a32b2b !important; } .igp-failcard .igp-card-head{ background:#a32b2b !important; color:#fff !important; }
   .igp-row .mk, .igp-row .cr{ text-align:center; font-weight:700; }
@@ -1251,7 +1255,9 @@ function renderRoster(data){
   renderStudentList(data.students);
 }
 
+let lastRosterStudents = [];
 function renderStudentList(students){
+  lastRosterStudents = students;
   students = students.slice().sort(function(a,b){
     const lastCmp = a.last.localeCompare(b.last);
     return lastCmp !== 0 ? lastCmp : a.first.localeCompare(b.first);
@@ -1260,6 +1266,14 @@ function renderStudentList(students){
   list.innerHTML = '';
   const entryInputs = [];
   saRows = [];                                            // v113: rows for "Save all"
+  // v134: students who finished the course (graded) go to a "Completed" section at the bottom - no weekly points box,
+  // not in Save all. Open it to change or undo a grade. Nothing is deleted.
+  const doneBox = document.createElement('details');
+  doneBox.className = 'done-box';
+  const doneSum = document.createElement('summary');
+  doneBox.appendChild(doneSum);
+  const doneCount = function(){ const n = doneBox.querySelectorAll('.student-card').length;
+    doneSum.innerHTML = 'Completed (' + n + ') <span>finished this course &ndash; tap to see, change or undo a grade</span>'; doneBox.style.display = n ? '' : 'none'; };
   students.forEach(function(s){
     const key = (s.first+'|'+s.last).toLowerCase();
     const card = document.createElement('div');
@@ -1299,7 +1313,7 @@ function renderStudentList(students){
     const input = document.createElement('input');
     input.type = 'number';
     input.placeholder = currentWeek;
-    entryInputs.push(input);
+    if(!s.grade) entryInputs.push(input);
     input.dataset.saved = '';
     input.addEventListener('input', function(){ card.classList.toggle('unsaved', input.value !== '' && input.value !== input.dataset.saved); saUpdate(); });
     input.addEventListener('keydown', function(ev){
@@ -1353,8 +1367,15 @@ function renderStudentList(students){
     entryRow.appendChild(input);
     entryRow.appendChild(saveBtn);
     entryRow.appendChild(status);
-    saRows.push({ s: s, input: input, status: status, card: card, setTotal: function(t){ total.textContent = totalText(t); s.total = t; }, hist: function(){ return histGrid; } });
-    card.appendChild(entryRow);
+    const saRow = { s: s, input: input, status: status, card: card, setTotal: function(t){ total.textContent = totalText(t); s.total = t; }, hist: function(){ return histGrid; } };
+    if(!s.grade){ saRows.push(saRow); card.appendChild(entryRow); }
+    const moveToDone = function(){                         // v134: just graded -> into Completed, link to the completion form stays visible
+      if(entryRow.parentNode) entryRow.remove();
+      saRows = saRows.filter(function(x){ return x !== saRow; }); saUpdate();
+      const ei = entryInputs.indexOf(input); if(ei !== -1) entryInputs.splice(ei, 1);
+      doneBox.appendChild(card); doneBox.open = true; doneCount();
+      card.scrollIntoView({ block: 'nearest' });
+    };
 
     const histToggle = document.createElement('div');
     histToggle.className = 'history-toggle';
@@ -1476,6 +1497,7 @@ function renderStudentList(students){
             gradeStatus.className = 'save-status ok';
             gradeToggle.textContent = toggleLabel();
             undoBtn.style.display = '';
+            moveToDone();
           } else {
             gradeStatus.textContent = res.error || 'Failed to save.';
             gradeStatus.className = 'save-status err';
@@ -1505,6 +1527,7 @@ function renderStudentList(students){
             gradeToggle.textContent = toggleLabel();
             gradeStatus.textContent = 'Completion undone. This course is back to in progress.';
             gradeStatus.className = 'save-status ok';
+            setTimeout(function(){ renderStudentList(lastRosterStudents); }, 1500);   // v134: back with the current students
           } else {
             gradeStatus.textContent = res.error || 'Could not undo.';
             gradeStatus.className = 'save-status err';
@@ -1522,8 +1545,9 @@ function renderStudentList(students){
     gradeRow.appendChild(gradeToggle);
     if(!isAdv){ card.appendChild(gradeRow); card.appendChild(gradeForm); }
 
-    list.appendChild(card);
+    (s.grade ? doneBox : list).appendChild(card);
   });
+  list.appendChild(doneBox); doneCount();
   focusFirstEntry();
 }
 
@@ -1534,8 +1558,8 @@ function renderStudentList(students){
 function focusFirstEntry(){
   if(!window.matchMedia('(hover:hover) and (pointer:fine)').matches) return;
   const list = document.getElementById('studentList');
-  const hl = list.querySelector('.student-card.highlight input');
-  const first = hl || list.querySelector('input');
+  const hl = list.querySelector(':scope > .student-card.highlight input[type=number]');
+  const first = hl || list.querySelector(':scope > .student-card input[type=number]');   // v134: never a completed student
   if(first) first.focus();
 }
 
@@ -1776,7 +1800,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v64-snapshot-matches-igp';
+document.getElementById('buildTag').textContent = 'v65-completed-section';
 // ===================== v107: PREV (points from earlier semesters) - view and change with a warning =====================
 // pvBox(student, tab, { canEdit, onSaved(res) }) -> an element for the student's card/row.
 function pvFmt(v){ return v === null || v === undefined || v === '' ? '—' : String(Math.round(Number(v) * 100) / 100); }
