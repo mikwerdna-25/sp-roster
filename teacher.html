@@ -612,6 +612,19 @@
   :is(#printArea, .psheet) .sub.unsure{ color:#a35a00 !important; font-weight:700; }
   :is(#printArea, .psheet) .sn-l{ font-size:10pt; }
 
+  /* v136: non-course requirements */
+  :is(#printArea, .psheet) .nc-row .ncf{ color:#8a5a00; font-size:6.5pt; margin:1px 0 0 11pt; }
+  :is(#printArea, .psheet) .nc-row.restricted .ncf{ color:#a32b2b; font-weight:600; }
+  :is(#printArea, .psheet) .nc-row .ncw{ color:#8a5a00; font-style:italic; }
+  :is(#printArea, .psheet) .nc-row .ncn{ color:#666; font-size:6.3pt; margin-left:11pt; }
+  :is(#printArea, .psheet) .nonc .i1-h{ display:flex; justify-content:space-between; align-items:center; }
+  :is(#printArea, .psheet) .nonc .nc-edit{ margin:0; }
+  :is(#printArea, .psheet) .sn-nc{ display:grid; grid-template-columns:1fr 1fr; gap:4pt; margin-bottom:4pt; }
+  :is(#printArea, .psheet) .sn-ncb{ border:0.8pt solid #1c2b4a; padding:3pt 5pt; font-size:8pt; }
+  :is(#printArea, .psheet) .sn-ncb .ok{ color:#1e6b3a; font-weight:600; }
+  :is(#printArea, .psheet) .sn-ncb .ncf{ color:#8a5a00; font-size:7pt; margin-top:1pt; }
+  :is(#printArea, .psheet) .sn-ncb.restricted .ncf{ color:#a32b2b; font-weight:600; }
+
   /* ===== v95 program roll ===== */
   .rl-progs{ display:flex; flex-wrap:wrap; gap:6px; margin:6px 0 10px; }
   .rl-prog{ width:auto; margin:0; padding:8px 12px; border-radius:999px; border:1.5px solid #c6cdda; background:#fff; color:#1c2b4a; font-weight:700; font-size:0.86rem; cursor:pointer; }
@@ -1800,7 +1813,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v66-english-substitution';
+document.getElementById('buildTag').textContent = 'v67-non-course';
 // ===================== v107: PREV (points from earlier semesters) - view and change with a warning =====================
 // pvBox(student, tab, { canEdit, onSaved(res) }) -> an element for the student's card/row.
 function pvFmt(v){ return v === null || v === undefined || v === '' ? '—' : String(Math.round(Number(v) * 100) / 100); }
@@ -2072,6 +2085,16 @@ const PR_IGP_COLS = [['Social Science', 'English', 'Math', 'Lab Science', 'Ethni
                      ['Language (LOTE)', 'Visual/Performing Art', 'College Prep Elective', 'Physical Education', 'Health', 'General Elective']];
 const PR_IGP_ROWS = { 'English':8, 'Social Science':4, 'Math':6, 'Lab Science':4, 'Language (LOTE)':4, 'Visual/Performing Art':2, 'College Prep Elective':2,
                       'Physical Education':4, 'Health':1, 'Ethnic Studies':1, 'General Elective':6 };
+// v136: one non-course requirement (Career Pathway / Service Learning) - checked off by a counselor or found on the transcript
+function prNcRow(o, name, what, when, opt){
+  o = o || {};
+  const who = o.done && !o.auto && o.by ? (opt.screen ? o.by + ', ' + o.when : o.when) : '';
+  return '<div class="nc-row' + (o.level ? ' ' + o.level : '') + '"><span class="cb' + (o.done ? ' on' : '') + '"></span><b>' + name + '</b> ' +
+    (o.done ? (o.detail ? '&ndash; ' + prE(o.detail) : what) + (who ? ' <small>(' + prE(who) + ')</small>' : '') + (o.misis ? '' : ' <small class="ncw">not yet in MiSiS</small>')
+            : what + ' <small>(' + when + ')</small>') +
+    (o.flag && !(o.done && !o.misis) ? '<div class="ncf">&#9888;&#xFE0E; ' + prE(o.flag) + '</div>' : '') +
+    (opt.screen && o.note ? '<div class="ncn">' + prE(o.note) + '</div>' : '') + '</div>';
+}
 function prGradeLevel(c){ return c >= 160 ? 12 : c >= 105 ? 11 : c >= 50 ? 10 : 9; }
 // v117: the third column is "Courses required to graduate" (by A-G, Ethnic Studies, PE, Health, Electives).
 // Failed courses appear only on screen on the counselor page (opt.failed). opt.screen adds move notes/buttons.
@@ -2115,6 +2138,7 @@ function prIgp(st, pack, opt){
   const tr = st.igp || {}, earned = tr.hasData ? tr.overallCredits : 0;
   const trk = tr.track || { key: 'LAUSD', short: 'LAUSD', label: 'LAUSD diploma (A-G)', total: PR_TOTAL_CREDITS, areas: [], checks: [] };   // v120
   const nonL = trk.key !== 'LAUSD', gTotal = trk.total || PR_TOTAL_CREDITS;
+  const nc = tr.nonCourse || {};   // v136
   const cats = {}; (tr.categories || []).forEach(function(c){ cats[c.category] = c; });
   const getCat = function(name){ return cats[name] || { courses: [], totalCredits: 0, needed: [], inProgressFor: [] }; };
   let h = '<div class="pdoc one igp1">' + prHead('Individual Graduation Plan (IGP)', st, pack);
@@ -2194,9 +2218,9 @@ function prIgp(st, pack, opt){
     (doneHere.length ? '<div class="i1-box"><div class="i1-h"><span>Completed here this term</span></div><table>' + doneHere.map(function(c){
       return '<tr><td>' + prE(c.course) + '</td><td class="c">' + prE(c.grade) + '</td></tr>'; }).join('') + '</table><div class="sub" style="padding:2px 5px;">May not be on the transcript yet.</div></div>' : '') +
     trkBox + (nonL ? '' :
-    '<div class="i1-box nonc"><div class="i1-h"><span>Non-course requirements</span></div>' +
-      '<div class="nc-row"><span class="cb"></span><b>Career Pathway</b> identified &amp; recorded in MiSiS <small>(by end of 11th grade)</small></div>' +
-      '<div class="nc-row"><span class="cb' + (tr.serviceLearning ? ' on' : '') + '"></span><b>Service Learning</b> project completed &amp; recorded in MiSiS' + (tr.serviceLearning ? ' <small>(on the transcript)</small>' : '') + '</div>' +
+    '<div class="i1-box nonc"><div class="i1-h"><span>Non-course requirements</span>' + (opt.canMove && opt.onNonCourse ? '<button type="button" class="i1-mv rw-only nc-edit" data-nc="1">Check off</button>' : '') + '</div>' +
+      prNcRow(nc.career, 'Career Pathway', 'identified &amp; recorded in MiSiS', 'by end of 11th grade', opt) +
+      prNcRow(nc.service || (tr.serviceLearning ? { done: true, auto: true, misis: true, detail: 'Service Learning on the transcript' } : null), 'Service Learning', 'project completed &amp; recorded in MiSiS', 'required to graduate', opt) +
       '<div class="sub" style="padding:1px 5px 3px;">REF-103912 &middot; 210 credits &middot; promote at 50 / 105 / 160</div></div>') +
     (opt.screen ? '' : '<div class="i1-box notes"><div class="i1-h"><span>Notes / plan</span></div><div class="lines"></div></div>') + '</div></div>';
   if(!opt.screen) h += '<div class="sig"><div>Student signature / date</div><div>Parent or guardian signature / date</div><div>Counselor signature / date</div></div>';
@@ -2223,6 +2247,7 @@ function prShow(el, pack, which, opt){
     });
     el.querySelectorAll('[data-trk]').forEach(function(b){ b.onclick = function(){ if(opt.onTrack) opt.onTrack(st, b); }; });   // v120
     el.querySelectorAll('[data-wvr]').forEach(function(b){ b.onclick = function(){ if(opt.onWaivers) opt.onWaivers(st, b); }; });   // v130
+    el.querySelectorAll('[data-nc]').forEach(function(b){ b.onclick = function(){ if(opt.onNonCourse) opt.onNonCourse(st, b); }; });   // v136
     el.querySelectorAll('[data-vl]').forEach(function(b){            // v119: validate an open line
       b.onclick = function(){ if(opt.onValidate) opt.onValidate(b.getAttribute('data-vc'), b.getAttribute('data-vl'), b.closest('tr'), st); };
     });
@@ -2277,6 +2302,11 @@ function prSnapshot(st, pack){
       (lines.length ? lines.join('') : (s.hasTranscript ? '<div class="ok">Complete</div>' : '')) +
       '</div><div class="sn-n">' + prE(b[1]) + '</div></div>';
   }).join('') + '</div>';
+  const snc = s.nonCourse || {};   // v136: non-course requirements (LAUSD diploma)
+  if(!((s.track || {}).key && s.track.key !== 'LAUSD')) h += '<h4 class="sn-h">Non-course requirements</h4><div class="sn-nc">' + [['career', 'Career Pathway'], ['service', 'Service Learning']].map(function(k){
+    const o = snc[k[0]] || {};
+    return '<div class="sn-ncb' + (o.level ? ' ' + o.level : '') + '"><b>' + k[1] + '</b> ' + (o.done ? '<span class="ok">&#10003; Done' + (o.detail ? ' &ndash; ' + prE(o.detail) : '') + '</span>' + (o.misis ? '' : ' <i>(not yet in MiSiS)</i>') : '<span>Still needed</span>') +
+      (o.flag && o.done === false ? '<div class="ncf">' + prE(o.flag) + '</div>' : '') + '</div>'; }).join('') + '</div>';
   return h + prFoot(pack, 'Points from the points sheet; credits from the transcript on file') + '</div>';
 }
 function prTranscript(st, pack){
