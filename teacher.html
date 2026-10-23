@@ -549,8 +549,8 @@
   :is(#printArea, .psheet) table.sn-t i{ display:block; font-style:normal; font-size:6pt; } :is(#printArea, .psheet) i.hon{ color:#1d7a3a; } :is(#printArea, .psheet) i.prob{ color:#a32b2b; }
   :is(#printArea, .psheet) .sn-key{ font-size:6.8pt; color:#555; margin:3px 0 8px; }
   :is(#printArea, .psheet) h4.sn-h{ display:flex; justify-content:space-between; align-items:baseline; margin:6px 0 4px; } :is(#printArea, .psheet) h4.sn-h span{ text-transform:none; letter-spacing:0; font-size:8pt; color:#333; }
-  :is(#printArea, .psheet) .sn-ag{ display:grid; grid-template-columns:repeat(8, 1fr); border:0.8pt solid #1c2b4a; }
-  :is(#printArea, .psheet) .sn-box{ border-right:0.6pt solid #999; display:flex; flex-direction:column; min-height:130pt; } :is(#printArea, .psheet) .sn-box:last-child{ border-right:none; }
+  :is(#printArea, .psheet) .sn-ag{ display:grid; grid-template-columns:repeat(6, 1fr); border:0.8pt solid #1c2b4a; }
+  :is(#printArea, .psheet) .sn-box{ border-right:0.6pt solid #999; border-bottom:0.6pt solid #999; display:flex; flex-direction:column; min-height:92pt; }
   :is(#printArea, .psheet) .sn-l{ text-align:center; font-weight:800; font-size:11pt; color:#1c2b4a; border-bottom:0.6pt solid #999; padding:2px 0; }
   :is(#printArea, .psheet) .sn-body{ flex:1; padding:3px; font-size:6.8pt; line-height:1.25; } :is(#printArea, .psheet) .sn-body .ok{ color:#1d4fa3; font-weight:700; font-style:italic; text-align:center; margin-top:30pt; }
   :is(#printArea, .psheet) .sn-body .ipn{ color:#7a5a00; margin-top:3px; font-style:italic; }
@@ -605,6 +605,8 @@
   :is(#printArea, .psheet) .sub.pend{ color:#1d7a3a !important; font-style:italic; } :is(#printArea, .psheet) .i1-top small.pendnote{ font-size:6.5pt; color:#1d7a3a; }
   :is(#printArea, .psheet) .sn-body .ipl{ color:#5a4100; } :is(#printArea, .psheet) .sn-body .ipl i{ font-size:6.3pt; }
   :is(#printArea, .psheet) .sn-body > div{ margin-bottom:1px; }
+  :is(#printArea, .psheet) .sub.unsure{ color:#a35a00 !important; font-weight:700; }
+  :is(#printArea, .psheet) .sn-l{ font-size:10pt; }
 
   /* ===== v95 program roll ===== */
   .rl-progs{ display:flex; flex-wrap:wrap; gap:6px; margin:6px 0 10px; }
@@ -1774,7 +1776,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v62-snapshot-lines';
+document.getElementById('buildTag').textContent = 'v64-snapshot-matches-igp';
 // ===================== v107: PREV (points from earlier semesters) - view and change with a warning =====================
 // pvBox(student, tab, { canEdit, onSaved(res) }) -> an element for the student's card/row.
 function pvFmt(v){ return v === null || v === undefined || v === '' ? '—' : String(Math.round(Number(v) * 100) / 100); }
@@ -2063,6 +2065,27 @@ function prReqDone(name, cat){
   if(name === 'General Elective') return cat.totalCredits >= PR_ELECTIVE_CREDITS;
   return false;
 }
+// v133: ONE rule for what a requirement still needs - used by both the IGP and the Graduation Snapshot, so they always agree.
+// lines: [{ t: text, ip: true when in progress }]; done: nothing left (no line still required, nothing in progress).
+function prIpName(x){ return String(x).replace(/\s*\([^()]*\)\s*$/, ''); }
+function prReqStatus(name, cat){
+  cat = cat || { courses: [], totalCredits: 0, needed: [], inProgressFor: [] };
+  const m = PR_IGP_META[name] || {}, lines = [];
+  (cat.needed || []).forEach(function(x){ lines.push({ t: x }); });
+  (cat.inProgressFor || []).forEach(function(x){ lines.push({ t: prIpName(x), ip: true, full: x }); });
+  if(name === 'General Elective'){
+    const left = Math.max(0, PR_ELECTIVE_CREDITS - (cat.totalCredits || 0));
+    if(left) lines.push({ t: 'Electives \u2013 ' + prNum(left) + ' more credits' });
+  } else if(!prReqDone(name, cat) && !lines.length){
+    lines.push({ t: prNum(Math.max(0, (m.req || 5) - (cat.totalCredits || 0))) + ' more credits' });
+  }
+  return { lines: lines, done: !lines.length };
+}
+function prReqCounts(tr){
+  let need = 0, ip = 0;
+  (tr.categories || []).forEach(function(c){ prReqStatus(c.category, c).lines.forEach(function(l){ if(l.ip) ip++; else need++; }); });
+  return { need: need, ip: ip };
+}
 function prIgp(st, pack, opt){
   opt = opt || {};
   const tr = st.igp || {}, earned = tr.hasData ? tr.overallCredits : 0;
@@ -2092,6 +2115,7 @@ function prIgp(st, pack, opt){
         (opt.canMove ? 'Moved from ' + prE((PR_IGP_META[r.moved.from] || {}).label || r.moved.from) + ' by ' + prE(r.moved.by) + ', ' + prE(r.moved.when) + ' &ndash; ' + prE(r.moved.reason)
                      : 'Counselor moved this from ' + prE((PR_IGP_META[r.moved.from] || {}).label || r.moved.from)) + '</div>';
       if(r.pending) t += '<div class="sub pend">Completed at Stoney Point &ndash; pending MiSiS transcript</div>';   // v126
+      if(opt.failed && r.unsure && !r.moved && !r.dual) t += '<div class="sub unsure">&#9888; Sorted here by its name &ndash; check this is the right box (Move if not)</div>';   // v132: counselor only
       if(r.noReq) t += '<div class="sub noreq">Statistics &ndash; not toward the 3-year math minimum (REF-103912)</div>';
       if(r.dual) t += '<div class="sub dual">Approved Ethnic Studies course &ndash; also counts in ' + prE((PR_IGP_META[r.dual] || {}).label || r.dual) + ' (credits counted once)</div>';
       if(opt.canMove && r.key && !r.pending) t += '<button type="button" class="i1-mv rw-only" data-mv="' + prE(r.key) + '">' + (r.moved ? 'Undo move' : 'Move') + '</button>';
@@ -2101,20 +2125,15 @@ function prIgp(st, pack, opt){
       (opt.canMove && v.manual ? '<button type="button" class="i1-mv rw-only" data-vu="' + prE(v.manual) + '">Undo validation</button>' : '') + '</td><td class="n">&ndash;</td><td class="c">V</td></tr>'); });
     (cat.waived || []).forEach(function(v){ rows.push('<tr class="valrow"><td>' + prE(v.name) + '<div class="sub">' + prE(v.by) + ' &ndash; no credits</div></td><td class="n">&ndash;</td><td class="c">W</td></tr>'); });
     // v118: courses still required go right in the box, with Cr and Mark left blank
-    const done = !nonL && prReqDone(name, cat);
+    const rs = prReqStatus(name, cat), done = !nonL && tr.hasData && rs.done;   // v133: same rule as the snapshot
     (cat.inProgressFor || []).forEach(function(x, i){ const k = (cat.inProgressKeys || [])[i];
       rows.push('<tr class="iprow"><td>' + prE(x) + ' <span class="ipt">in progress</span>' + (opt.canMove && k ? '<button type="button" class="i1-mv rw-only" data-mv="' + prE(k) + '">Move</button>' : '') + '</td><td></td><td></td></tr>'); });
-    if(tr.hasData && !nonL){
-      if(name === 'General Elective'){
-        const left = Math.max(0, PR_ELECTIVE_CREDITS - cat.totalCredits);
-        if(left) rows.push('<tr class="needrow"><td>Electives &ndash; ' + prNum(left) + ' more credits</td><td></td><td></td></tr>');
-      } else {
-        (cat.needed || []).forEach(function(x){ nNeeded++; rows.push('<tr class="needrow"><td>' + prE(x) +
-          (opt.canMove && PR_VAL_CATS.indexOf(name) !== -1 && !/in-seat/.test(x) ? '<button type="button" class="i1-mv rw-only" data-vl="' + prE(x) + '" data-vc="' + prE(name) + '">Validate</button>' : '') + '</td><td></td><td></td></tr>'); });
-        if(!done && !(cat.needed || []).length && !(cat.inProgressFor || []).length)
-          rows.push('<tr class="needrow"><td>' + prNum(Math.max(0, (m.req || 5) - cat.totalCredits)) + ' more credits</td><td></td><td></td></tr>');
-      }
-    }
+    if(tr.hasData && !nonL) rs.lines.forEach(function(l){
+      if(l.ip) return;                                                   // in-progress lines are listed above
+      nNeeded++;
+      const canVal = opt.canMove && PR_VAL_CATS.indexOf(name) !== -1 && !/in-seat|more credits|replaces|Replacement/.test(l.t);
+      rows.push('<tr class="needrow"><td>' + prE(l.t) + (canVal ? '<button type="button" class="i1-mv rw-only" data-vl="' + prE(l.t) + '" data-vc="' + prE(name) + '">Validate</button>' : '') + '</td><td></td><td></td></tr>');
+    });
     if(!opt.screen) for(let i = rows.length; i < (PR_IGP_ROWS[name] || 2); i++) rows.push('<tr class="blank"><td>&nbsp;</td><td></td><td></td></tr>');
     else if(!rows.length) rows.push('<tr><td colspan="3" class="muted">No courses yet</td></tr>');
     return '<div class="i1-box">' +
@@ -2128,7 +2147,8 @@ function prIgp(st, pack, opt){
   const col1 = PR_IGP_COLS[0].map(box).join(''), col2 = PR_IGP_COLS[1].map(box).join('');
   const openAreas = trk.areas.filter(function(a){ return !a.done; }).length + (trk.checks || []).filter(function(c){ return !c.done; }).length;
   if(nonL) h += '<div class="i1-key alt"><b>' + prE(trk.label) + '</b> &ndash; ' + (openAreas ? '<b>' + openAreas + '</b> requirement' + (openAreas === 1 ? '' : 's') + ' still open (see the track box). The A&ndash;G lines do not apply on this track.' : 'all requirements met.') + ' Credits alone do not qualify.</div>';
-  else if(tr.hasData) h += '<div class="i1-key"><b>' + nNeeded + '</b> course' + (nNeeded === 1 ? '' : 's') + ' still required &ndash; listed in each box with Cr and Mark left blank.</div>';
+  else if(tr.hasData){ const rc = prReqCounts(tr);
+    h += '<div class="i1-key">Courses still required: <b>' + (rc.need + rc.ip) + '</b>' + (rc.ip ? ' (' + rc.ip + ' in progress)' : '') + ' &ndash; listed in each box with Cr and Mark left blank.</div>'; }
   // v120: the diploma track box (areas, required courses, checks such as the HiSET)
   const trkBox = !nonL ? '' : '<div class="i1-box trkbox"><div class="i1-h"><span>' + prE(trk.short) + ' requirements</span><span>' + (trk.complete ? 'Complete' : gTotal + ' cr') + '</span></div>' +
     '<table><tr><th>Area</th><th class="n">Need</th><th class="n">Have</th></tr>' + trk.areas.map(function(a){
@@ -2188,7 +2208,7 @@ function prShow(el, pack, which, opt){
 // v115: GRADUATION SNAPSHOT - this semester at a glance (one page)
 const PR_SNAP_BOXES = [['A', 'Social Studies', ['Social Science']], ['B', 'English', ['English']], ['C', 'Mathematics', ['Math']], ['D', 'Science', ['Lab Science']],
   ['E', 'Language', ['Language (LOTE)']], ['F', 'VAPA', ['Visual/Performing Art']], ['G', 'College Prep', ['College Prep Elective']],
-  ['', 'Ethnic St., PE, Health, Electives', ['Ethnic Studies', 'Physical Education', 'Health', 'General Elective']]];
+  ['ES', 'Ethnic Studies', ['Ethnic Studies']], ['PE', 'Physical Ed.', ['Physical Education']], ['HL', 'Health', ['Health']], ['EL', 'Electives (' + 30 + ')', ['General Elective']]];
 function prSnapshot(st, pack){
   const s = st.snapshot || {};
   let h = '<div class="pdoc one snap">' + prHead('Graduation Snapshot', st, pack);
@@ -2221,16 +2241,12 @@ function prSnapshot(st, pack){
       (tk.checks || []).map(function(c){ return '<div class="sn-box"><div class="sn-l" style="font-size:8pt;">Test</div><div class="sn-body">' + (c.done ? '<div class="ok">Passed</div>' : '<div>' + prE(c.name) + '</div>') + '</div><div class="sn-n">' + (c.done ? '&#10003;' : '&nbsp;') + '</div></div>'; }).join('') + '</div>';
     return h + prFoot(pack, 'Points from the points sheet; credits from the transcript on file; credits alone do not qualify') + '</div>';
   }
-  // v132: every required course on its own line; a course being taken now is marked "(in progress)"
-  const ipName = function(x){ return String(x).replace(/\s*\([^()]*\)\s*$/, ''); };
-  let nNeed = 0, nIp = 0;
-  (s.reqs || []).forEach(function(r){ nNeed += r.needed.length; nIp += r.inProgress.length; });
-  h += '<h4 class="sn-h">A&ndash;G courses required for graduation <span>Courses still required: <b>' + (nNeed + nIp) + '</b>' + (nIp ? ' (' + nIp + ' in progress)' : '') + '</span></h4><div class="sn-ag">' + PR_SNAP_BOXES.map(function(b){
-    const lines = [];
-    b[2].forEach(function(cat){ const r = reqs[cat]; if(!r) return;
-      r.needed.forEach(function(x){ lines.push('<div>' + prE(x) + '</div>'); });
-      r.inProgress.forEach(function(x){ lines.push('<div class="ipl">' + prE(ipName(x)) + ' <i>(in progress)</i></div>'); });
-      if(cat === 'General Elective' && s.hasTranscript && r.credits < PR_ELECTIVE_CREDITS) lines.push('<div>Electives &ndash; ' + prNum(PR_ELECTIVE_CREDITS - r.credits) + ' more credits</div>'); });
+  // v133: same requirement lines and the same "Complete" rule as the IGP (prReqStatus); one course per line
+  const asCat = function(r){ return r ? { category: r.category, courses: r.courses || [], totalCredits: r.credits || 0, needed: r.needed || [], inProgressFor: r.inProgress || [], validated: r.validated || [], waived: r.waived || [] } : null; };
+  const rc = prReqCounts({ categories: (s.reqs || []).map(asCat) });
+  h += '<h4 class="sn-h">A&ndash;G courses required for graduation <span>Courses still required: <b>' + (rc.need + rc.ip) + '</b>' + (rc.ip ? ' (' + rc.ip + ' in progress)' : '') + '</span></h4><div class="sn-ag">' + PR_SNAP_BOXES.map(function(b){
+    const st0 = prReqStatus(b[2][0], asCat(reqs[b[2][0]]));
+    const lines = st0.lines.map(function(l){ return l.ip ? '<div class="ipl">' + prE(l.t) + ' <i>(in progress)</i></div>' : '<div>' + prE(l.t) + '</div>'; });
     return '<div class="sn-box"><div class="sn-l">' + (b[0] || '&nbsp;') + '</div><div class="sn-body">' +
       (lines.length ? lines.join('') : (s.hasTranscript ? '<div class="ok">Complete</div>' : '')) +
       '</div><div class="sn-n">' + prE(b[1]) + '</div></div>';
