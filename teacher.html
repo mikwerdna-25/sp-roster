@@ -1772,7 +1772,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v58-block-by-classes';
+document.getElementById('buildTag').textContent = 'v59-extended-periods';
 // ===================== v107: PREV (points from earlier semesters) - view and change with a warning =====================
 // pvBox(student, tab, { canEdit, onSaved(res) }) -> an element for the student's card/row.
 function pvFmt(v){ return v === null || v === undefined || v === '' ? '—' : String(Math.round(Number(v) * 100) / 100); }
@@ -2028,7 +2028,7 @@ function prSchedule(st, pack){
   else {
     h += '<table><tr><th>Period</th><th>Time</th><th>Course</th><th>Teacher</th><th>Room</th><th class="n">Points</th></tr>' + rows.map(function(c){
       return '<tr><td class="per">' + prE(c.periodLabel || c.period) + '</td><td class="tm">' + prE(c.time) + '</td><td>' + prE(c.course) +
-        (c.doubleBlock ? '<span class="tag">Double block</span>' : '') + (c.notInMisis ? '<span class="tag">Pending MiSiS</span>' : '') + '</td>' +
+        (c.doubleBlock ? '<span class="tag">Double block</span>' : '') + (c.notInMisis ? '<span class="tag">Pending MiSiS</span>' : '') + (c.extended ? '<span class="tag">Outside school day</span>' : '') + '</td>' +
         '<td>' + prE(c.teacher) + '</td><td>' + prE(c.room) + '</td><td class="n">' + (c.advisory ? prNum(c.total) + ' to C&amp;C' : prNum(c.total) + ' / 75') + '</td></tr>';
     }).join('') + '</table>';
   }
@@ -2036,7 +2036,7 @@ function prSchedule(st, pack){
     h += '<h4>Programs</h4><table><tr><th>Program</th><th>When</th><th>Room</th></tr>' + st.programs.map(function(pg){
       return '<tr><td>' + prE(pg.name) + '</td><td class="tm">' + prE(pg.when) + '</td><td>' + prE(pg.room) + '</td></tr>'; }).join('') + '</table>';
   }
-  h += '<div class="note">School day 8:30&ndash;1:30. Each course is complete at 75 points. A double-blocked course meets in two periods and is one course with one grade. Schedule changes are made by the counselor; MiSiS is the official schedule.</div>';
+  h += '<div class="note">School day 8:30&ndash;1:30. Each course is complete at 75 points. A double-blocked course meets in two periods and is one course with one grade. Periods 12&ndash;15 are outside the school day: the course is on MiSiS and can be worked on as time allows. Schedule changes are made by the counselor; MiSiS is the official schedule.</div>';
   return h + prFoot(pack) + '</div>';
 }
 // v115: one-page IGP (credit checklist). Failed courses are not listed in the requirement boxes - they have their own column.
