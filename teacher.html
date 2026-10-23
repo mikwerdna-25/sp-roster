@@ -1800,7 +1800,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v65-completed-section';
+document.getElementById('buildTag').textContent = 'v66-english-substitution';
 // ===================== v107: PREV (points from earlier semesters) - view and change with a warning =====================
 // pvBox(student, tab, { canEdit, onSaved(res) }) -> an element for the student's card/row.
 function pvFmt(v){ return v === null || v === undefined || v === '' ? '—' : String(Math.round(Number(v) * 100) / 100); }
@@ -2147,6 +2147,8 @@ function prIgp(st, pack, opt){
     // v118: validation (C or better in a higher course) and IEP waivers meet a line without credits (REF-103912)
     (cat.validated || []).forEach(function(v){ rows.push('<tr class="valrow"><td>' + prE(v.name) + '<div class="sub">Validated by ' + prE(v.by) + ' &ndash; no credits' + (opt.screen && v.reason ? ' &ndash; ' + prE(v.reason) : '') + '</div>' +
       (opt.canMove && v.manual ? '<button type="button" class="i1-mv rw-only" data-vu="' + prE(v.manual) + '">Undo validation</button>' : '') + '</td><td class="n">&ndash;</td><td class="c">V</td></tr>'); });
+    (cat.substituted || []).forEach(function(v){ rows.push('<tr class="valrow"><td>' + prE(v.name) + '<div class="sub">Substituted by ' + prE(v.by) + ' &ndash; English substitution' + (opt.screen && v.counselor ? ' (' + prE(v.counselor) + ', ' + prE(v.when) + (v.reason ? ' &ndash; ' + prE(v.reason) : '') + ')' : '') + '</div>' +
+      (opt.canMove && v.manual ? '<button type="button" class="i1-mv rw-only" data-vu="' + prE(v.manual) + '">Undo substitution</button>' : '') + '</td><td class="n">&ndash;</td><td class="c">S</td></tr>'); });   // v135
     (cat.waived || []).forEach(function(v){ rows.push('<tr class="valrow"><td>' + prE(v.name) + '<div class="sub">' + prE(v.by) + ' &ndash; no credits</div></td><td class="n">&ndash;</td><td class="c">W</td></tr>'); });
     // v118: courses still required go right in the box, with Cr and Mark left blank
     const rs = prReqStatus(name, cat), done = !nonL && tr.hasData && rs.done;   // v133: same rule as the snapshot
@@ -2156,7 +2158,7 @@ function prIgp(st, pack, opt){
       if(l.ip) return;                                                   // in-progress lines are listed above
       nNeeded++;
       const canVal = opt.canMove && PR_VAL_CATS.indexOf(name) !== -1 && !/in-seat|more credits|replaces|Replacement/.test(l.t);
-      rows.push('<tr class="needrow"><td>' + prE(l.t) + (canVal ? '<button type="button" class="i1-mv rw-only" data-vl="' + prE(l.t) + '" data-vc="' + prE(name) + '">Validate</button>' : '') + '</td><td></td><td></td></tr>');
+      rows.push('<tr class="needrow"><td>' + prE(l.t) + (canVal ? '<button type="button" class="i1-mv rw-only" data-vl="' + prE(l.t) + '" data-vc="' + prE(name) + '">' + (name === 'English' ? 'Substitute' : 'Validate') + '</button>' : '') + '</td><td></td><td></td></tr>');   // v135: English uses substitution
     });
     if(!opt.screen) for(let i = rows.length; i < (PR_IGP_ROWS[name] || 2); i++) rows.push('<tr class="blank"><td>&nbsp;</td><td></td><td></td></tr>');
     else if(!rows.length) rows.push('<tr><td colspan="3" class="muted">No courses yet</td></tr>');
@@ -2184,7 +2186,7 @@ function prIgp(st, pack, opt){
   h += '<div class="i1-cols"><div>' + col1 + '</div><div>' + col2 + '</div><div>' +
     (opt.failed ? '<div class="i1-box fail"><div class="i1-h"><span>Failed courses &middot; counselor only</span><span>' + failed.length + '</span></div>' +
       '<table><tr><th>Course</th><th class="c">Mark</th><th>Term</th></tr>' + (failed.length ? failed.map(function(r){
-        return '<tr><td>' + prE(r.title) + '<div class="sub">' + prE((PR_IGP_META[r.category] || {}).label || r.category) + (r.validatedBy ? ' &middot; <b>validated by ' + prE(r.validatedBy) + '</b>' : '') + (r.moved ? ' &middot; moved from ' + prE((PR_IGP_META[r.moved.from] || {}).label || r.moved.from) : '') + '</div>' +
+        return '<tr><td>' + prE(r.title) + '<div class="sub">' + prE((PR_IGP_META[r.category] || {}).label || r.category) + (r.validatedBy ? ' &middot; <b>validated by ' + prE(r.validatedBy) + '</b>' : '') + (r.substitutedBy ? ' &middot; <b>replaced by ' + prE(r.substitutedBy) + '</b>' : '') + (r.moved ? ' &middot; moved from ' + prE((PR_IGP_META[r.moved.from] || {}).label || r.moved.from) : '') + '</div>' +
           (opt.canMove && r.key && r.moved ? '<button type="button" class="i1-mv rw-only" data-mv="' + prE(r.key) + '">Undo move</button>' : '') + '</td><td class="c">' + prE(r.mark) + '</td><td class="tm">' + prE(r.term || r.termEnd) + '</td></tr>'; }).join('')
         : '<tr><td colspan="3" class="muted">None</td></tr>') + '</table><div class="sub" style="padding:2px 5px;">Not counted for credit and not printed. A course passed later drops off.</div></div>' : '') +
     '<div class="i1-box"><div class="i1-h"><span>In progress at Stoney Point</span></div><table><tr><th>Per</th><th>Course</th><th class="n">Pts</th></tr>' + (ip.length ? ip.map(function(c){
@@ -2198,7 +2200,7 @@ function prIgp(st, pack, opt){
       '<div class="sub" style="padding:1px 5px 3px;">REF-103912 &middot; 210 credits &middot; promote at 50 / 105 / 160</div></div>') +
     (opt.screen ? '' : '<div class="i1-box notes"><div class="i1-h"><span>Notes / plan</span></div><div class="lines"></div></div>') + '</div></div>';
   if(!opt.screen) h += '<div class="sig"><div>Student signature / date</div><div>Parent or guardian signature / date</div><div>Counselor signature / date</div></div>';
-  if(anyMoved) h += '<div class="note">&dagger; Counted toward this requirement by the counselor (REF-103912); MiSiS may list it under a different requirement. V = validated, W = IEP waiver (no credits).</div>';
+  if(anyMoved) h += '<div class="note">&dagger; Counted toward this requirement by the counselor (REF-103912); MiSiS may list it under a different requirement. V = validated, W = IEP waiver (no credits), S = English substitution.</div>';
   return h + prFoot(pack, 'Credits from the transcript on file; MiSiS is the official record') + '</div>';
 }
 // v117: show the IGP or the graduation snapshot ON SCREEN (same layout as the printout) inside el (class "psheet").
