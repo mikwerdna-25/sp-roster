@@ -659,6 +659,49 @@
   .rl-seg button:disabled{ opacity:0.45; cursor:default; }
   .rl-ghead{ font-size:0.74rem; font-weight:800; text-transform:uppercase; letter-spacing:0.05em; color:#1c2b4a; background:#eef1f7; padding:5px 8px; margin-top:8px; display:flex; justify-content:space-between; }
   #rlBody .hint{ font-size:0.82rem; color:#6b6457; margin:4px 0; }
+/* FT-PART-CSS-START */
+  /* v1: field trip slips */
+  #ftState .ft-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
+  #ftState .ft-h{ font-weight:800; color:var(--navy, #1c2b4a); font-size:1.08rem; }
+  #ftState .ft-new{ width:auto; margin:0; padding:9px 16px; }
+  #ftState .ft-sec{ font-weight:800; color:var(--navy, #1c2b4a); margin:14px 0 6px; font-size:0.92rem; }
+  #ftState .ft-msg{ color:var(--muted, #777); font-size:0.85rem; padding:6px 2px; }
+  #ftState .ft-card{ background:#fff; border:1px solid var(--line, #e3ded3); border-radius:10px; padding:10px 12px; margin:8px 0; }
+  #ftState .ft-card.off{ opacity:0.65; }
+  #ftState .ft-c-top{ display:flex; justify-content:space-between; gap:10px; }
+  #ftState .ft-c-loc{ font-weight:800; color:var(--navy, #1c2b4a); }
+  #ftState .ft-c-sub{ font-size:0.8rem; color:#555; margin-top:2px; }
+  #ftState .ft-c-n{ text-align:center; min-width:54px; } #ftState .ft-c-n b{ display:block; font-size:1.3rem; color:var(--navy, #1c2b4a); } #ftState .ft-c-n small{ color:var(--muted, #777); font-size:0.7rem; }
+  #ftState .ft-tag{ font-size:0.68rem; background:#fbe9e6; color:#a32b2b; border-radius:999px; padding:1px 7px; font-weight:700; vertical-align:2px; }
+  #ftState .ft-c-btns{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:8px; }
+  #ftState .ft-b{ width:auto; margin:0; padding:7px 14px; font-size:0.85rem; }
+  #ftState .ft-past summary{ cursor:pointer; font-weight:700; color:var(--navy, #1c2b4a); margin:12px 0 4px; font-size:0.88rem; }
+  #ftState .ft-form{ background:#fff; border:1px solid var(--line, #e3ded3); border-radius:10px; padding:4px 12px 12px; }
+  #ftState .ft-form label{ display:block; font-size:0.78rem; color:var(--muted, #666); font-weight:700; margin:10px 0 3px; }
+  #ftState .ft-form label small{ font-weight:400; }
+  #ftState .ft-form input[type=text], #ftState .ft-form input[type=date], #ftState .ft-form input[type=time]{ width:100%; box-sizing:border-box; padding:8px; border:1px solid #ccc; border-radius:6px; font-size:0.92rem; margin:0; }
+  #ftState .ft-2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  #ftState .ft-form label.ft-r{ font-weight:400; color:#222; font-size:0.86rem; margin:4px 0; display:flex; gap:6px; align-items:center; }
+  #ftState .ft-r input{ width:auto; margin:0; }
+  #ftState #ftTrOther{ margin-top:4px; }
+  #ftState .ft-stu{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  #ftState .ft-pick, #ftState .ft-chosen{ background:#fff; border:1px solid var(--line, #e3ded3); border-radius:10px; padding:8px; min-width:0; }
+  #ftState #ftQ{ width:100%; box-sizing:border-box; padding:7px 8px; border:1px solid #ccc; border-radius:6px; font-size:0.86rem; margin:0 0 6px; }
+  #ftState .ft-g{ border-top:1px solid #eee; } #ftState .ft-g summary{ cursor:pointer; padding:7px 2px; font-size:0.84rem; font-weight:700; color:var(--navy, #1c2b4a); display:flex; justify-content:space-between; gap:6px; }
+  #ftState .ft-g summary small{ color:var(--muted, #777); font-weight:400; }
+  #ftState label.ft-s{ display:flex; gap:7px; align-items:center; font-size:0.85rem; padding:4px 4px; color:#222; font-weight:400; margin:0; }
+  #ftState label.ft-s input{ width:auto; margin:0; } #ftState label.ft-s small{ color:var(--muted, #777); margin-left:auto; }
+  #ftState .ft-ch-h{ font-size:0.76rem; font-weight:700; color:var(--muted, #666); margin:0 0 6px; }
+  #ftState .ft-ch{ display:flex; align-items:center; gap:6px; padding:4px 0; border-bottom:1px solid #f0f0f0; font-size:0.85rem; }
+  #ftState .ft-ch span{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #ftState .ft-ch select{ width:auto; max-width:48%; padding:4px; font-size:0.78rem; margin:0; border:1px solid #ccc; border-radius:5px; }
+  #ftState .ft-x{ width:26px; height:26px; margin:0; padding:0; border:none; background:none; color:#a32b2b; font-size:1.2rem; cursor:pointer; }
+  #ftState .ft-save{ margin:14px 0 8px; } #ftState .ft-save .btn-primary{ width:auto; margin:0; padding:10px 22px; }
+  #ftState .ft-pr{ background:#fff; border:1px solid var(--line, #e3ded3); border-radius:10px; padding:8px 10px; }
+  #ftState .ft-hint{ color:var(--muted, #777); font-size:0.76rem; line-height:1.35; margin:3px 0 0; font-weight:400; }
+  #ftState .ft-msg a{ color:var(--navy, #1c2b4a); font-weight:700; }
+  @media (max-width:640px){ #ftState .ft-2, #ftState .ft-stu{ grid-template-columns:1fr; } }
+/* FT-PART-CSS-END */
 </style>
 </head>
 <body>
@@ -698,6 +741,8 @@
           <span class="m-ico">&#9989;</span><span><b>Intervention &amp; program roll</b><small>Intervention, Cinema 107 &amp; other programs</small></span></button>
         <button class="m-tool" id="printMineLink">
           <span class="m-ico">&#128424;&#65039;</span><span><b>Print</b><small>Schedules &amp; IGPs for my classes</small></span></button>
+        <button class="m-tool" id="fieldTripLink" onclick="ftOpen('classListState')">
+          <span class="m-ico">&#128652;</span><span><b>Field trip slips</b><small>Permission slips for my students</small></span></button>
         <button class="m-tool m-red" id="emBtn" onclick="emOpen()">
           <span class="m-ico">&#9888;&#65039;</span><span><b>Emergency roster</b><small>Print who is on campus now</small></span></button>
       </div>
@@ -770,6 +815,13 @@
       <div class="psheet" id="igpSheet"></div>
     </div>
 
+<!-- FT-PART-HTML-START -->
+    <!-- v1: FIELD TRIP SLIPS -->
+    <div class="state" id="ftState">
+      <button class="small-link" id="ftBackBtn" style="margin-bottom:10px;" onclick="showState(ftBack); window.scrollTo(0, 0);">&lt; Back to menu</button>
+      <div id="ftBody"></div>
+    </div>
+<!-- FT-PART-HTML-END -->
     <!-- CHANGE CODE -->
     <div class="state" id="changeCodeState">
       <button class="small-link" id="backFromChangeCodeBtn" style="margin-bottom:10px;">&lt; Back</button>
@@ -1813,7 +1865,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v68-transcript-date';
+document.getElementById('buildTag').textContent = 'v70-field-trips-all';
 // ===================== v107: PREV (points from earlier semesters) - view and change with a warning =====================
 // pvBox(student, tab, { canEdit, onSaved(res) }) -> an element for the student's card/row.
 function pvFmt(v){ return v === null || v === undefined || v === '' ? '—' : String(Math.round(Number(v) * 100) / 100); }
@@ -2673,5 +2725,299 @@ function emOpen(){
   }, 250);
 })();
 </script>
+
+<!-- FT-PART-JS-START -->
+<script>
+// ===================== Field trip slips: fill LAUSD REF-2111.1 Attachments H-K (v1) =====================
+// The base file (fieldtrip-slips.pdf) holds the four official pages, unchanged: 0 English (Attachment H),
+// 1 Spanish (I), 2 Korean (J), 3 Armenian (K). Nothing is changed on the form - the trip and student details
+// are typed onto the blank lines, and the lunch / transportation lines get an X. The parent's lunch choice,
+// signatures and the medical section are left for the parent. Coordinates are PDF points from the bottom left.
+var FT_LANGS = { en: { page: 0, label: 'English' }, es: { page: 1, label: 'Spanish' }, ko: { page: 2, label: 'Korean' }, hy: { page: 3, label: 'Armenian' } };
+var FT_LAYOUT = {
+  en: { school: [172, 623, 355], student: [60, 604, 312], location: [133, 568, 262], date: [420, 568, 107],
+        depart: [125, 543.2, 106], departAP: { am: 245.2, pm: 274.6, y: 542.6 }, ret: [372, 543.2, 102], returnAP: { am: 489.7, pm: 519.1, y: 542.6 },
+        supervisor: [209, 523.9, 318], lunch: { school: [61.9, 487.8], offsite: [61.5, 476.4] },
+        transport: { bus: [349.6, 487.9], private: [349.5, 476.4], walking: [349.5, 464.9], other: [349.6, 453.3] }, other: [387, 453.3, 112],
+        medName: [390, 358.4, 160] },
+  es: { school: [200, 631.3, 272], student: [58, 617, 264], location: [177, 585.5, 220], date: [409, 585.5, 136],
+        depart: [118, 567.6, 96], departAP: { am: 227.3, pm: 249.8, y: 567, rx: 10.5 }, ret: [367.5, 567.6, 92], returnAP: { am: 475, pm: 497.4, y: 567, rx: 10.5 },
+        supervisor: [266, 543.6, 288], lunch: { school: [60.8, 524.7], offsite: [60.8, 503.7] },
+        transport: { bus: [366.9, 524.7], private: [366.9, 503.7], walking: [384.9, 482.7], other: [369.1, 472.3] }, other: [380, 461, 176],
+        medName: [441, 349, 102] },
+  ko: { school: [135, 630.8, 390], student: [58, 611.9, 312], location: [149, 575.6, 262], date: [420, 575.6, 107],
+        depart: [98, 551, 132], departAP: { am: 245.2, pm: 274.6, y: 550.4 }, ret: [378, 551, 96], returnAP: { am: 489.7, pm: 519.1, y: 550.4 },
+        supervisor: [182, 531.7, 344], lunch: { school: [61.9, 495.6], offsite: [61.5, 484.2] },
+        transport: { bus: [349.6, 495.7], private: [349.5, 484.2], walking: [349.5, 472.7], other: [349.6, 461.1] }, other: [380.7, 461.1, 110],
+        medName: [372, 353.2, 178] },
+  hy: { school: [285, 623.6, 242], student: [58, 607.2, 266], location: [85, 571.1, 314], date: [450, 571.1, 77],
+        depart: [121, 546.7, 110], departAP: null, ret: [395, 546.7, 132], returnAP: null,
+        supervisor: [208, 529.9, 319], lunch: { school: [60.1, 494], offsite: [60.1, 482.2] },
+        transport: { bus: [348.2, 494], private: [348.2, 482.2], walking: [348.2, 470.3], other: [349.6, 457.2] }, other: [378.9, 457.2, 110],
+        medName: [407, 347.8, 142] }
+};
+// Helvetica (WinAnsi) can't draw every character - keep accents, swap anything else
+function ftSafe(t){
+  return String(t == null ? '' : t).replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, '-')
+    .replace(/[^\x20-\x7E -ÿ]/g, '?');
+}
+// "13:05" -> { t: '1:05', ap: 'pm' }
+function ftTime12(hhmm){
+  const m = /^(\d{1,2}):(\d{2})/.exec(String(hhmm || ''));
+  if(!m) return { t: '', ap: '' };
+  let h = Number(m[1]); const ap = h >= 12 ? 'pm' : 'am'; h = h % 12 || 12;
+  return { t: h + ':' + m[2], ap: ap };
+}
+// "2026-11-13" (+ optional end) -> "11/13/2026" or "11/13/2026 - 11/14/2026"
+function ftDateText(a, b){
+  const f = function(s){ const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || '')); return m ? Number(m[2]) + '/' + Number(m[3]) + '/' + m[1] : String(s || ''); };
+  return f(a) + (b && b !== a ? ' - ' + f(b) : '');
+}
+async function ftFillSlips(PDFLib, baseBytes, trip, students, opt){
+  opt = opt || {};
+  const base = await PDFLib.PDFDocument.load(baseBytes);
+  const out = await PDFLib.PDFDocument.create();
+  out.setTitle('Field trip slips - ' + ftSafe(trip.location));
+  const font = await out.embedFont(PDFLib.StandardFonts.Helvetica), bold = await out.embedFont(PDFLib.StandardFonts.HelveticaBold);
+  const ink = PDFLib.rgb(0.05, 0.12, 0.45);                 // dark blue, so the typed-in parts stand out from the form
+  const put = function(pg, spec, text, f){
+    text = ftSafe(text); if(!text || !spec) return;
+    f = f || font; let size = 10.5;
+    while(size > 6 && f.widthOfTextAtSize(text, size) > spec[2]) size -= 0.5;
+    while(text.length > 4 && f.widthOfTextAtSize(text, size) > spec[2]) text = text.slice(0, -4) + '...';
+    pg.drawText(text, { x: spec[0], y: spec[1], size: size, font: f, color: ink });
+  };
+  const check = function(pg, at){ if(at) pg.drawText('X', { x: at[0] - 3.6, y: at[1], size: 11, font: bold, color: ink }); };
+  const circle = function(pg, ap, which){ if(!ap || !which) return; pg.drawEllipse({ x: ap[which], y: ap.y + 3.4, xScale: ap.rx || 12.5, yScale: 6.6, borderColor: ink, borderWidth: 1 }); };
+  const dep = ftTime12(trip.depart), ret = ftTime12(trip.ret), date = ftDateText(trip.date, trip.dateEnd);
+  const pageFor = {};
+  const want = [];
+  students.forEach(function(s){
+    const lang = FT_LANGS[s.lang] ? s.lang : 'en';
+    want.push({ s: s, lang: lang });
+    if(lang !== 'en' && opt.alsoEnglish) want.push({ s: s, lang: 'en' });
+  });
+  for(let i = 0; i < want.length; i++){
+    const w = want[i], L = FT_LAYOUT[w.lang];
+    const copied = await out.copyPages(base, [FT_LANGS[w.lang].page]);
+    const pg = out.addPage(copied[0]);
+    const name = (w.s.first + ' ' + w.s.last).trim();
+    put(pg, L.school, opt.school || '');
+    put(pg, L.student, name, bold);
+    put(pg, L.location, trip.location);
+    put(pg, L.date, date);
+    if(L.departAP){ put(pg, L.depart, dep.t); circle(pg, L.departAP, dep.ap); put(pg, L.ret, ret.t); circle(pg, L.returnAP, ret.ap); }
+    else { put(pg, L.depart, dep.t ? dep.t + ' ' + dep.ap.toUpperCase() : ''); put(pg, L.ret, ret.t ? ret.t + ' ' + ret.ap.toUpperCase() : ''); }
+    put(pg, L.supervisor, trip.supervisor);
+    check(pg, L.lunch[trip.lunch]);
+    check(pg, L.transport[trip.transport]);
+    if(trip.transport === 'other') put(pg, L.other, trip.transportOther);
+    put(pg, L.medName, name);
+  }
+  return out.save();
+}
+
+// ===================== v1 (server v143): Field trip slips - shared by the counselor/admin and teacher pages =====================
+// Needs from the page: apiGet(params), showState(id), myCode. The official form pages are in fieldtrip-slips.pdf
+// (same folder as this page); the PDF library is loaded only when slips are printed.
+const FT_PDFLIB_URLS = ['https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js', 'https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js'];
+const FT_BASE_URL = 'fieldtrip-slips.pdf';
+const FT_LANG_NAMES = { en: 'English', es: 'Spanish · Español', ko: 'Korean · 한국어', hy: 'Armenian · Հայերեն' };
+const FT_LUNCH_TXT = { school: 'At school during lunch', offsite: 'Off-site during lunch' };
+const FT_TRANS_TXT = { bus: 'School bus', private: 'Private vehicle', walking: 'Walking', other: 'Other' };
+let ftData = null, ftBack = '', ftEdit = null, ftSel = {}, ftQ = '';
+function ftE(t){ return String(t == null ? '' : t).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function ftKey(s){ return s.id || (s.first + '|' + s.last).toLowerCase(); }
+function ftWhen(tr){
+  const d = function(s){ const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || ''); if(!m) return s || ''; const dt = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    return dt.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }); };
+  const t = function(x){ const v = ftTime12(x); return v.t ? v.t + ' ' + v.ap.toUpperCase() : ''; };
+  return d(tr.date) + (tr.dateEnd ? ' – ' + d(tr.dateEnd) : '') + ' · ' + t(tr.depart) + ' – ' + t(tr.ret);
+}
+function ftOpen(back){
+  ftBack = back || ftBack;
+  showState('ftState'); window.scrollTo(0, 0);
+  const el = document.getElementById('ftBody');
+  el.innerHTML = '<div class="loading-text" style="padding:18px;">Loading field trips&hellip;</div>';
+  apiGet({ mode: 'ftsetup', code: myCode }).then(function(d){
+    if(!d || !d.success){ el.innerHTML = '<div class="ft-msg">' + ftE((d && d.error) || 'Could not load field trips.') + '</div>'; return; }
+    ftData = d; ftList();
+  }).catch(function(){ el.innerHTML = '<div class="ft-msg">Could not reach the server.</div>'; });
+}
+function ftList(){
+  const d = ftData, el = document.getElementById('ftBody');
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const ymd = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+  const up = d.trips.filter(function(t){ return (t.dateEnd || t.date) >= ymd && t.status !== 'Cancelled'; }).sort(function(a, b){ return a.date.localeCompare(b.date); });
+  const past = d.trips.filter(function(t){ return up.indexOf(t) === -1; });
+  const card = function(t){
+    const cancelled = t.status === 'Cancelled';
+    return '<div class="ft-card' + (cancelled ? ' off' : '') + '"><div class="ft-c-top"><div><div class="ft-c-loc">' + ftE(t.location) + (cancelled ? ' <span class="ft-tag">Cancelled</span>' : '') + '</div>' +
+      '<div class="ft-c-sub">' + ftE(ftWhen(t)) + '</div>' +
+      '<div class="ft-c-sub">' + ftE(t.supervisor) + ' · ' + ftE(FT_TRANS_TXT[t.transport] || '') + (t.transportOther ? ' (' + ftE(t.transportOther) + ')' : '') + ' · ' + ftE(FT_LUNCH_TXT[t.lunch] || '') + '</div>' +
+      (t.owner !== d.who.name ? '<div class="ft-c-sub">Set up by ' + ftE(t.owner) + '</div>' : '') + '</div>' +
+      '<div class="ft-c-n"><b>' + t.students.length + '</b><small>student' + (t.students.length === 1 ? '' : 's') + '</small></div></div>' +
+      '<div class="ft-c-btns">' + (cancelled ? '' : '<button type="button" class="btn-primary ft-b" data-print="' + ftE(t.id) + '">&#128424;&#65039; Print slips</button>') +
+      (d.who.readOnly || !(d.who.admin || t.owner === d.who.name) ? '' : '<button type="button" class="btn-secondary ft-b" data-edit="' + ftE(t.id) + '">Edit</button>' +
+        '<button type="button" class="small-link" data-cancel="' + ftE(t.id) + '" data-restore="' + (cancelled ? 'yes' : '') + '">' + (cancelled ? 'Restore' : 'Cancel trip') + '</button>') + '</div></div>';
+  };
+  el.innerHTML = '<div class="ft-head"><div><div class="ft-h">Field trip slips</div><div class="ft-hint">LAUSD REF-2111.1 permission slip (Attachment H) in English, Spanish, Korean or Armenian &mdash; filled in for each student, ready to print.' +
+      (d.who.admin ? '' : ' You can print any trip and add any student; you can change the trips you set up.') + '</div></div>' +
+      (d.who.readOnly ? '' : '<button type="button" class="btn-primary ft-new" id="ftNewBtn">+ New field trip</button>') + '</div>' +
+    '<div class="ft-sec">Coming up</div>' + (up.length ? up.map(card).join('') : '<div class="ft-msg">No upcoming field trips.</div>') +
+    (past.length ? '<details class="ft-past"><summary>Past and cancelled (' + past.length + ')</summary>' + past.map(card).join('') + '</details>' : '');
+  const nb = document.getElementById('ftNewBtn'); if(nb) nb.onclick = function(){ ftEditOpen(null); };
+  el.querySelectorAll('[data-edit]').forEach(function(b){ b.onclick = function(){ ftEditOpen(d.trips.filter(function(t){ return t.id === b.getAttribute('data-edit'); })[0]); }; });
+  el.querySelectorAll('[data-print]').forEach(function(b){ b.onclick = function(){ ftPrintOpen(d.trips.filter(function(t){ return t.id === b.getAttribute('data-print'); })[0]); }; });
+  el.querySelectorAll('[data-cancel]').forEach(function(b){ b.onclick = function(){
+    const restore = b.getAttribute('data-restore') === 'yes';
+    if(!restore && !confirm('Cancel this field trip? It stays on the list under Past and cancelled, and you can restore it.')) return;
+    b.disabled = true;
+    apiGet({ mode: 'ftcancel', code: myCode, id: b.getAttribute('data-cancel'), restore: restore ? 'yes' : '' }).then(function(r){
+      if(r && r.success) ftOpen(); else { b.disabled = false; alert((r && r.error) || 'Not saved.'); }
+    }).catch(function(){ b.disabled = false; alert('Could not reach the server.'); });
+  }; });
+}
+// ---------- create / edit ----------
+function ftEditOpen(trip){
+  const d = ftData;
+  ftEdit = trip ? JSON.parse(JSON.stringify(trip)) : { id: '', location: '', date: '', dateEnd: '', depart: '', ret: '', supervisor: d.who.admin ? '' : d.who.name, lunch: '', transport: '', transportOther: '', notes: '', students: [] };
+  ftSel = {}; ftEdit.students.forEach(function(s){ ftSel[ftKey(s)] = Object.assign({}, s); }); ftQ = '';
+  const t = ftEdit, el = document.getElementById('ftBody');
+  const radio = function(name, val, label, cur){ return '<label class="ft-r"><input type="radio" name="' + name + '" value="' + val + '"' + (cur === val ? ' checked' : '') + '> ' + label + '</label>'; };
+  el.innerHTML = '<div class="ft-head"><div class="ft-h">' + (t.id ? 'Edit field trip' : 'New field trip') + '</div><button type="button" class="small-link" id="ftEditBack">Back to trips</button></div>' +
+    '<div class="ft-form">' +
+    '<label>Field trip location</label><input type="text" id="ftLoc" maxlength="200" placeholder="e.g. Griffith Observatory" value="' + ftE(t.location) + '">' +
+    '<div class="ft-2"><div><label>Date</label><input type="date" id="ftDate" value="' + ftE(t.date) + '"></div><div><label>Last day <small>(only for a trip of more than one day)</small></label><input type="date" id="ftDateEnd" value="' + ftE(t.dateEnd) + '"></div></div>' +
+    '<div class="ft-2"><div><label>Departure time</label><input type="time" id="ftDep" value="' + ftE(t.depart) + '"></div><div><label>Return time</label><input type="time" id="ftRet" value="' + ftE(t.ret) + '"></div></div>' +
+    '<label>Supervising teacher</label><input type="text" id="ftSup" maxlength="120" list="ftTeachers" placeholder="Name as it should print" value="' + ftE(t.supervisor) + '">' +
+    '<datalist id="ftTeachers">' + d.teachers.map(function(n){ return '<option value="' + ftE(n) + '">'; }).join('') + '</datalist>' +
+    '<div class="ft-2"><div><label>Lunch</label>' + radio('ftLunch', 'school', 'Student will be <b>at school</b> during lunch', t.lunch) + radio('ftLunch', 'offsite', 'Student will be <b>off-site</b> during lunch', t.lunch) +
+      '<div class="ft-hint">Parents choose a cafeteria lunch or a sack lunch on the slip.</div></div>' +
+    '<div><label>Method of transportation</label>' + radio('ftTr', 'bus', 'School bus', t.transport) + radio('ftTr', 'private', 'Private vehicle', t.transport) + radio('ftTr', 'walking', 'Walking', t.transport) + radio('ftTr', 'other', 'Other', t.transport) +
+      '<input type="text" id="ftTrOther" maxlength="80" placeholder="e.g. Metro train" value="' + ftE(t.transportOther) + '" style="' + (t.transport === 'other' ? '' : 'display:none;') + '"></div></div>' +
+    '<label>Notes <small>(for staff only &mdash; not printed)</small></label><input type="text" id="ftNotes" maxlength="500" value="' + ftE(t.notes) + '">' +
+    '</div>' +
+    '<div class="ft-sec">Students <span id="ftSelN"></span></div>' +
+    '<div class="ft-stu"><div class="ft-pick"><input type="search" id="ftQ" placeholder="Search a name or class"><div id="ftGroups"></div></div>' +
+    '<div class="ft-chosen"><div class="ft-ch-h">On this trip &middot; slip language</div><div id="ftChosen"></div></div></div>' +
+    '<div class="ft-save"><button type="button" class="btn-primary" id="ftSaveBtn">Save trip</button><div class="ft-msg" id="ftSaveMsg"></div></div>';
+  document.getElementById('ftEditBack').onclick = function(){ ftList(); window.scrollTo(0, 0); };
+  document.querySelectorAll('input[name=ftTr]').forEach(function(r){ r.onchange = function(){ document.getElementById('ftTrOther').style.display = r.value === 'other' && r.checked ? '' : 'none'; }; });
+  document.getElementById('ftQ').oninput = function(){ ftQ = this.value.trim().toLowerCase(); ftDrawGroups(); };
+  document.getElementById('ftSaveBtn').onclick = ftSave;
+  ftDrawGroups(); ftDrawChosen(); window.scrollTo(0, 0);
+}
+function ftDrawGroups(){
+  const d = ftData, box = document.getElementById('ftGroups');
+  const q = ftQ, openNow = {};
+  box.querySelectorAll('details.ft-g[open]').forEach(function(x){ openNow[x.getAttribute('data-lab')] = true; });
+  const gs = d.groups.map(function(g){
+    const lab = (g.period ? g.period.replace(/^P0?/, 'P') + ' · ' : '') + g.course + (g.teacher ? ' · ' + g.teacher : '');
+    const st = !q || lab.toLowerCase().indexOf(q) !== -1 ? g.students : g.students.filter(function(s){ return (s.first + ' ' + s.last + ' ' + s.last + ', ' + s.first + ' ' + (s.id || '')).toLowerCase().indexOf(q) !== -1; });
+    return { g: g, lab: lab, st: st };
+  }).filter(function(x){ return x.st.length; });
+  if(!gs.length){ box.innerHTML = '<div class="ft-msg">' + (d.groups.length ? 'No students match.' : 'No class rosters found.') + '</div>'; return; }
+  box.innerHTML = gs.map(function(x, i){
+    const allOn = x.st.every(function(s){ return ftSel[ftKey(s)]; });
+    return '<details class="ft-g" data-lab="' + ftE(x.lab) + '"' + (q || gs.length === 1 || openNow[x.lab] ? ' open' : '') + '><summary><span>' + ftE(x.lab) + '</span><small>' + x.st.length + '</small></summary>' +
+      '<label class="ft-s ft-all"><input type="checkbox" data-gi="' + i + '"' + (allOn ? ' checked' : '') + '> <b>Whole class</b></label>' +
+      x.st.map(function(s){ return '<label class="ft-s"><input type="checkbox" data-k="' + ftE(ftKey(s)) + '"' + (ftSel[ftKey(s)] ? ' checked' : '') + '> ' + ftE(s.last + ', ' + s.first) + '</label>'; }).join('') + '</details>';
+  }).join('');
+  const add = function(s, on){ const k = ftKey(s); if(on){ if(!ftSel[k]) ftSel[k] = { id: s.id, first: s.first, last: s.last, lang: (d.lastLang || {})[s.id] || 'en' }; } else delete ftSel[k]; };
+  const byKey = {}; d.groups.forEach(function(g){ g.students.forEach(function(s){ byKey[ftKey(s)] = s; }); });
+  box.querySelectorAll('input[data-k]').forEach(function(c){ c.onchange = function(){ add(byKey[c.getAttribute('data-k')], c.checked); ftDrawChosen(); ftDrawGroups(); }; });
+  box.querySelectorAll('input[data-gi]').forEach(function(c){ c.onchange = function(){ gs[Number(c.getAttribute('data-gi'))].st.forEach(function(s){ add(s, c.checked); }); ftDrawChosen(); ftDrawGroups(); }; });
+}
+function ftDrawChosen(){
+  const box = document.getElementById('ftChosen'), list = Object.keys(ftSel).map(function(k){ return ftSel[k]; }).sort(function(a, b){ return a.last.localeCompare(b.last) || a.first.localeCompare(b.first); });
+  document.getElementById('ftSelN').textContent = list.length ? '(' + list.length + ')' : '';
+  if(!list.length){ box.innerHTML = '<div class="ft-msg">Pick students from the class lists.</div>'; return; }
+  box.innerHTML = list.map(function(s){ const k = ftKey(s);
+    return '<div class="ft-ch"><span>' + ftE(s.last + ', ' + s.first) + '</span><select data-lk="' + ftE(k) + '">' + Object.keys(FT_LANG_NAMES).map(function(l){ return '<option value="' + l + '"' + (s.lang === l ? ' selected' : '') + '>' + FT_LANG_NAMES[l] + '</option>'; }).join('') + '</select>' +
+      '<button type="button" class="ft-x" data-rk="' + ftE(k) + '" aria-label="Remove">&times;</button></div>'; }).join('');
+  box.querySelectorAll('select[data-lk]').forEach(function(sel){ sel.onchange = function(){ ftSel[sel.getAttribute('data-lk')].lang = sel.value; }; });
+  box.querySelectorAll('[data-rk]').forEach(function(b){ b.onclick = function(){ delete ftSel[b.getAttribute('data-rk')]; ftDrawChosen(); ftDrawGroups(); }; });
+}
+function ftSave(){
+  const v = function(id){ return document.getElementById(id).value.trim(); };
+  const rv = function(n){ const c = document.querySelector('input[name=' + n + ']:checked'); return c ? c.value : ''; };
+  const trip = { id: ftEdit.id, location: v('ftLoc'), date: v('ftDate'), dateEnd: v('ftDateEnd'), depart: v('ftDep'), ret: v('ftRet'), supervisor: v('ftSup'),
+                 lunch: rv('ftLunch'), transport: rv('ftTr'), transportOther: v('ftTrOther'), notes: v('ftNotes'),
+                 students: Object.keys(ftSel).map(function(k){ const s = ftSel[k]; return { id: s.id, first: s.first, last: s.last, lang: s.lang }; }) };
+  const msg = document.getElementById('ftSaveMsg'), btn = document.getElementById('ftSaveBtn');
+  const miss = !trip.location ? 'Write the field trip location.' : !trip.date ? 'Pick the date.' : !trip.depart || !trip.ret ? 'Enter the departure and return times.' : !trip.supervisor ? 'Write the supervising teacher.' :
+    !trip.lunch ? 'Choose where students will be during lunch.' : !trip.transport ? 'Choose the method of transportation.' : trip.transport === 'other' && !trip.transportOther ? 'Write the other method of transportation.' : '';
+  if(miss){ msg.textContent = miss; return; }
+  btn.disabled = true; msg.textContent = 'Saving…';
+  const js = JSON.stringify(trip), parts = []; for(let i = 0; i < js.length; i += 1500) parts.push(js.slice(i, i + 1500));
+  const token = 'F' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  let chain = Promise.resolve(null);
+  parts.forEach(function(p, i){ chain = chain.then(function(r){ if(r && !r.success) return r; return apiGet({ mode: 'ftsave', code: myCode, token: token, part: i + 1, of: parts.length, data: p }); }); });
+  chain.then(function(r){
+    btn.disabled = false;
+    if(!r || !r.success){ msg.textContent = (r && r.error) || 'Not saved.'; return; }
+    msg.textContent = 'Saved.';
+    ftOpen();
+  }).catch(function(){ btn.disabled = false; msg.textContent = 'Could not reach the server.'; });
+}
+// ---------- print ----------
+let ftLibP = null, ftBaseP = null;
+function ftLoadLib(){
+  if(window.PDFLib) return Promise.resolve(window.PDFLib);
+  if(ftLibP) return ftLibP;
+  ftLibP = FT_PDFLIB_URLS.reduce(function(pr, url){ return pr.catch(function(){ return new Promise(function(res, rej){
+    const s = document.createElement('script'); s.src = url; s.onload = function(){ window.PDFLib ? res(window.PDFLib) : rej(); }; s.onerror = function(){ s.remove(); rej(); }; document.head.appendChild(s); }); }); }, Promise.reject())
+    .catch(function(){ ftLibP = null; throw new Error('Could not load the PDF tool. Check the internet connection and try again.'); });
+  return ftLibP;
+}
+function ftLoadBase(){
+  if(ftBaseP) return ftBaseP;
+  ftBaseP = fetch(FT_BASE_URL, { cache: 'force-cache' }).then(function(r){ if(!r.ok) throw new Error(); return r.arrayBuffer(); })
+    .catch(function(){ ftBaseP = null; throw new Error('The form file (fieldtrip-slips.pdf) is missing from the website. Upload it next to this page.'); });
+  return ftBaseP;
+}
+function ftPrintOpen(trip){
+  const el = document.getElementById('ftBody');
+  const list = trip.students.slice().sort(function(a, b){ return a.last.localeCompare(b.last) || a.first.localeCompare(b.first); });
+  const anyOther = list.some(function(s){ return s.lang && s.lang !== 'en'; });
+  el.innerHTML = '<div class="ft-head"><div><div class="ft-h">Print slips &ndash; ' + ftE(trip.location) + '</div><div class="ft-hint">' + ftE(ftWhen(trip)) + '</div></div><button type="button" class="small-link" id="ftPrBack">Back to trips</button></div>' +
+    (list.length ? '<div class="ft-pr">' +
+      '<label class="ft-s ft-all"><input type="checkbox" id="ftPrAll" checked> <b>All students (' + list.length + ')</b></label>' +
+      list.map(function(s, i){ return '<label class="ft-s"><input type="checkbox" class="ft-pc" data-i="' + i + '" checked> ' + ftE(s.last + ', ' + s.first) + ' <small>' + ftE((FT_LANG_NAMES[s.lang] || 'English').split(' · ')[0]) + '</small></label>'; }).join('') +
+      (anyOther ? '<label class="ft-s" style="margin-top:8px;"><input type="checkbox" id="ftPrEn"> Also print an English copy for each slip in another language</label>' : '') +
+      '</div><div class="ft-save"><button type="button" class="btn-primary" id="ftPrGo">Make the slips (PDF)</button><div class="ft-msg" id="ftPrMsg"></div></div>' +
+      '<div class="ft-hint">Each slip is the official LAUSD form with the school, student, trip location, date, times, supervising teacher, lunch and transportation filled in. Parents complete the lunch choice, the medical section and sign.</div>'
+    : '<div class="ft-msg">No students on this trip yet &mdash; edit the trip to add them.</div>');
+  document.getElementById('ftPrBack').onclick = function(){ ftList(); window.scrollTo(0, 0); };
+  if(!list.length) return;
+  const all = document.getElementById('ftPrAll');
+  all.onchange = function(){ el.querySelectorAll('.ft-pc').forEach(function(c){ c.checked = all.checked; }); };
+  document.getElementById('ftPrGo').onclick = function(){
+    const pick = Array.prototype.filter.call(el.querySelectorAll('.ft-pc'), function(c){ return c.checked; }).map(function(c){ return list[Number(c.getAttribute('data-i'))]; });
+    const msg = document.getElementById('ftPrMsg'), btn = this;
+    if(!pick.length){ msg.textContent = 'Check at least one student.'; return; }
+    const en = document.getElementById('ftPrEn'), alsoEn = !!(en && en.checked);
+    const win = window.open('', '_blank');                  // opened now, so the browser doesn't block it
+    if(win) win.document.write('<p style="font-family:sans-serif;padding:20px;">Making the field trip slips&hellip;</p>');
+    btn.disabled = true; msg.textContent = 'Making ' + pick.length + ' slip' + (pick.length === 1 ? '' : 's') + '…';
+    Promise.all([ftLoadLib(), ftLoadBase()]).then(function(r){
+      return ftFillSlips(r[0], r[1], trip, pick, { school: ftData.school, alsoEnglish: alsoEn });
+    }).then(function(bytes){
+      const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+      const fname = 'field-trip-slips-' + trip.date + '.pdf';
+      if(win && !win.closed) win.location.href = url;
+      msg.innerHTML = 'Ready &mdash; ' + (win ? 'opened in a new tab. ' : '') + '<a href="' + url + '" target="_blank" download="' + fname + '">Open or download the slips</a>';
+      btn.disabled = false;
+      const langs = {}; pick.forEach(function(s){ langs[s.lang || 'en'] = true; });
+      apiGet({ mode: 'ftprinted', code: myCode, id: trip.id, n: pick.length + (alsoEn ? pick.filter(function(s){ return s.lang && s.lang !== 'en'; }).length : 0), langs: Object.keys(langs).join(',') }).catch(function(){});
+    }).catch(function(err){
+      if(win && !win.closed) win.close();
+      btn.disabled = false; msg.textContent = (err && err.message) || 'Could not make the slips.';
+    });
+  };
+}
+</script>
+<!-- FT-PART-JS-END -->
 </body>
 </html>
