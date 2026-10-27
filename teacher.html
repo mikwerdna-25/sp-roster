@@ -625,6 +625,9 @@
   :is(#printArea, .psheet) .sn-ncb .ncf{ color:#8a5a00; font-size:7pt; margin-top:1pt; }
   :is(#printArea, .psheet) .sn-ncb.restricted .ncf{ color:#a32b2b; font-weight:600; }
 
+  /* v147: College & Career not for credit */
+  :is(#printArea, .psheet) .ncr{ font-size:6.3pt; color:#8a5a00; font-weight:700; text-transform:uppercase; letter-spacing:0.02em; }
+
   /* ===== v95 program roll ===== */
   .rl-progs{ display:flex; flex-wrap:wrap; gap:6px; margin:6px 0 10px; }
   .rl-prog{ width:auto; margin:0; padding:8px 12px; border-radius:999px; border:1.5px solid #c6cdda; background:#fff; color:#1c2b4a; font-weight:700; font-size:0.86rem; cursor:pointer; }
@@ -1871,7 +1874,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v72-faster';
+document.getElementById('buildTag').textContent = 'v73-schedule-check';
 // ===================== v107: PREV (points from earlier semesters) - view and change with a warning =====================
 // pvBox(student, tab, { canEdit, onSaved(res) }) -> an element for the student's card/row.
 function pvFmt(v){ return v === null || v === undefined || v === '' ? '—' : String(Math.round(Number(v) * 100) / 100); }
@@ -2273,9 +2276,11 @@ function prIgp(st, pack, opt){
           (opt.canMove && r.key && r.moved ? '<button type="button" class="i1-mv rw-only" data-mv="' + prE(r.key) + '">Undo move</button>' : '') + '</td><td class="c">' + prE(r.mark) + '</td><td class="tm">' + prE(r.term || r.termEnd) + '</td></tr>'; }).join('')
         : '<tr><td colspan="3" class="muted">None</td></tr>') + '</table><div class="sub" style="padding:2px 5px;">Not counted for credit and not printed. A course passed later drops off.</div></div>' : '') +
     '<div class="i1-box"><div class="i1-h"><span>In progress at Stoney Point</span></div><table><tr><th>Per</th><th>Course</th><th class="n">Pts</th></tr>' + (ip.length ? ip.map(function(c){
-      return '<tr><td class="tm">' + prE(String(c.period || '').replace(/^P0?/, '')) + '</td><td>' + prE(c.course) + '</td><td class="n">' + (c.advisory ? prNum(c.total) + '*' : prNum(c.total)) + '</td></tr>'; }).join('') : '<tr><td colspan="3" class="muted">None</td></tr>') + '</table></div>' +
+      return '<tr><td class="tm">' + prE(String(c.period || '').replace(/^P0?/, '')) + '</td><td>' + prE(c.course) + (c.noCredit ? ' <span class="ncr">no credit</span>' : '') +
+        (opt.screen && opt.canMove && opt.onNoCredit && c.cc && c.tab ? '<button type="button" class="i1-mv rw-only" data-ncc="' + prE(c.tab) + '" data-on="' + (c.noCredit ? '' : 'yes') + '">' + (c.noCredit ? 'Make it for credit' : 'Not for credit') + '</button>' : '') +   // v147
+        '</td><td class="n">' + (c.advisory ? prNum(c.total) + '*' : prNum(c.total)) + '</td></tr>'; }).join('') : '<tr><td colspan="3" class="muted">None</td></tr>') + '</table></div>' +
     (doneHere.length ? '<div class="i1-box"><div class="i1-h"><span>Completed here this term</span></div><table>' + doneHere.map(function(c){
-      return '<tr><td>' + prE(c.course) + '</td><td class="c">' + prE(c.grade) + '</td></tr>'; }).join('') + '</table><div class="sub" style="padding:2px 5px;">May not be on the transcript yet.</div></div>' : '') +
+      return '<tr><td>' + prE(c.course) + (c.noCredit ? ' <span class="ncr">no credit</span>' : '') + '</td><td class="c">' + prE(c.grade) + '</td></tr>'; }).join('') + '</table><div class="sub" style="padding:2px 5px;">May not be on the transcript yet.</div></div>' : '') +
     trkBox + (nonL ? '' :
     '<div class="i1-box nonc"><div class="i1-h"><span>Non-course requirements</span>' + (opt.canMove && opt.onNonCourse ? '<button type="button" class="i1-mv rw-only nc-edit" data-nc="1">Check off</button>' : '') + '</div>' +
       prNcRow(nc.career, 'Career Pathway', 'identified &amp; recorded in MiSiS', 'by end of 11th grade', opt) +
@@ -2306,6 +2311,7 @@ function prShow(el, pack, which, opt){
     });
     el.querySelectorAll('[data-trk]').forEach(function(b){ b.onclick = function(){ if(opt.onTrack) opt.onTrack(st, b); }; });   // v120
     el.querySelectorAll('[data-wvr]').forEach(function(b){ b.onclick = function(){ if(opt.onWaivers) opt.onWaivers(st, b); }; });   // v130
+    el.querySelectorAll('[data-ncc]').forEach(function(b){ b.onclick = function(){ if(opt.onNoCredit) opt.onNoCredit(st, b.getAttribute('data-ncc'), b.getAttribute('data-on') === 'yes', b); }; });   // v147
     el.querySelectorAll('[data-nc]').forEach(function(b){ b.onclick = function(){ if(opt.onNonCourse) opt.onNonCourse(st, b); }; });   // v136
     el.querySelectorAll('[data-vl]').forEach(function(b){            // v119: validate an open line
       b.onclick = function(){ if(opt.onValidate) opt.onValidate(b.getAttribute('data-vc'), b.getAttribute('data-vl'), b.closest('tr'), st); };
