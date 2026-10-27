@@ -628,6 +628,10 @@
   /* v147: College & Career not for credit */
   :is(#printArea, .psheet) .ncr{ font-size:6.3pt; color:#8a5a00; font-weight:700; text-transform:uppercase; letter-spacing:0.02em; }
 
+  /* v148: empty periods on the counselor's schedule screen */
+  :is(#printArea, .psheet).psheet tr.sch-gap td{ background:#fbf3e4; } :is(#printArea, .psheet).psheet .sch-none{ color:#8a5a00; font-style:italic; margin-right:8px; }
+  :is(#printArea, .psheet).psheet tr.sch-gap .i1-mv{ display:inline-block; }
+
   /* ===== v95 program roll ===== */
   .rl-progs{ display:flex; flex-wrap:wrap; gap:6px; margin:6px 0 10px; }
   .rl-prog{ width:auto; margin:0; padding:8px 12px; border-radius:999px; border:1.5px solid #c6cdda; background:#fff; color:#1c2b4a; font-weight:700; font-size:0.86rem; cursor:pointer; }
@@ -1874,7 +1878,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v73-schedule-check';
+document.getElementById('buildTag').textContent = 'v74-schedule-edit';
 // ===================== v107: PREV (points from earlier semesters) - view and change with a warning =====================
 // pvBox(student, tab, { canEdit, onSaved(res) }) -> an element for the student's card/row.
 function pvFmt(v){ return v === null || v === undefined || v === '' ? '—' : String(Math.round(Number(v) * 100) / 100); }
@@ -2124,14 +2128,23 @@ function prFoot(pack, extra){
   return '<div class="pf"><span>Printed ' + prE(pack.printedAt) + ' by ' + prE(pack.printedBy) + (extra ? ' &middot; ' + extra : '') + '</span>' +
     '<span>Confidential student record &mdash; do not leave unattended.</span></div>';
 }
-function prSchedule(st, pack){
+function prSchedule(st, pack, opt){
+  opt = opt || {};
   let h = '<div class="pdoc">' + prHead('Class Schedule', st, pack);
-  const rows = st.schedule || [];
+  let rows = (st.schedule || []).slice();
+  const edit = opt.screen && opt.canMove && opt.onSched;            // v148: counselors fill an empty period or change a class right here
+  if(edit){
+    const have = {}; rows.forEach(function(c){ if(!c.notInMisis && !c.advisory) have[String(c.period || '').replace(/^P0?(\d)$/, 'P0$1')] = true; });
+    (pack.corePeriods || []).forEach(function(p){ if(!have[p.key]) rows.push({ gap: true, period: p.key, periodLabel: p.label, time: p.time, order: p.order }); });
+    rows.sort(function(a, b){ return (a.notInMisis ? 1 : 0) - (b.notInMisis ? 1 : 0) || (a.order == null ? 99 : a.order) - (b.order == null ? 99 : b.order); });
+  }
   if(!rows.length) h += '<div class="empty">No classes in progress.</div>';
   else {
     h += '<table><tr><th>Period</th><th>Time</th><th>Course</th><th>Teacher</th><th>Room</th><th class="n">Points</th></tr>' + rows.map(function(c){
+      if(c.gap) return '<tr class="sch-gap"><td class="per">' + prE(c.periodLabel) + '</td><td class="tm">' + prE(c.time) + '</td><td colspan="4"><span class="sch-none">No class</span><button type="button" class="i1-mv rw-only" data-sadd="' + prE(c.period) + '">+ Add a class</button></td></tr>';
       return '<tr><td class="per">' + prE(c.periodLabel || c.period) + '</td><td class="tm">' + prE(c.time) + '</td><td>' + prE(c.course) +
-        (c.doubleBlock ? '<span class="tag">Double block</span>' : '') + (c.notInMisis ? '<span class="tag">Pending MiSiS</span>' : '') + (c.extended ? '<span class="tag">Outside school day</span>' : '') + '</td>' +
+        (c.doubleBlock ? '<span class="tag">Double block</span>' : '') + (c.notInMisis ? '<span class="tag">Pending MiSiS</span>' : '') + (c.extended ? '<span class="tag">Outside school day</span>' : '') + (c.noCredit ? '<span class="tag">No credit</span>' : '') +
+        (edit && c.tab && !c.advisory ? '<button type="button" class="i1-mv rw-only" data-schg="' + prE(c.tab) + '">Change</button>' : '') + '</td>' +
         '<td>' + prE(c.teacher) + '</td><td>' + prE(c.room) + '</td><td class="n">' + (c.advisory ? prNum(c.total) + ' to C&amp;C' : prNum(c.total) + ' / 75') + '</td></tr>';
     }).join('') + '</table>';
   }
@@ -2296,8 +2309,12 @@ function prIgp(st, pack, opt){
 function prShow(el, pack, which, opt){
   opt = Object.assign({ screen: true }, opt || {});
   const st = pack.students[0];
-  el.innerHTML = which === 'snapshot' ? prSnapshot(st, pack) : which === 'schedule' ? prSchedule(st, pack)     // v121: schedule and transcript on screen too
+  el.innerHTML = which === 'snapshot' ? prSnapshot(st, pack) : which === 'schedule' ? prSchedule(st, pack, opt)     // v121: schedule and transcript on screen too
     : which === 'transcript' ? prTranscript(st, pack) : prIgp(st, pack, opt);
+  if(which === 'schedule' && opt.onSched){                          // v148
+    el.querySelectorAll('[data-sadd]').forEach(function(b){ b.onclick = function(){ opt.onSched(st, { period: b.getAttribute('data-sadd') }, b.closest('tr')); }; });
+    el.querySelectorAll('[data-schg]').forEach(function(b){ b.onclick = function(){ const row = (st.schedule || []).filter(function(c){ return c.tab === b.getAttribute('data-schg'); })[0]; opt.onSched(st, { period: row && row.period, row: row }, b.closest('tr')); }; });
+  }
   if(which === 'igp' && opt.canMove){
     const byKey = {};
     ((st.igp || {}).categories || []).forEach(function(c){
