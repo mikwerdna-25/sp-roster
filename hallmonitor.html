@@ -178,13 +178,13 @@
     <div class="grid2">
       <div>
       <div class="panel" id="reqPanel" style="margin-bottom:10px;">
-        <div class="ph"><span>Student requests <span class="chip alert" id="reqCount" style="display:none;"></span></span></div><div style="display:flex; gap:6px; margin:-2px 0 8px;"><button class="btn sm light" id="whereNewBtn" style="flex:1;">Where is…?</button><button class="btn sm" id="reqNewBtn" style="flex:1;">Request a student</button></div>
+        <div class="ph"><span>Student requests <span class="chip alert" id="reqCount" style="display:none;"></span></span></div><div style="display:flex; gap:6px; margin:-2px 0 8px;"><button class="btn sm" id="whereNewBtn" style="flex:1; background:#1d5fa3; color:#fff; border:none;">🔎 Where is…?</button><button class="btn sm" id="reqNewBtn" style="flex:1;">Request a student</button></div>
         <div id="reqList"></div>
       </div>
       <div class="panel">
         <div class="ph"><span>Out of class now</span><span class="chip" id="outCount">0</span></div>
         <div id="outList"></div>
-        <div class="small muted" style="margin-top:6px;">Restroom: yellow after 5 min, red after 8. Other places have their own limits. <b>Sent</b> = sending teacher confirms, <b>Arrived</b> = receiving room confirms (both optional).</div>
+        <div class="small muted" style="margin-top:6px;">Restroom: yellow after 5 min, red after 8 (the teacher gets a Teams message at red). Other places have their own limits. Passes still open at 1:30 end on their own. <b>Sent</b> = sending teacher confirms, <b>Arrived</b> = receiving room confirms (both optional).</div>
       </div>
       </div>
       <div>
@@ -711,7 +711,7 @@ function openStudent(id){
         '<input type="text" id="drNote" placeholder="Where (for Somewhere else)" style="flex:1; min-width:140px; display:none;"></div><button class="btn good" id="drSend" style="margin-top:8px;">Start pass (you approve it)</button>';
     }
     h += '<button class="btn light" id="drReq" style="margin-top:8px;">Request this student (ask their teacher to send them)</button>';   // v108
-    h += '<button class="btn light" id="drWhere" style="margin-top:8px;">Where is this student? (Teams message)</button>';   // v16
+    h += '<button class="btn" id="drWhere" style="margin-top:8px; background:#1d5fa3; color:#fff; border:none;">🔎 Where is this student? (Teams message)</button>';   // v16
   }
   const dr = document.getElementById('drawer'); dr.innerHTML = h;
   document.getElementById('drawerBack').style.display = 'flex';
@@ -780,7 +780,7 @@ function renderReqs(){
     return h + '</div>';
   };
   const done = all.filter(function(q){ return !reqOpenQ(q); }).sort(function(a, b){ return b.at - a.at; });
-  let h = open.length ? open.map(card).join('') : '<div class="small muted">No open requests. Use <b>Request a student</b> to ask for a student to be sent to you.</div>';
+  let h = open.length ? open.map(card).join('') : '<div class="small muted">No open requests.<br>&#128270; <b>Where is…?</b> asks the student&rsquo;s teacher, or everyone, in Teams.<br>&#128203; <b>Request a student</b> asks their teacher to send them to you.</div>';
   if(done.length) h += '<details style="margin-top:6px;"><summary class="small muted" style="cursor:pointer;">Earlier today (' + done.length + ')</summary>' + done.map(card).join('') + '</details>';
   const el = document.getElementById('reqList');
   const wasOpen = el.querySelector('details') && el.querySelector('details').open;
@@ -869,7 +869,7 @@ function openRequest(presetId){
     .concat(cfg().rooms.filter(function(r){ return /^\d+$/.test(r.id) && r.id !== mineRoom && REQ_PLACES.every(function(p){ return p[0] !== r.id; }); }).map(function(r){ return [r.id, roomFull(r.id)]; }));
   const pre = presetId ? D.students.filter(function(s){ return s.id === presetId; })[0] : null;
   let h = '<div style="display:flex; justify-content:space-between; gap:8px;"><div class="h1" style="font-size:1.05rem;">Request a student</div><button class="btn sm light" id="rqClose">Close</button></div>' +
-    '<div class="small muted" style="margin:4px 0 10px;">The student&rsquo;s teacher sees this on their Hall Monitor and can send them on a pass. The student also sees it on their hall pass page.</div>' +
+    '<div class="small muted" style="margin:4px 0 10px;">The student&rsquo;s teacher gets a Teams message and can send them on a pass from their Hall Monitor. The student also sees it on their hall pass page. You get a Teams message when they send the student or reply &ldquo;Not now.&rdquo;</div>' +
     '<label class="small" style="font-weight:800;">Student</label>' +
     '<input type="text" id="rqFind" placeholder="Type a name or ID" autocomplete="off" value="' + (pre ? esc(pre.first + ' ' + pre.last) : '') + '" style="width:100%; box-sizing:border-box;">' +
     '<div id="rqPick" style="max-height:200px; overflow:auto;"></div>' +
