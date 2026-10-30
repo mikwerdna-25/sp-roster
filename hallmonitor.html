@@ -57,6 +57,9 @@
   .pass{ border:1px solid #e6e0cf; border-left:6px solid var(--good); border-radius:8px; padding:8px 9px; margin-bottom:7px; background:#fff; }
   .pass.warn{ border-left-color:var(--warn); background:#fffaf0; } .pass.over{ border-left-color:var(--crit); background:#fff4f3; }
   .pass .nm{ font-weight:800; cursor:pointer; } .pass .tm{ font-variant-numeric:tabular-nums; font-weight:900; font-size:1.15rem; float:right; }
+  .pass.stale{ border:2px solid var(--crit); border-left:6px solid var(--crit); background:#fde8e5; }
+  .stale-tag{ display:inline-block; background:var(--crit); color:#fff; font-size:.7rem; font-weight:800; border-radius:6px; padding:1px 6px; margin-left:6px; vertical-align:middle; }
+  .sc.stale{ outline:2px solid var(--crit); }
   .pass.over .tm{ color:var(--crit); } .pass.warn .tm{ color:#9a6a00; }
   .pass .rt{ font-size:.8rem; color:var(--ink); margin-top:2px; }
   .pass .fl{ font-size:.72rem; color:var(--muted); margin-top:3px; }
@@ -141,6 +144,8 @@
   .req .fl{ font-size:.76rem; color:var(--muted); }
   .req .acts{ display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; }
   .req .tag{ display:inline-block; font-size:.7rem; font-weight:800; color:#fff; background:#a32b2b; border-radius:6px; padding:1px 6px; margin-left:6px; }
+  .req.where{ border:2px solid #1d5fa3; background:#eef5fd; }
+  .req .tag.blue{ background:#1d5fa3; }
   .req .reply{ font-size:.8rem; color:#6b4a00; background:#fff3cf; border-radius:6px; padding:3px 6px; margin-top:4px; }
 </style>
 </head>
@@ -173,7 +178,7 @@
     <div class="grid2">
       <div>
       <div class="panel" id="reqPanel" style="margin-bottom:10px;">
-        <div class="ph"><span>Student requests <span class="chip alert" id="reqCount" style="display:none;"></span></span><button class="btn sm" id="reqNewBtn">Request a student</button></div>
+        <div class="ph"><span>Student requests <span class="chip alert" id="reqCount" style="display:none;"></span></span></div><div style="display:flex; gap:6px; margin:-2px 0 8px;"><button class="btn sm light" id="whereNewBtn" style="flex:1;">Where is…?</button><button class="btn sm" id="reqNewBtn" style="flex:1;">Request a student</button></div>
         <div id="reqList"></div>
       </div>
       <div class="panel">
@@ -202,7 +207,7 @@
         <div id="tab-log" style="display:none;"></div>
       </div>
     </div>
-    <div class="small muted" style="margin-top:12px;">Student locations come from their MiSiS class schedule (points sheet), today's check-ins and hall passes. Updates every 20 seconds. <a href="#" id="signOut">Sign out</a> <span style="float:right;">hallmonitor v14</span></div>
+    <div class="small muted" style="margin-top:12px;">Student locations come from their MiSiS class schedule (points sheet), today's check-ins and hall passes. Updates every 20 seconds. <a href="#" id="signOut">Sign out</a> <span style="float:right;">hallmonitor v16</span></div>
   </div>
 </div></div>
 
@@ -227,6 +232,7 @@ function hm(s){ const p = String(s).split(':'); return Number(p[0]) * 60 + Numbe
 function t12(s){ const m = typeof s === 'number' ? s : hm(s), h = Math.floor(m / 60), mm = Math.round(m % 60); return ((h + 11) % 12 + 1) + ':' + ('0' + mm).slice(-2); }
 function mmss(ms){ const s = Math.max(0, Math.floor(ms / 1000)), m = Math.floor(s / 60); return (m >= 60 ? Math.floor(m / 60) + ':' + ('0' + (m % 60)).slice(-2) : m) + ':' + ('0' + (s % 60)).slice(-2); }
 
+let lastStaleN = -1;
 let myCode = '', D = null, offset = 0, selKey = null, tab = 'map', mineOnly = false, pollT = null, followNow = true;   // followNow: the view moves with the bell
 try{ myCode = sessionStorage.getItem('hmCode') || ''; }catch(e){}
 // Opened from the teacher or counselor page: use the code handed over (good for 60 seconds, read once, then wiped)
@@ -275,6 +281,15 @@ function scheduledAt(st, minute){
   return st.periods[b.key] || [];
 }
 function blockMinute(){ const b = selBlock(); if(!b) return ptInfo(nowMs()).minute; return isLive() ? ptInfo(nowMs()).minute : (hm(b.start) + hm(b.end)) / 2; }
+// v15: a pass still open from an earlier period (the bell rang and the student never came back)
+function passStale(p){
+  if(!p || p.status !== 'Out' || !p.period || progOf(p.type)) return '';
+  const cur = curBlock(ptInfo(nowMs()).minute);
+  if(!cur || cur.key === p.period) return '';
+  const b = blocksToday().filter(function(x){ return x.key === p.period; })[0];
+  return b ? b.label : p.period;
+}
+function passCls(p){ return 'pass ' + passLevel(p) + (passStale(p) ? ' stale' : ''); }
 function passLevel(p){
   const d = destOf(p.type), min = (nowMs() - p.out) / 60000;
   if(progOf(p.type)) return '';
@@ -348,9 +363,12 @@ setInterval(function(){
   else if(b){ chip.textContent = b.label + ' · ' + Math.ceil(hm(b.end) - info.minute) + ' min left'; chip.className = 'chip live'; }
   else { chip.textContent = info.minute < DAY_START ? 'Before school' : (info.minute < dayEnd() ? 'Passing time' : 'School day over'); chip.className = 'chip'; }
   document.querySelectorAll('[data-timer]').forEach(function(el){ el.textContent = mmss(ms - Number(el.getAttribute('data-timer'))); });
-  document.querySelectorAll('.pass[data-pid]').forEach(function(el){ const p = D.passes.filter(function(x){ return x.id === el.getAttribute('data-pid'); })[0]; if(p) el.className = 'pass ' + passLevel(p); });
+  document.querySelectorAll('.pass[data-pid]').forEach(function(el){ const p = D.passes.filter(function(x){ return x.id === el.getAttribute('data-pid'); })[0]; if(p) el.className = passCls(p); });
   const over = D.passes.filter(function(p){ return p.status === 'Out' && passLevel(p) === 'over'; }).length;
-  const oc = document.getElementById('overChip'); oc.style.display = over ? '' : 'none'; oc.textContent = over + ' over time';
+  const stale = D.passes.filter(function(p){ return passStale(p); }).length;
+  if(stale !== lastStaleN){ lastStaleN = stale; renderOut(); }
+  const oc = document.getElementById('overChip'); oc.style.display = (over || stale) ? '' : 'none';
+  oc.textContent = [over ? over + ' over time' : '', stale ? stale + ' from an earlier period' : ''].filter(Boolean).join(' · ');
   document.querySelectorAll('.needle').forEach(function(n){ n.style.left = 'calc(' + pct(info.minute) + '% )'; n.style.display = info.minute >= DAY_START && info.minute <= dayEnd() && D.dow <= 5 ? '' : 'none'; });
 }, 1000);
 
@@ -379,13 +397,14 @@ function renderStrip(){
 
 // ---- out of class now ----
 function renderOut(){
-  const act = D.passes.filter(function(p){ return p.status === 'Out'; }).sort(function(a, b){ return a.out - b.out; });
+  const act = D.passes.filter(function(p){ return p.status === 'Out'; }).sort(function(a, b){ return (passStale(b) ? 1 : 0) - (passStale(a) ? 1 : 0) || a.out - b.out; });
   document.getElementById('outCount').textContent = act.length;
   const ro = D.staff.readOnly;
   document.getElementById('outList').innerHTML = act.length ? act.map(function(p){
     const isProg = !!progOf(p.type);
-    return '<div class="pass ' + passLevel(p) + '" data-pid="' + esc(p.id) + '"><span class="tm" data-timer="' + p.out + '">' + mmss(nowMs() - p.out) + '</span>' +
-      '<div class="nm" data-sid="' + esc(p.studentId) + '">' + esc(p.first + ' ' + p.last) + '</div>' +
+    const st = passStale(p);
+    return '<div class="' + passCls(p) + '" data-pid="' + esc(p.id) + '"><span class="tm" data-timer="' + p.out + '">' + mmss(nowMs() - p.out) + '</span>' +
+      '<div class="nm" data-sid="' + esc(p.studentId) + '">' + esc(p.first + ' ' + p.last) + (st ? '<span class="stale-tag" title="This pass started in ' + esc(st) + ' and was never ended">from ' + esc(st) + ' &mdash; never returned</span>' : '') + '</div>' +
       '<div class="rt">' + (p.from ? esc(roomName(p.from)) + ' → ' : '') + '<b>' + esc(placeOf(p)) + '</b></div>' +
       '<div class="fl">Left ' + esc(fmtHM.format(new Date(p.out))) + (isProg ? ' (signed in)' : '') + ' · ' +
         (p.teacherOk === 'Not asked' ? '<b style="color:#a32b2b;">teacher not asked</b>' : 'teacher OK') +
@@ -448,7 +467,7 @@ function renderMap(){
     if(p){
       const lvl = passLevel(p);
       const target = boxes[p.to];
-      const vis = chip(st, 'vis ' + lvl, ' <span data-timer="' + p.out + '">' + mmss(nowMs() - p.out) + '</span>');
+      const vis = chip(st, 'vis ' + lvl + (passStale(p) ? ' stale' : ''), ' <span data-timer="' + p.out + '">' + mmss(nowMs() - p.out) + '</span>' + (passStale(p) ? ' \u26a0' : ''));
       if(target) target.vis.push(vis); else unknownRoom.push(vis);
       const from = p.from || (sch[0] && sch[0].room);
       if(from && boxes[from]) boxes[from].out.push(chip(st, 'out', ' → ' + esc(shortRoom(p.to))));
@@ -692,12 +711,14 @@ function openStudent(id){
         '<input type="text" id="drNote" placeholder="Where (for Somewhere else)" style="flex:1; min-width:140px; display:none;"></div><button class="btn good" id="drSend" style="margin-top:8px;">Start pass (you approve it)</button>';
     }
     h += '<button class="btn light" id="drReq" style="margin-top:8px;">Request this student (ask their teacher to send them)</button>';   // v108
+    h += '<button class="btn light" id="drWhere" style="margin-top:8px;">Where is this student? (Teams message)</button>';   // v16
   }
   const dr = document.getElementById('drawer'); dr.innerHTML = h;
   document.getElementById('drawerBack').style.display = 'flex';
   document.getElementById('drClose').onclick = closeDrawer;
   const de = document.getElementById('drEnd'); if(de) de.onclick = function(){ passAction(p.id, 'end', de); };
   const dq = document.getElementById('drReq'); if(dq) dq.onclick = function(){ openRequest(st.id); };
+  const dw = document.getElementById('drWhere'); if(dw) dw.onclick = function(){ openWhere(st.id); };
   const ds = document.getElementById('drDest');
   if(ds){
     ds.onchange = function(){ document.getElementById('drRoom').style.display = ds.value === 'class' ? '' : 'none'; document.getElementById('drNote').style.display = ds.value === 'other' ? '' : 'none'; };
@@ -729,16 +750,17 @@ function reqIsMine(st){
 }
 function reqPlace(q){ return placeOf({ to: q.to, type: q.type }); }
 function renderReqs(){
-  const all = D.requests || [], open = all.filter(function(q){ return q.status === 'Waiting' || q.status === 'Not now'; });
+  const all = D.requests || [], open = all.filter(reqOpenQ);
   const ro = D.staff.readOnly, stOf = function(id){ return D.students.filter(function(s){ return s.id === id; })[0] || null; };
-  open.sort(function(a, b){ return (reqIsMine(stOf(b.studentId)) - reqIsMine(stOf(a.studentId))) || (a.at - b.at); });
-  const mineN = open.filter(function(q){ return reqIsMine(stOf(q.studentId)); }).length;
+  open.sort(function(a, b){ return ((b.type === 'whereis') - (a.type === 'whereis')) || (reqIsMine(stOf(b.studentId)) - reqIsMine(stOf(a.studentId))) || (a.at - b.at); });
+  const mineN = open.filter(function(q){ return q.type === 'whereis' ? q.by !== D.staff.name : reqIsMine(stOf(q.studentId)); }).length;
   const rc = document.getElementById('reqCount');
   rc.style.display = open.length ? '' : 'none';
-  rc.textContent = mineN ? mineN + ' for your room' : open.length + ' open';
+  rc.textContent = mineN ? mineN + ' for you' : open.length + ' open';
   document.title = (mineN ? '(' + mineN + ') ' : '') + 'Hall Monitor';
-  document.getElementById('reqNewBtn').style.display = ro ? 'none' : '';
+  document.getElementById('reqNewBtn').style.display = ro ? 'none' : ''; document.getElementById('whereNewBtn').style.display = ro ? 'none' : '';
   const card = function(q){
+    if(q.type === 'whereis') return whereCard(q, stOf(q.studentId), ro);
     const st = stOf(q.studentId), mine = reqIsMine(st), isOpen = q.status === 'Waiting' || q.status === 'Not now';
     const pass = q.passId ? D.passes.filter(function(p){ return p.id === q.passId; })[0] : null;
     let h = '<div class="req' + (mine && isOpen ? ' mine' : '') + (isOpen ? '' : ' done') + '" data-rid="' + esc(q.id) + '">' +
@@ -757,7 +779,7 @@ function renderReqs(){
     if(pass && pass.status === 'Out' && !pass.arrivedOk && q.by === D.staff.name && !ro) h += '<div class="acts"><button class="btn sm light" data-ra="arrived" data-pid="' + esc(pass.id) + '">Arrived ✓</button></div>';
     return h + '</div>';
   };
-  const done = all.filter(function(q){ return !(q.status === 'Waiting' || q.status === 'Not now'); }).sort(function(a, b){ return b.at - a.at; });
+  const done = all.filter(function(q){ return !reqOpenQ(q); }).sort(function(a, b){ return b.at - a.at; });
   let h = open.length ? open.map(card).join('') : '<div class="small muted">No open requests. Use <b>Request a student</b> to ask for a student to be sent to you.</div>';
   if(done.length) h += '<details style="margin-top:6px;"><summary class="small muted" style="cursor:pointer;">Earlier today (' + done.length + ')</summary>' + done.map(card).join('') + '</details>';
   const el = document.getElementById('reqList');
@@ -767,10 +789,69 @@ function renderReqs(){
   el.querySelectorAll('.req .nm').forEach(function(n){ n.onclick = function(){ openStudent(n.getAttribute('data-sid')); }; });
   el.querySelectorAll('[data-ra]').forEach(function(b){ b.onclick = function(){ reqAct(b.closest('.req').getAttribute('data-rid'), b.getAttribute('data-ra'), b); }; });
 }
+function reqOpenQ(q){ return q.status === 'Waiting' || q.status === 'Not now' || q.status === 'Looking'; }
+// v16: "Where is ___?" cards (sent by Teams to the student's teacher or to everyone)
+function whereCard(q, st, ro){
+  const open = q.status === 'Looking', mineAsk = q.by === D.staff.name;
+  let h = '<div class="req' + (open ? ' where' : ' done') + '" data-rid="' + esc(q.id) + '">' +
+    '<div><span class="nm" data-sid="' + esc(q.studentId) + '">Where is ' + esc(q.first + ' ' + q.last) + '?</span><span class="tag blue">' + (q.to === 'EVERYONE' ? 'everyone' : 'teacher') + '</span></div>' +
+    (q.note ? '<div class="rt">' + esc(q.note) + '</div>' : '') +
+    '<div class="fl">Asked by ' + esc(q.by) + ' at ' + esc(fmtHM.format(new Date(q.at))) + (open ? ' &middot; ' + esc(reqWhereNow(st)) : '') + '</div>';
+  if(q.status === 'Found') h += '<div class="fl"><b style="color:#1d7a3a;">Found</b> ' + esc(q.handledAt ? fmtHM.format(new Date(q.handledAt)) : '') + ' &middot; ' + esc(q.reply || q.handledBy) + '</div>';
+  if(q.status === 'Cancelled') h += '<div class="fl">Closed by ' + esc(q.handledBy) + '</div>';
+  if(open && !ro){
+    h += '<div class="acts">' + (mineAsk ? '' : '<button class="btn sm good" data-ra="here">Here / I see them</button>') +
+      (mineAsk || D.staff.admin ? '<button class="btn sm light" data-ra="found">Found</button><button class="btn sm light" data-ra="cancel">Close</button>' : '') + '</div>';
+  }
+  return h + '</div>';
+}
+function openWhere(presetId){
+  const pre = presetId ? D.students.filter(function(s){ return s.id === presetId; })[0] : null;
+  let h = '<div style="display:flex; justify-content:space-between; gap:8px;"><div class="h1" style="font-size:1.05rem;">Where is…?</div><button class="btn sm light" id="whClose">Close</button></div>' +
+    '<div class="small muted" style="margin:4px 0 10px;">Sends a Teams message (first name + last initial). Whoever sees the student taps <b>Here</b> on their Hall Monitor and you get a Teams message back.</div>' +
+    '<label class="small" style="font-weight:800;">Student</label>' +
+    '<input type="text" id="whFind" placeholder="Type a name or ID" autocomplete="off" value="' + (pre ? esc(pre.first + ' ' + pre.last) : '') + '" style="width:100%; box-sizing:border-box;">' +
+    '<div id="whPick" style="max-height:200px; overflow:auto;"></div>' +
+    '<label class="small" style="font-weight:800; display:block; margin-top:8px;">Note (optional)</label>' +
+    '<input type="text" id="whNote" maxlength="120" placeholder="e.g., parent is in the office" style="width:100%; box-sizing:border-box;">' +
+    '<div style="display:flex; gap:6px; margin-top:10px;"><button class="btn good" id="whTeacher" style="flex:1;" disabled>Ask their teacher</button><button class="btn" id="whAll" style="flex:1;" disabled>Ask everyone</button></div>' +
+    '<div class="small" id="whMsg" style="color:#a32b2b; margin-top:4px;"></div>';
+  const dr = document.getElementById('drawer'); dr.innerHTML = h;
+  document.getElementById('drawerBack').style.display = 'flex';
+  document.getElementById('whClose').onclick = closeDrawer;
+  let picked = pre ? pre.id : '';
+  const find = document.getElementById('whFind'), pick = document.getElementById('whPick'), bT = document.getElementById('whTeacher'), bA = document.getElementById('whAll');
+  const draw = function(){
+    const q = find.value.trim().toLowerCase();
+    if(picked){
+      const st = D.students.filter(function(s){ return s.id === picked; })[0], here = scheduledAt(st, ptInfo(nowMs()).minute);
+      pick.innerHTML = '<div class="small" style="margin:4px 0;"><b>STS:</b> ' + esc(reqWhereNow(st)) + '</div>';
+      bT.disabled = !(here.length && here[0].room); bT.textContent = here.length && here[0].room ? 'Ask ' + roomFull(here[0].room) : 'No teacher right now';
+      bA.disabled = false; return;
+    }
+    bT.disabled = bA.disabled = true; bT.textContent = 'Ask their teacher';
+    const list = q.length < 2 ? [] : D.students.filter(function(s){ return (s.first + ' ' + s.last + ' ' + s.last + ' ' + s.id).toLowerCase().indexOf(q) !== -1; }).slice(0, 8);
+    pick.innerHTML = list.map(function(s){ return '<div class="kv" data-pk="' + esc(s.id) + '" style="cursor:pointer;"><span><b>' + esc(s.last + ', ' + s.first) + '</b></span><span class="small muted">' + esc(reqWhereNow(s)) + '</span></div>'; }).join('') ||
+      (q.length >= 2 ? '<div class="small muted">No match.</div>' : '');
+    pick.querySelectorAll('[data-pk]').forEach(function(r){ r.onclick = function(){ picked = r.getAttribute('data-pk'); const st = D.students.filter(function(s){ return s.id === picked; })[0]; find.value = st.first + ' ' + st.last; draw(); }; });
+  };
+  find.oninput = function(){ picked = ''; draw(); };
+  draw(); if(!pre) find.focus();
+  const go = function(target, btn){
+    if(target === 'everyone' && !confirm('Send a Teams message to all staff asking where this student is?')) return;
+    bT.disabled = bA.disabled = true; document.getElementById('whMsg').textContent = '';
+    apiGet({ mode:'hpwhereis', code: myCode, id: picked, target: target, note: document.getElementById('whNote').value }).then(function(r){
+      if(!r.success){ document.getElementById('whMsg').textContent = r.error || 'Not sent.'; draw(); return; }
+      D.requests.push(r.request); closeDrawer(); renderAll();
+    }).catch(function(){ document.getElementById('whMsg').textContent = 'Could not reach the server.'; draw(); });
+  };
+  bT.onclick = function(){ go('teacher', bT); }; bA.onclick = function(){ go('everyone', bA); };
+}
 function reqAct(rid, action, btn){
   const q = D.requests.filter(function(x){ return x.id === rid; })[0]; if(!q) return;
   if(action === 'arrived'){ passAction(btn.getAttribute('data-pid'), 'arrived', btn); return; }
   let reply = '';
+  if(action === 'here'){ reply = prompt('Optional note for ' + q.by + ' (e.g., "in the library with me"):', ''); if(reply === null) return; }
   if(action === 'notnow'){ reply = prompt('Short reply for ' + q.by + ' (e.g., "testing - send at 10:10"):', ''); if(reply === null) return; }
   if(action === 'cancel' && !confirm('Cancel the request for ' + q.first + ' ' + q.last + '?')) return;
   if(action === 'send' && !confirm('Send ' + q.first + ' ' + q.last + ' to ' + reqPlace(q) + ' now? This starts a hall pass that you approve.')) return;
@@ -822,6 +903,7 @@ function openRequest(presetId){
   };
 }
 document.getElementById('reqNewBtn').onclick = function(){ openRequest(''); };
+document.getElementById('whereNewBtn').onclick = function(){ openWhere(''); };
 
 function closeDrawer(){ document.getElementById('drawerBack').style.display = 'none'; }
 document.getElementById('drawerBack').onclick = function(e){ if(e.target === this) closeDrawer(); };
