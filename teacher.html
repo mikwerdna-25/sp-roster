@@ -632,6 +632,10 @@
   :is(#printArea, .psheet).psheet tr.sch-gap td{ background:#fbf3e4; } :is(#printArea, .psheet).psheet .sch-none{ color:#8a5a00; font-style:italic; margin-right:8px; }
   :is(#printArea, .psheet).psheet tr.sch-gap .i1-mv{ display:inline-block; }
 
+  /* v152: counselor-only eligibility letters */
+  :is(#printArea, .psheet) sup.elg{ font-size:5.6pt; color:#1d4fa3; font-weight:700; letter-spacing:0.02em; vertical-align:super; white-space:nowrap; }
+  :is(#printArea, .psheet) .elg-note{ color:#1d4fa3; }
+
   /* ===== v95 program roll ===== */
   .rl-progs{ display:flex; flex-wrap:wrap; gap:6px; margin:6px 0 10px; }
   .rl-prog{ width:auto; margin:0; padding:8px 12px; border-radius:999px; border:1.5px solid #c6cdda; background:#fff; color:#1c2b4a; font-weight:700; font-size:0.86rem; cursor:pointer; }
@@ -1878,7 +1882,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v74-schedule-edit';
+document.getElementById('buildTag').textContent = 'v75-eligibility';
 // ===================== v107: PREV (points from earlier semesters) - view and change with a warning =====================
 // pvBox(student, tab, { canEdit, onSaved(res) }) -> an element for the student's card/row.
 function pvFmt(v){ return v === null || v === undefined || v === '' ? '—' : String(Math.round(Number(v) * 100) / 100); }
@@ -2227,13 +2231,14 @@ function prIgp(st, pack, opt){
     (opt.canMove ? '<button type="button" class="i1-mv rw-only i1-trkbtn" data-wvr="1">IEP waivers</button>' : '') +
     '<div class="bar"><i style="width:' + Math.min(100, Math.round(earned / gTotal * 100)) + '%"></i></div></div>';
   if(!tr.hasData) h += '<div class="empty">No transcript on file yet for this student &mdash; the requirement boxes fill in once the transcript is uploaded.</div>';
-  let anyMoved = false, nNeeded = 0;
+  let anyMoved = false, nNeeded = 0, anyElig = false;
   const box = function(name){
     const cat = getCat(name);
     const m = PR_IGP_META[name] || { req: null, label: name, years: '', code: '' };
     const rows = cat.courses.map(function(r){
       if(r.moved) anyMoved = true;
-      let t = prE(r.title) + (r.moved ? ' <span class="mvd" title="moved">&dagger;</span>' : '');
+      let t = prE(r.title) + (r.moved ? ' <span class="mvd" title="moved">&dagger;</span>' : '') +
+        (opt.screen && opt.failed && r.elig && r.elig.length ? (anyElig = true, ' <sup class="elg">' + r.elig.map(prE).join(' ') + '</sup>') : '');   // v152: counselor only
       if(opt.screen && r.moved) t += '<div class="sub mvnote' + (/RESTRICTED/.test(r.moved.policy || '') ? ' restricted' : '') + '">&#8644; ' +
         (opt.canMove ? 'Moved from ' + prE((PR_IGP_META[r.moved.from] || {}).label || r.moved.from) + ' by ' + prE(r.moved.by) + ', ' + prE(r.moved.when) + ' &ndash; ' + prE(r.moved.reason)
                      : 'Counselor moved this from ' + prE((PR_IGP_META[r.moved.from] || {}).label || r.moved.from)) + '</div>';
@@ -2301,6 +2306,7 @@ function prIgp(st, pack, opt){
       '<div class="sub" style="padding:1px 5px 3px;">REF-103912 &middot; 210 credits &middot; promote at 50 / 105 / 160</div></div>') +
     (opt.screen ? '' : '<div class="i1-box notes"><div class="i1-h"><span>Notes / plan</span></div><div class="lines"></div></div>') + '</div></div>';
   if(!opt.screen) h += '<div class="sig"><div>Student signature / date</div><div>Parent or guardian signature / date</div><div>Counselor signature / date</div></div>';
+  if(anyElig) h += '<div class="note elg-note">Small letters = other boxes a course may count toward (EL = Electives; * = limits apply). Counselor view only.</div>';   // v152
   if(anyMoved) h += '<div class="note">&dagger; Counted toward this requirement by the counselor (REF-103912); MiSiS may list it under a different requirement. V = validated, W = IEP waiver (no credits), S = English substitution.</div>';
   return h + prFoot(pack, 'Credits from the transcript on file' + prTrAt(st) + '; MiSiS is the official record') + '</div>';
 }
