@@ -207,7 +207,7 @@
         <div id="tab-log" style="display:none;"></div>
       </div>
     </div>
-    <div class="small muted" style="margin-top:12px;">Student locations come from their MiSiS class schedule (points sheet), today's check-ins and hall passes. Updates every 20 seconds. <a href="#" id="signOut">Sign out</a> <span style="float:right;">hallmonitor v16</span></div>
+    <div class="small muted" style="margin-top:12px;">Student locations come from their MiSiS class schedule (points sheet), today's check-ins and hall passes. Updates every 20 seconds. <a href="#" id="signOut">Sign out</a> <span style="float:right;">hallmonitor v17</span></div>
   </div>
 </div></div>
 
@@ -789,6 +789,9 @@ function renderReqs(){
   el.querySelectorAll('.req .nm').forEach(function(n){ n.onclick = function(){ openStudent(n.getAttribute('data-sid')); }; });
   el.querySelectorAll('[data-ra]').forEach(function(b){ b.onclick = function(){ reqAct(b.closest('.req').getAttribute('data-rid'), b.getAttribute('data-ra'), b); }; });
 }
+// v17: staff list (names only) for "send to" pickers; warn once when the person asking has no Teams address
+function staffOpts(skipSelf){ return (D.staffList || []).filter(function(n){ return !skipSelf || n !== D.staff.name; }).map(function(n){ return '<option value="staff:' + esc(n) + '">' + esc(n) + '</option>'; }).join(''); }
+function noTeamsWarn(r){ if(r && r.askerNoTeams) alert('Sent. You will not get Teams replies: your name has no lausd.net address on the TeacherCodes or AdminCodes tab.'); }
 function reqOpenQ(q){ return q.status === 'Waiting' || q.status === 'Not now' || q.status === 'Looking'; }
 // v16: "Where is ___?" cards (sent by Teams to the student's teacher or to everyone)
 function whereCard(q, st, ro){
@@ -814,22 +817,26 @@ function openWhere(presetId){
     '<div id="whPick" style="max-height:200px; overflow:auto;"></div>' +
     '<label class="small" style="font-weight:800; display:block; margin-top:8px;">Note (optional)</label>' +
     '<input type="text" id="whNote" maxlength="120" placeholder="e.g., parent is in the office" style="width:100%; box-sizing:border-box;">' +
-    '<div style="display:flex; gap:6px; margin-top:10px;"><button class="btn good" id="whTeacher" style="flex:1;" disabled>Ask their teacher</button><button class="btn" id="whAll" style="flex:1;" disabled>Ask everyone</button></div>' +
+    '<label class="small" style="font-weight:800; display:block; margin-top:8px;">Send Teams message to</label>' +
+    '<select id="whTo" style="width:100%;"><option value="teacher">Their teacher right now</option><option value="everyone">Everyone (all staff)</option><optgroup label="One person">' + staffOpts(true) + '</optgroup></select>' +
+    '<button class="btn good" id="whSend" style="width:100%; margin-top:10px;" disabled>Send</button>' +
     '<div class="small" id="whMsg" style="color:#a32b2b; margin-top:4px;"></div>';
   const dr = document.getElementById('drawer'); dr.innerHTML = h;
   document.getElementById('drawerBack').style.display = 'flex';
   document.getElementById('whClose').onclick = closeDrawer;
   let picked = pre ? pre.id : '';
-  const find = document.getElementById('whFind'), pick = document.getElementById('whPick'), bT = document.getElementById('whTeacher'), bA = document.getElementById('whAll');
+  const find = document.getElementById('whFind'), pick = document.getElementById('whPick'), bS = document.getElementById('whSend'), sel = document.getElementById('whTo');
   const draw = function(){
     const q = find.value.trim().toLowerCase();
     if(picked){
       const st = D.students.filter(function(s){ return s.id === picked; })[0], here = scheduledAt(st, ptInfo(nowMs()).minute);
       pick.innerHTML = '<div class="small" style="margin:4px 0;"><b>STS:</b> ' + esc(reqWhereNow(st)) + '</div>';
-      bT.disabled = !(here.length && here[0].room); bT.textContent = here.length && here[0].room ? 'Ask ' + roomFull(here[0].room) : 'No teacher right now';
-      bA.disabled = false; return;
+      const room = here.length && here[0].room && /^\d+$/.test(here[0].room) ? here[0].room : '';
+      sel.options[0].textContent = room ? 'Their teacher right now (' + roomFull(room) + ')' : 'Their teacher right now (none scheduled)';
+      sel.options[0].disabled = !room; if(!room && sel.value === 'teacher') sel.value = 'everyone';
+      bS.disabled = false; return;
     }
-    bT.disabled = bA.disabled = true; bT.textContent = 'Ask their teacher';
+    bS.disabled = true;
     const list = q.length < 2 ? [] : D.students.filter(function(s){ return (s.first + ' ' + s.last + ' ' + s.last + ' ' + s.id).toLowerCase().indexOf(q) !== -1; }).slice(0, 8);
     pick.innerHTML = list.map(function(s){ return '<div class="kv" data-pk="' + esc(s.id) + '" style="cursor:pointer;"><span><b>' + esc(s.last + ', ' + s.first) + '</b></span><span class="small muted">' + esc(reqWhereNow(s)) + '</span></div>'; }).join('') ||
       (q.length >= 2 ? '<div class="small muted">No match.</div>' : '');
@@ -837,15 +844,15 @@ function openWhere(presetId){
   };
   find.oninput = function(){ picked = ''; draw(); };
   draw(); if(!pre) find.focus();
-  const go = function(target, btn){
+  const go = function(target){
     if(target === 'everyone' && !confirm('Send a Teams message to all staff asking where this student is?')) return;
-    bT.disabled = bA.disabled = true; document.getElementById('whMsg').textContent = '';
+    bS.disabled = true; document.getElementById('whMsg').textContent = '';
     apiGet({ mode:'hpwhereis', code: myCode, id: picked, target: target, note: document.getElementById('whNote').value }).then(function(r){
       if(!r.success){ document.getElementById('whMsg').textContent = r.error || 'Not sent.'; draw(); return; }
-      D.requests.push(r.request); closeDrawer(); renderAll();
+      D.requests.push(r.request); closeDrawer(); renderAll(); noTeamsWarn(r);
     }).catch(function(){ document.getElementById('whMsg').textContent = 'Could not reach the server.'; draw(); });
   };
-  bT.onclick = function(){ go('teacher', bT); }; bA.onclick = function(){ go('everyone', bA); };
+  bS.onclick = function(){ go(sel.value); };
 }
 function reqAct(rid, action, btn){
   const q = D.requests.filter(function(x){ return x.id === rid; })[0]; if(!q) return;
@@ -875,6 +882,8 @@ function openRequest(presetId){
     '<div id="rqPick" style="max-height:200px; overflow:auto;"></div>' +
     '<label class="small" style="font-weight:800; display:block; margin-top:8px;">Send them to</label>' +
     '<select id="rqTo" style="width:100%;">' + places.map(function(p){ return '<option value="' + esc(p[0]) + '">' + esc(p[1]) + '</option>'; }).join('') + '</select>' +
+    '<label class="small" style="font-weight:800; display:block; margin-top:8px;">Teams message to</label>' +
+    '<select id="rqNotify" style="width:100%;"><option value="">Their teacher right now</option><optgroup label="Someone else">' + staffOpts(true) + '</optgroup><option value="none">No message</option></select>' +
     '<label class="small" style="font-weight:800; display:block; margin-top:8px;">Note (optional, the teacher and student see it)</label>' +
     '<input type="text" id="rqNote" maxlength="120" placeholder="e.g., schedule change, bring your Chromebook" style="width:100%; box-sizing:border-box;">' +
     '<button class="btn good" id="rqSend" style="width:100%; margin-top:10px;" disabled>Send request</button><div class="small" id="rqMsg" style="color:#a32b2b; margin-top:4px;"></div>';
@@ -896,9 +905,9 @@ function openRequest(presetId){
   draw(); if(!pre) find.focus();
   send.onclick = function(){
     send.disabled = true; document.getElementById('rqMsg').textContent = '';
-    apiGet({ mode:'hprequest', code: myCode, id: picked, to: document.getElementById('rqTo').value, note: document.getElementById('rqNote').value }).then(function(r){
+    apiGet({ mode:'hprequest', code: myCode, id: picked, to: document.getElementById('rqTo').value, note: document.getElementById('rqNote').value, notify: document.getElementById('rqNotify').value }).then(function(r){
       if(!r.success){ document.getElementById('rqMsg').textContent = r.error || 'Not sent.'; send.disabled = false; return; }
-      D.requests.push(r.request); closeDrawer(); renderAll();
+      D.requests.push(r.request); closeDrawer(); renderAll(); noTeamsWarn(r);
     }).catch(function(){ document.getElementById('rqMsg').textContent = 'Could not reach the server.'; send.disabled = false; });
   };
 }
