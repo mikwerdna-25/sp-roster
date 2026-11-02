@@ -1907,7 +1907,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v76c-lausd';
+document.getElementById('buildTag').textContent = 'v76d-lausd';
 // ===================== v107: PREV (points from earlier semesters) - view and change with a warning =====================
 // pvBox(student, tab, { canEdit, onSaved(res) }) -> an element for the student's card/row.
 function pvFmt(v){ return v === null || v === undefined || v === '' ? '—' : String(Math.round(Number(v) * 100) / 100); }
@@ -3162,6 +3162,23 @@ if(IN_APP){
     });
   }).catch(function(){ const le = document.getElementById('loginError'); le.textContent = 'Could not reach the server.'; });
 }
+</script>
+
+<script>
+// v168: on the old GitHub page, point people to the LAUSD link (the office controls this with STS_GITHUB in Script Properties)
+(function(){
+  if(typeof IN_APP !== 'undefined' && IN_APP) return;
+  apiGet({ mode: 'stsmoved' }).then(function(r){
+    if(!r || !r.success || !r.url || r.mode === 'off') return;
+    const to = r.url + '?app=teacher';
+    if(r.mode === 'redirect'){ location.replace(to); return; }
+    const bar = document.createElement('div');
+    bar.style.cssText = 'position:sticky; top:0; z-index:9999; background:#1d5fa3; color:#fff; padding:10px 14px; font:600 15px/1.35 system-ui,sans-serif; display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:center; text-align:center;';
+    bar.innerHTML = '<span>STS has a new, more secure link &mdash; sign in with your LAUSD Google account, no code needed.</span>' +
+      '<a href="' + to + '" style="background:#fff; color:#1d5fa3; padding:6px 14px; border-radius:8px; text-decoration:none; font-weight:800;">Open the new page &rarr;</a>';
+    document.body.insertBefore(bar, document.body.firstChild);
+  }).catch(function(){});
+})();
 </script>
 </body>
 </html>
