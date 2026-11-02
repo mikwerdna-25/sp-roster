@@ -207,7 +207,7 @@
         <div id="tab-log" style="display:none;"></div>
       </div>
     </div>
-    <div class="small muted" style="margin-top:12px;">Student locations come from their MiSiS class schedule (points sheet), today's check-ins and hall passes. Updates every 20 seconds. <a href="#" id="signOut">Sign out</a> <span style="float:right;">hallmonitor v18</span></div>
+    <div class="small muted" style="margin-top:12px;">Student locations come from their MiSiS class schedule (points sheet), today's check-ins and hall passes. Updates every 20 seconds. <a href="#" id="signOut">Sign out</a> <span style="float:right;">hallmonitor v19</span></div>
   </div>
 </div></div>
 
@@ -218,6 +218,8 @@ const ENDPOINT = 'https://script.google.com/macros/s/AKfycbyMtocUhBSO_IcqIrEI4s5
 // v18: served by Apps Script on the LAUSD-only link (?app=hallmonitor): Google sign-in, no code, requests go
 // through google.script.run -> staffApi(). On GitHub nothing changes.
 const STS_APP = false;
+const STS_APP_URL = '';
+const STS_PARAMS = {};
 const IN_APP = STS_APP && typeof google !== 'undefined' && google.script && google.script.run;
 const GITHUB_BASE = 'https://mikwerdna-25.github.io/sp-roster/';
 const TZ = 'America/Los_Angeles';
@@ -341,7 +343,7 @@ function accept(d){
   D = d; offset = d.nowMs - Date.now(); if(!D.requests) D.requests = []; if(!D.rollAccess) D.rollAccess = {};
   if(!selKey || !blocksToday().some(function(b){ return b.key === selKey; })){ const b = curBlock(d.minute); selKey = b ? b.key : (d.minute < DAY_START ? 'P01' : blocksToday()[blocksToday().length - 1].key); }
   document.getElementById('whoName').textContent = d.staff.name + (d.staff.readOnly ? ' (view only)' : '');
-  const bk = document.getElementById('backToPage'); bk.style.display = IN_APP ? 'none' : '';   // v18 pilot: no back button on the LAUSD link yet bk.textContent = '\u2190 Back to ' + (d.staff.admin ? 'Counselor / Admin page' : 'my Teacher page');
+  const bk = document.getElementById('backToPage'); bk.style.display = ''; bk.textContent = '\u2190 Back to ' + (d.staff.admin ? 'Counselor / Admin page' : 'my Teacher page');
   document.getElementById('dayLabel').textContent = fmtDay.format(new Date(d.nowMs)) + ' · ' + d.students.length + ' students · ' + d.students.filter(function(s){ return s.checkedIn; }).length + ' checked in';
 }
 function refresh(){
@@ -681,8 +683,9 @@ function progBanner(minute, live){
 function openRoll(hpKey){
   const key = D.rollAccess[hpKey]; if(!key) return;
   try{ localStorage.setItem('rollHandoff', JSON.stringify({ code: myCode, t: Date.now(), key: key })); }catch(e){}
-  const page = (IN_APP ? GITHUB_BASE : '') + (D.staff.admin ? 'admin.html' : 'teacher.html');   // v18 pilot: the roll page is still on GitHub (sign in with your code there)
-  const w = window.open(page, '_blank'); if(!w && !IN_APP) location.href = page;
+  if(IN_APP){ const u = STS_APP_URL + '?app=' + (D.staff.admin ? 'admin' : 'teacher') + '&roll=' + encodeURIComponent(key); const w2 = window.open(u, '_blank'); if(!w2) window.open(u, '_top'); return; }   // v19
+  const page = D.staff.admin ? 'admin.html' : 'teacher.html';
+  const w = window.open(page, '_blank'); if(!w) location.href = page;
 }
 
 // ---- one student ----
@@ -1100,6 +1103,7 @@ function openHistory(id){
 
 // v10: back to the page this person came from, still signed in
 document.getElementById('backToPage').onclick = function(){
+  if(IN_APP){ window.open(STS_APP_URL + '?app=' + (D && D.staff.admin ? 'admin' : 'teacher'), '_top'); return; }   // v19: LAUSD link
   const page = D && D.staff.admin ? 'admin.html' : 'teacher.html';
   // opened from that page in a new tab: just close this tab and the original is still there
   try{ if(window.opener && !window.opener.closed){ window.opener.focus(); window.close(); return; } }catch(e){}
