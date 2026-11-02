@@ -4661,6 +4661,9 @@ function prGradeLevel(c){ return c >= 160 ? 12 : c >= 105 ? 11 : c >= 50 ? 10 : 
 const PR_REQ_GROUPS = [['A', 'Social Science'], ['B', 'English'], ['C', 'Math'], ['D', 'Lab Science'], ['E', 'Language (LOTE)'],
   ['F', 'Visual/Performing Art'], ['G', 'College Prep Elective'], ['ES', 'Ethnic Studies'], ['PE', 'Physical Education'], ['HL', 'Health'], ['EL', 'General Elective']];
 const PR_ELECTIVE_CREDITS = 30;
+// v170: validated / waived lines give no credits, so the box's missing credits move to Electives (target from the server)
+function prElTarget(cat){ return (cat && cat.electiveTarget) || PR_ELECTIVE_CREDITS; }
+function prElAddsText(cat){ return ((cat && cat.electiveAdds) || []).map(function(a){ return '+' + prNum(a.credits) + ' for ' + ((PR_IGP_META[a.category] || {}).label || a.category) + ' (' + a.why + ')'; }).join(', '); }
 const PR_VAL_CATS = ['Social Science', 'English', 'Math', 'Lab Science', 'Language (LOTE)', 'Visual/Performing Art', 'College Prep Elective'];  // v119: A-G lines can be validated   // v119: 210 - 180 credits of required courses (A-G 150 + PE 20 + Health 5 + Ethnic Studies 5)
 function prReqDone(name, cat){
   const m = PR_IGP_META[name] || {};
@@ -4669,7 +4672,7 @@ function prReqDone(name, cat){
     return !cat.needed.length && !(cat.inProgressFor || []).length;
   if(m.req) return cat.totalCredits >= m.req;
   if(name === 'Health' || name === 'Ethnic Studies') return cat.totalCredits >= 5;
-  if(name === 'General Elective') return cat.totalCredits >= PR_ELECTIVE_CREDITS;
+  if(name === 'General Elective') return cat.totalCredits >= prElTarget(cat);
   return false;
 }
 // v133: ONE rule for what a requirement still needs - used by both the IGP and the Graduation Snapshot, so they always agree.
@@ -4681,7 +4684,7 @@ function prReqStatus(name, cat){
   (cat.needed || []).forEach(function(x){ lines.push({ t: x }); });
   (cat.inProgressFor || []).forEach(function(x){ lines.push({ t: prIpName(x), ip: true, full: x }); });
   if(name === 'General Elective'){
-    const left = Math.max(0, PR_ELECTIVE_CREDITS - (cat.totalCredits || 0));
+    const left = Math.max(0, prElTarget(cat) - (cat.totalCredits || 0));
     if(left) lines.push({ t: 'Electives \u2013 ' + prNum(left) + ' more credits' });
   } else if(!prReqDone(name, cat) && !lines.length){
     lines.push({ t: prNum(Math.max(0, (m.req || 5) - (cat.totalCredits || 0))) + ' more credits' });
@@ -4739,6 +4742,8 @@ function prIgp(st, pack, opt){
     const rs = prReqStatus(name, cat), done = !nonL && tr.hasData && rs.done;   // v133: same rule as the snapshot
     (cat.inProgressFor || []).forEach(function(x, i){ const k = (cat.inProgressKeys || [])[i];
       rows.push('<tr class="iprow"><td>' + prE(x) + ' <span class="ipt">in progress</span>' + (opt.canMove && k ? '<button type="button" class="i1-mv rw-only" data-mv="' + prE(k) + '">Move</button>' : '') + '</td><td></td><td></td></tr>'); });
+    if(name === 'General Elective' && !nonL && (cat.electiveAdds || []).length)       // v170
+      rows.push('<tr class="valrow"><td colspan="3"><div class="sub">Electives raised to ' + prNum(prElTarget(cat)) + ': ' + prE(prElAddsText(cat)) + ' &ndash; validated / waived lines give no credits (REF-103912)</div></td></tr>');
     if(tr.hasData && !nonL) rs.lines.forEach(function(l){
       if(l.ip) return;                                                   // in-progress lines are listed above
       nNeeded++;
@@ -4748,7 +4753,7 @@ function prIgp(st, pack, opt){
     if(!opt.screen) for(let i = rows.length; i < (PR_IGP_ROWS[name] || 2); i++) rows.push('<tr class="blank"><td>&nbsp;</td><td></td><td></td></tr>');
     else if(!rows.length) rows.push('<tr><td colspan="3" class="muted">No courses yet</td></tr>');
     return '<div class="i1-box">' +
-      '<div class="i1-h"><span>' + (m.code ? '<span class="i1-code">' + m.code + '</span>' : '') + prE(m.label) + (nonL ? '' : m.req ? ' (' + m.req + ')' : name === 'Health' || name === 'Ethnic Studies' ? ' (5)' : name === 'General Elective' ? ' (' + PR_ELECTIVE_CREDITS + ')' : '') + '</span>' +
+      '<div class="i1-h"><span>' + (m.code ? '<span class="i1-code">' + m.code + '</span>' : '') + prE(m.label) + (nonL ? '' : m.req ? ' (' + m.req + ')' : name === 'Health' || name === 'Ethnic Studies' ? ' (5)' : name === 'General Elective' ? ' (' + prElTarget(cat) + ')' : '') + '</span>' +
       (done ? '<span class="ok">Complete</span>' : '') + '</div>' +
       '<table><tr><th>Course</th><th class="n">Cr</th><th class="c">Mark</th></tr>' + rows.join('') + '</table>' +
       '<div class="i1-tot"><b>' + prNum(cat.totalCredits) + '</b> Total credits' + (cat.reqCredits !== undefined && cat.reqCredits !== cat.totalCredits ? ' &middot; <b>' + prNum(cat.reqCredits) + '</b> toward requirement' : '') + '</div></div>';
@@ -4862,14 +4867,14 @@ function prSnapshot(st, pack){
     return h + prFoot(pack, 'Points from the points sheet; credits from the transcript on file' + prTrAt(st) + '; credits alone do not qualify') + '</div>';
   }
   // v133: same requirement lines and the same "Complete" rule as the IGP (prReqStatus); one course per line
-  const asCat = function(r){ return r ? { category: r.category, courses: r.courses || [], totalCredits: r.credits || 0, needed: r.needed || [], inProgressFor: r.inProgress || [], validated: r.validated || [], waived: r.waived || [] } : null; };
+  const asCat = function(r){ return r ? { category: r.category, courses: r.courses || [], totalCredits: r.credits || 0, needed: r.needed || [], inProgressFor: r.inProgress || [], validated: r.validated || [], waived: r.waived || [], electiveTarget: r.electiveTarget, electiveAdds: r.electiveAdds } : null; };
   const rc = prReqCounts({ categories: (s.reqs || []).map(asCat) });
   h += '<h4 class="sn-h">A&ndash;G courses required for graduation <span>Courses still required: <b>' + (rc.need + rc.ip) + '</b>' + (rc.ip ? ' (' + rc.ip + ' in progress)' : '') + '</span></h4><div class="sn-ag">' + PR_SNAP_BOXES.map(function(b){
     const st0 = prReqStatus(b[2][0], asCat(reqs[b[2][0]]));
     const lines = st0.lines.map(function(l){ return l.ip ? '<div class="ipl">' + prE(l.t) + ' <i>(in progress)</i></div>' : '<div>' + prE(l.t) + '</div>'; });
     return '<div class="sn-box"><div class="sn-l">' + (b[0] || '&nbsp;') + '</div><div class="sn-body">' +
       (lines.length ? lines.join('') : (s.hasTranscript ? '<div class="ok">Complete</div>' : '')) +
-      '</div><div class="sn-n">' + prE(b[1]) + '</div></div>';
+      '</div><div class="sn-n">' + prE(b[2][0] === 'General Elective' ? 'Electives (' + prNum(prElTarget(reqs['General Elective'])) + ')' : b[1]) + '</div></div>';   // v170
   }).join('') + '</div>';
   const snc = s.nonCourse || {};   // v136: non-course requirements (LAUSD diploma)
   if(!((s.track || {}).key && s.track.key !== 'LAUSD')) h += '<h4 class="sn-h">Non-course requirements</h4><div class="sn-nc">' + [['career', 'Career Pathway'], ['service', 'Service Learning']].map(function(k){
