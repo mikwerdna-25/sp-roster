@@ -863,6 +863,15 @@ const STS_APP_URL = '';
 const STS_PARAMS = {};
 const IN_APP = STS_APP && typeof google !== 'undefined' && !!(google.script && google.script.run);
 const GITHUB_BASE = 'https://mikwerdna-25.github.io/sp-roster/';
+let STS_AS = '';
+// v76c: banner while a counselor/admin is on a teacher's page
+function stsViewBanner(d){
+  const b = document.getElementById('viewAsBanner'); if(!b) return;
+  const t = String(d.viewAs).replace(/</g, '&lt;'), me = String(d.actingAs || '').replace(/</g, '&lt;');
+  b.querySelector('span').innerHTML = d.canEdit ? 'Working on ' + t + '&rsquo;s page as ' + me + ' &middot; your changes are logged under your name'
+    : 'Viewing ' + t + '&rsquo;s page &middot; view only (roll and field trips work as you)';
+  b.style.background = d.canEdit ? '#8a4f00' : '#1d5fa3';
+}
 function stsAppOpen(app, extra, sameTab){
   const u = STS_APP_URL + '?app=' + app + (extra || '');
   if(sameTab){ window.open(u, '_top'); return; }
@@ -899,7 +908,8 @@ function showLoading(text){
 }
 
 function apiGet(params){
-  if(IN_APP) return new Promise(function(res, rej){ google.script.run.withSuccessHandler(function(s){ try{ res(JSON.parse(s)); }catch(e){ rej(e); } }).withFailureHandler(rej).staffApi(Object.fromEntries(new URLSearchParams(params))); });
+  if(IN_APP && STS_AS){ params = Object.assign({}, params, { asTeacher: STS_AS }); }   // v76b: whose teacher page (admins pick one)
+  if(IN_APP) return new Promise(function(res, rej){ google.script.run.withSuccessHandler(function(s){ try{ const d = JSON.parse(s); if(d && d.viewAs) stsViewBanner(d); res(d); }catch(e){ rej(e); } }).withFailureHandler(rej).staffApi(Object.fromEntries(new URLSearchParams(params))); });
   const p = new URLSearchParams(params);
   p.set('_', Date.now());
   return fetch(ROSTER_ENDPOINT_URL + '?' + p.toString(), { cache:'no-store' })
@@ -1897,7 +1907,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v76-lausd';
+document.getElementById('buildTag').textContent = 'v76c-lausd';
 // ===================== v107: PREV (points from earlier semesters) - view and change with a warning =====================
 // pvBox(student, tab, { canEdit, onSaved(res) }) -> an element for the student's card/row.
 function pvFmt(v){ return v === null || v === undefined || v === '' ? '—' : String(Math.round(Number(v) * 100) / 100); }
@@ -3119,13 +3129,38 @@ function ftPrintOpen(trip){
 // LAUSD link: sign in automatically with the Google account - no code to type
 if(IN_APP){
   try{
-    const ci = document.getElementById('codeInput'); (ci.closest('div[style*="position:relative"]') || ci).style.display = 'none';
+    const ci = document.getElementById('codeInput'); (ci.parentNode && ci.parentNode.id !== 'loginState' ? ci.parentNode : ci).style.display = 'none';   // the box and its Show button
+    const lb = document.querySelector('#loginState > label'); if(lb) lb.style.display = 'none';
     document.getElementById('loginBtn').style.display = 'none';
     const cc = document.getElementById('changeCodeLink'); if(cc) cc.style.display = 'none';
     const le = document.getElementById('loginError'); le.textContent = 'Signing in with your LAUSD Google account…'; le.classList.add('active'); le.style.background = '#eef5fd'; le.style.color = '#1d3a6b'; le.style.borderColor = '#b9cde8';
   }catch(e){}
   try{ document.getElementById('buildTag').textContent += ' · LAUSD sign-in'; }catch(e){}
-  if(!STS_PARAMS.roll){ document.getElementById('codeInput').value = 'google'; document.getElementById('loginBtn').click(); }
+  const go = function(){ document.getElementById('codeInput').value = 'google'; document.getElementById('loginBtn').click(); };
+  // v76b: counselors / administrators pick which teacher's page to view (view only; their own classes in full)
+  apiGet({ mode: 'whoami' }).then(function(me){
+    if(!me.success){ const le = document.getElementById('loginError'); le.textContent = me.error || 'Not signed in.'; return; }
+    if(!me.admin){ if(!STS_PARAMS.roll) go(); return; }
+    return apiGet({ mode: 'teacherlist' }).then(function(tl){
+      const le = document.getElementById('loginError'); le.classList.remove('active');
+      const box = document.createElement('div'); box.id = 'viewAsBox';
+      box.innerHTML = '<label>View a teacher&rsquo;s page</label><select id="viewAsSel" style="width:100%; padding:10px; font-size:1rem; border-radius:8px;">' +
+        (tl.teachers || []).map(function(n){ return '<option' + (n === tl.mine ? ' selected' : '') + '>' + n.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</option>'; }).join('') + '</select>' +
+        '<button class="btn-primary" id="viewAsGo">Open</button><div class="hint" style="margin-top:6px;">You can look, print, open students, take roll and work on field trips. Changing points and grades needs &ldquo;Yes&rdquo; in the Edit Points column on AdminCodes. Everything you change is logged under your name.' + (tl.mine ? ' Your own classes (' + tl.mine.replace(/</g, '&lt;') + ') work in full.' : '') + '</div>';
+      document.getElementById('loginState').appendChild(box);
+      document.getElementById('viewAsGo').onclick = function(){
+        STS_AS = document.getElementById('viewAsSel').value;
+        box.style.display = 'none'; go();
+        if(STS_AS !== tl.mine){
+          const ban = document.createElement('div'); ban.id = 'viewAsBanner';
+          ban.style.cssText = 'position:sticky; top:0; z-index:40; background:#1d5fa3; color:#fff; padding:8px 12px; border-radius:8px; margin:0 0 10px; font-weight:700; display:flex; justify-content:space-between; gap:8px; align-items:center;';
+          ban.innerHTML = '<span>Viewing ' + STS_AS.replace(/</g, '&lt;') + '&rsquo;s page &middot; view only</span><button type="button" style="background:#fff; color:#1d5fa3; border:none; border-radius:6px; padding:4px 10px; font-weight:700; cursor:pointer;">Switch teacher</button>';
+          ban.querySelector('button').onclick = function(){ window.open(STS_APP_URL + '?app=teacher', '_top'); };
+          const lg = document.getElementById('loginState'); lg.parentNode.insertBefore(ban, lg);
+        }
+      };
+    });
+  }).catch(function(){ const le = document.getElementById('loginError'); le.textContent = 'Could not reach the server.'; });
 }
 </script>
 </body>
