@@ -90,6 +90,16 @@
     margin-bottom:10px;
   }
   .btn-primary:active{ opacity:0.85; }
+  .btn-outline{ width:100%; padding:12px; border:2px solid var(--navy); border-radius:8px; background:#fff; color:var(--navy); font-weight:800; font-size:0.98rem; cursor:pointer; margin-bottom:10px; }
+  .closed-note{ background:#fdf2df; border:1px solid var(--gold); border-radius:8px; padding:10px 12px; margin:6px 0 12px; font-size:0.9rem; color:var(--ink); }
+  .id-input{ width:100%; box-sizing:border-box; padding:12px; font-size:1.1rem; border:1px solid var(--rule); border-radius:8px; text-align:center; letter-spacing:1px; margin:8px 0 10px; text-transform:uppercase; }
+  .att-tiles{ display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; margin:6px 0; }
+  .att-tile{ background:#fff; border:1px solid var(--rule); border-radius:8px; padding:6px; text-align:center; }
+  .att-tile b{ display:block; font-size:1.1rem; color:var(--navy); }
+  .att-tile span{ font-size:0.68rem; color:var(--muted); }
+  .att-days{ display:flex; gap:4px; flex-wrap:wrap; margin-top:4px; }
+  .att-day{ font-size:0.66rem; padding:3px 5px; border-radius:5px; background:#eee6d2; color:#5a5446; }
+  .att-day.in{ background:#dff3df; color:#1d6b1d; } .att-day.abs{ background:#fbe1df; color:#a32b2b; }
   .btn-secondary{
     background:none;
     border:none;
@@ -101,6 +111,7 @@
 
   .pg{ text-align:left; margin:14px 0 6px; border-top:1px solid var(--rule); padding-top:12px; }
   .pg-loading{ font-size:0.82rem; color:var(--muted); text-align:center; padding:8px 0; }
+  .pg-grad{ border-left:4px solid #1c2b4a; }
   .pg-title{ font-weight:800; color:var(--navy); font-size:1.05rem; margin-bottom:8px; text-align:center; }
   .pg-head{ font-weight:800; color:var(--navy); font-size:0.85rem; margin:14px 0 4px; }
   .pg-week{ background:#fff; border:1px solid var(--rule); border-radius:8px; padding:8px 10px; margin:6px 0; }
@@ -177,7 +188,7 @@
 
 <div class="sheet">
   <div class="school">Stoney Point High School<br>Daily Check-In</div>
-  <div style="text-align:center; font-size:0.65rem; color:var(--muted); margin-top:-14px; margin-bottom:14px;">v13-phone-fix</div>
+  <div style="text-align:center; font-size:0.65rem; color:var(--muted); margin-top:-14px; margin-bottom:14px;">v15b-745</div>
 
   <div class="state active" id="loadingState">
     <div class="spinner"></div>
@@ -195,8 +206,28 @@
     <div class="avatar" id="confirmAvatar"></div>
     <div id="confirmName"></div>
     <div id="confirmSub">Is this you?</div>
+    <div class="closed-note" id="closedNote" style="display:none;"></div>
     <button class="btn-primary" id="confirmBtn">Check me in</button>
+    <button class="btn-outline" id="viewBtn">Just see my points &amp; attendance</button>
     <div style="font-size:0.72rem; color:var(--muted); margin-top:8px;">If this isn't your name, tell your teacher - don't check in as someone else.</div>
+  </div>
+
+  <div class="state" id="idState">
+    <div class="avatar" id="idAvatar"></div>
+    <div id="idName" style="font-weight:800; color:var(--navy);"></div>
+    <div style="font-size:0.9rem; margin-top:8px;">Type your <b>Student ID</b> to see your points and attendance.</div>
+    <input class="id-input" id="idInput" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="e.g. 123456A789">
+    <div id="idErr" style="color:#a32b2b; font-size:0.85rem; min-height:1em; margin-bottom:6px;"></div>
+    <button class="btn-primary" id="idGo">Show my points</button>
+    <button class="btn-secondary" id="idBack">&larr; Back</button>
+  </div>
+
+  <div class="state" id="viewState">
+    <div id="viewName" style="font-weight:800; color:var(--navy); font-size:1.1rem;"></div>
+    <div style="font-size:0.78rem; color:var(--muted);">Not checked in &mdash; just looking</div>
+    <div id="viewBox" class="pg"></div>
+    <div id="viewAtt" class="pg"></div>
+    <button class="btn-secondary" id="viewBack">&larr; Back</button>
   </div>
 
   <div class="state" id="successState">
@@ -277,6 +308,66 @@ function showConfirm(first, last){
   document.getElementById('confirmAvatar').textContent = initialsOf(first, last);
   document.getElementById('confirmName').textContent = first + ' ' + last;
   showState('confirmState');
+  checkHours();
+}
+// v15: check-in only on school days 7:45 AM - 1:30 PM; viewing points works any time
+function setClosed(why, hours){
+  var n = document.getElementById('closedNote'), b = document.getElementById('confirmBtn');
+  n.innerHTML = '<b>Check-in is closed.</b> ' + pEsc(why || '') + (hours ? '<br><span style="font-size:0.8rem;">Open: ' + pEsc(hours) + '</span>' : '');
+  n.style.display = 'block'; b.style.display = 'none';
+  document.getElementById('confirmSub').textContent = 'You can still look at your points.';
+}
+function checkHours(){
+  var params = new URLSearchParams({ mode:'checkinstatus', _:Date.now() });
+  fetch(ROSTER_ENDPOINT_URL + '?' + params.toString(), { cache:'no-store' }).then(function(r){ return r.json(); }).then(function(d){
+    if(d && d.success && !d.open) setClosed(d.why, d.hours);
+  }).catch(function(){});
+}
+document.getElementById('viewBtn').onclick = function(){
+  var identity = getSavedIdentity(); if(!identity) return;
+  document.getElementById('idAvatar').textContent = initialsOf(identity.first, identity.last);
+  document.getElementById('idName').textContent = identity.first + ' ' + identity.last;
+  document.getElementById('idErr').textContent = '';
+  var inp = document.getElementById('idInput'); inp.value = '';
+  showState('idState'); setTimeout(function(){ inp.focus(); }, 50);
+};
+document.getElementById('idBack').onclick = function(){ var i = getSavedIdentity(); if(i) showState('confirmState'); };
+document.getElementById('viewBack').onclick = function(){ var i = getSavedIdentity(); if(i) showState('confirmState'); };
+document.getElementById('idInput').addEventListener('keydown', function(e){ if(e.key === 'Enter') document.getElementById('idGo').click(); });
+document.getElementById('idGo').onclick = function(){
+  var identity = getSavedIdentity(); if(!identity) return;
+  var id = document.getElementById('idInput').value.trim(), err = document.getElementById('idErr'), btn = this;
+  if(!id){ err.textContent = 'Type your Student ID.'; return; }
+  btn.disabled = true; btn.textContent = 'Loading...'; err.textContent = '';
+  var params = new URLSearchParams({ mode:'myprogressid', first:identity.first, last:identity.last, id:id, _:Date.now() });
+  fetch(ROSTER_ENDPOINT_URL + '?' + params.toString(), { cache:'no-store' }).then(function(r){ return r.json(); }).then(function(d){
+    btn.disabled = false; btn.textContent = 'Show my points';
+    if(!d || !d.success){ err.textContent = (d && d.error) || 'Could not load your points.'; return; }
+    document.getElementById('idInput').value = '';
+    document.getElementById('viewName').textContent = identity.first + ' ' + identity.last;
+    renderMyProgress(document.getElementById('viewBox'), d);
+    renderAtt(document.getElementById('viewAtt'), d.attendance);
+    showState('viewState');
+  }).catch(function(){ btn.disabled = false; btn.textContent = 'Show my points'; err.textContent = 'Could not reach the server. Try again.'; });
+};
+function renderAtt(box, a){
+  if(!a){ box.style.display = 'none'; return; }
+  box.style.display = 'block';
+  var m = a.misis || {};
+  var h = '<div class="pg-title">Your attendance</div><div class="att-tiles">' +
+    '<div class="att-tile"><b>' + (a.streak || 0) + (a.streak ? ' \uD83D\uDD25' : '') + '</b><span>check-in streak</span></div>' +
+    '<div class="att-tile"><b>' + (a.checkIns || 0) + '</b><span>days checked in' + (a.checkInRate != null ? ' (' + a.checkInRate + '%)' : '') + '</span></div>' +
+    '<div class="att-tile"><b>' + (a.bestStreak || 0) + '</b><span>best streak</span></div>' +
+    '<div class="att-tile"><b>' + (m.attendanceRate != null ? m.attendanceRate + '%' : '\u2013') + '</b><span>attendance (MiSiS)</span></div>' +
+    '<div class="att-tile"><b>' + (m.absent || 0) + '</b><span>absences</span></div>' +
+    '<div class="att-tile"><b>' + ((m.tardy || 0) + (m.partial || 0)) + '</b><span>tardies / partial</span></div></div>';
+  if((a.recent || []).length){
+    h += '<div class="pg-sub" style="margin-top:6px;">Last school days</div><div class="att-days">' + a.recent.map(function(d){
+      var cls = d.misis === 'absent' ? 'abs' : (d.checkedIn ? 'in' : ''), dt = new Date(d.date + 'T12:00:00');
+      return '<span class="att-day ' + cls + '">' + pEsc(dt.toLocaleDateString([], { month:'numeric', day:'numeric' })) + (d.checkedIn ? ' \u2713' : d.misis === 'absent' ? ' absent' : '') + '</span>'; }).join('') + '</div>';
+  }
+  h += '<div class="pg-sub" style="margin-top:6px; opacity:0.75;">MiSiS is the official attendance record' + (a.misisLastImported ? ' (last updated ' + pEsc(new Date(a.misisLastImported).toLocaleDateString([], { month:'short', day:'numeric' })) + ')' : '') + '.</div>';
+  box.innerHTML = h;
 }
 
 function showError(msg){
@@ -301,7 +392,7 @@ function submitOnce(first, last){
       if(!data || data.success !== true){
         var msg = (data && data.error) || 'Check-in was not confirmed.';
         var e2 = new Error(msg);
-        e2.code = 'server: ' + msg;
+        e2.code = 'server: ' + msg; e2.closed = !!(data && data.closed);
         e2.retry = /busy|unexpected|could not save|timed out|too many|service/i.test(msg); // worth another try
         throw e2;
       }
@@ -380,6 +471,7 @@ document.getElementById('confirmBtn').onclick = function(){
     showState('successState');
     loadMyProgress(identity.first, identity.last);
   }).catch(function(err){
+    if(err && err.closed){ showState('confirmState'); setClosed(String(err.message).replace(/^Check-in is closed\.\s*/, ''), 'School days, 7:45 AM \u2013 1:30 PM'); return; }   // v15
     var code = (err && err.code) ? err.code : 'unknown';
     showError("Couldn't submit your check-in. Check your connection and try again. If it keeps happening, tell the office (code: " + code + ").");
   }).finally(function(){
@@ -453,6 +545,17 @@ function renderMyProgress(box, d){
   var lastData = 0; totals.forEach(function(v, i){ if(v !== null) lastData = i + 1; });
   var n = Math.max(1, Math.min(totals.length, Math.max(cur, lastData)));
   var h = '<div class="pg-title">Your points</div>';
+  // v142/v15: graduation goal - by the student's own graduation year (class of 2027 or earlier: June 2027)
+  var g = d.grad;
+  if(g && g.noTranscript) h += '<div class="pg-week pg-grad"><div class="pg-row"><b>Graduate by ' + pEsc(g.label) + '</b></div><div class="pg-sub">Your transcript isn\u2019t in the system yet \u2014 see your counselor to find out how many points you need.</div></div>';
+  else if(g){
+    h += '<div class="pg-week pg-grad"><div class="pg-row"><b>Graduate by ' + pEsc(g.label) + '</b><span><b>' + pFmt(g.pointsNeeded) + '</b> pts to go</span></div>' +
+      (g.classesLeft > 0
+        ? '<div class="pg-sub">' + g.classesLeft + ' class' + (g.classesLeft === 1 ? '' : 'es') + ' left (' + g.creditsNeeded + ' credits' + (g.track ? ', ' + pEsc(g.track) : '') + ')' +
+          (g.perWeek ? ' &middot; about <b>' + g.perWeek + ' points a week</b> for the ' + Math.round(g.weeks) + ' school weeks left' : '') + '</div>'
+        : '<div class="pg-sub">\u2713 You have the credits you need. Check with your counselor that every requirement is met.</div>') +
+      '<div class="pg-sub" style="opacity:0.75;">Your counselor and MiSiS have the official count.</div></div>';
+  }
   // this week
   var tw = cur >= 1 && cur <= totals.length ? totals[cur - 1] : null, twv = tw || 0;
   var pct = Math.min(100, twv / d.honorMin * 100), mark = d.probationBelow / d.honorMin * 100;
@@ -480,7 +583,8 @@ function renderMyProgress(box, d){
   h += '<div class="pg-head">Every week</div><div class="pg-legend"><span><i style="background:' + P_GOOD + '"></i>Honor Roll ' + d.honorMin + '+</span><span><i style="background:' + P_WARN + '"></i>' + d.probationBelow + '–' + (d.honorMin - 1) + '</span><span><i style="background:' + P_CRIT + '"></i>under ' + d.probationBelow + '</span></div>' +
     '<div class="pg-chart">' + svg + '</div><div class="pg-tip" id="pgTip">Tap a bar to see that week.</div>';
   // 5-week block in progress
-  var bw5 = d.blockWeeks || 5, per = d.blockMinPerWeek || 20, b = Math.max(0, Math.floor((Math.max(cur, 1) - 1) / bw5)), tot = 0, cnt = 0;
+  var bw5 = d.blockWeeks || 5, b = Math.max(0, Math.floor((Math.max(cur, 1) - 1) / bw5)), tot = 0, cnt = 0;
+  var per = d.blockMin && d.blockMin[b] != null ? d.blockMin[b] : (d.blockMinPerWeek || 20);     // v127: fewer classes, smaller minimum
   for(var w = b * bw5; w < Math.min((b + 1) * bw5, n); w++){ if(totals[w] !== null){ tot += totals[w]; cnt++; } }
   if(cnt){ var need = cnt * per; h += '<div class="pg-week"><div class="pg-row"><b>Weeks ' + (b * bw5 + 1) + '–' + ((b + 1) * bw5) + '</b><span><b>' + pFmt(tot) + '</b> / ' + (bw5 * per) + '</span></div>' +
     '<div class="pg-bar"><div class="pg-fill" style="width:' + Math.min(100, tot / (bw5 * per) * 100) + '%;background:' + (tot >= need ? P_GOOD : P_WARN) + ';"></div></div>' +
