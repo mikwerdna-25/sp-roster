@@ -207,7 +207,7 @@
         <div id="tab-log" style="display:none;"></div>
       </div>
     </div>
-    <div class="small muted" style="margin-top:12px;">Student locations come from their MiSiS class schedule (points sheet), today's check-ins and hall passes. Updates every 20 seconds. <a href="#" id="signOut">Sign out</a> <span style="float:right;">hallmonitor v20</span></div>
+    <div class="small muted" style="margin-top:12px;">Student locations come from their MiSiS class schedule (points sheet), today's check-ins and hall passes. Updates every 20 seconds. <a href="#" id="signOut">Sign out</a> <span style="float:right;">hallmonitor v21</span></div>
   </div>
 </div></div>
 
@@ -353,7 +353,7 @@ function refresh(){
     if(!d.success){ document.getElementById('syncNote').textContent = d.error || 'not updated'; return; }
     accept(d);
     if(followNow){ const b = curBlock(d.minute); if(b) selKey = b.key; }   // follow the clock when watching "now"
-    renderAll();
+    renderAll(true);   // v21: the 20-second update leaves the Daily log alone
     document.getElementById('syncNote').textContent = 'updated ' + fmtHM.format(new Date(d.nowMs));
   }).catch(function(){ document.getElementById('syncNote').textContent = 'offline - retrying'; });
 }
@@ -380,7 +380,7 @@ setInterval(function(){
   document.querySelectorAll('.needle').forEach(function(n){ n.style.left = 'calc(' + pct(info.minute) + '% )'; n.style.display = info.minute >= DAY_START && info.minute <= dayEnd() && D.dow <= 5 ? '' : 'none'; });
 }, 1000);
 
-function renderAll(){ renderStrip(); renderReqs(); renderOut(); renderTab(); }
+function renderAll(fromTick){ renderStrip(); renderReqs(); renderOut(); renderTab(fromTick); }
 function needle(){ const m = ptInfo(nowMs()).minute; return '<div class="needle" style="left:' + pct(m) + '%;' + (m >= DAY_START && m <= dayEnd() && D.dow <= 5 ? '' : 'display:none;') + '"></div>'; }
 function shortRoom(id){ return { RR:'restroom', OFFICE:'office', LUNCH:'lunch' }[id] || String(id); }
 
@@ -440,7 +440,8 @@ document.querySelectorAll('.tab').forEach(function(t){ t.onclick = function(){ t
 document.getElementById('search').oninput = function(){ renderTab(); };
 document.getElementById('statusSel').onchange = function(){ renderTab(); };
 document.getElementById('mineToggle').onclick = function(){ mineOnly = !mineOnly; this.classList.toggle('on', mineOnly); renderTab(); };
-function renderTab(){
+function renderTab(fromTick){
+  if(fromTick && tab === 'log') return;          // v21: no automatic reload while someone is searching or reading the log
   ['map', 'timeline', 'programs', 'log'].forEach(function(k){ document.getElementById('tab-' + k).style.display = k === tab ? '' : 'none'; });
   document.getElementById('toolbar').style.display = (tab === 'programs' || tab === 'log') ? 'none' : '';
   document.getElementById('dragHint').style.display = (tab === 'map' && canDrag()) ? '' : 'none';
@@ -941,7 +942,7 @@ document.querySelectorAll('input.code-field').forEach(function(inp){
 });
 
 // ===================== Daily log: where each student was, and for how long (v7) =====================
-let logData = null, logDate = '', logOpen = {};
+let logData = null, logDate = '', logOpen = {}, logQ = '';   // v21: logQ keeps the search through a refresh
 function todayKey(){ const o = {}; new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year:'numeric', month:'2-digit', day:'2-digit' }).formatToParts(new Date(nowMs())).forEach(function(p){ o[p.type] = p.value; }); return o.year + '-' + o.month + '-' + o.day; }
 function minOf(ms){ return ptInfo(ms).minute; }
 function fmtMin(m){ m = Math.round(m); return m >= 60 ? Math.floor(m / 60) + ' h ' + (m % 60) + ' min' : m + ' min'; }
@@ -952,7 +953,7 @@ function renderLog(){
     el.innerHTML = '<div class="small muted">Loading ' + esc(logDate) + '…</div>';
     apiGet({ mode:'hplog', code: myCode, date: logDate }).then(function(d){
       if(!d.success){ el.innerHTML = '<div class="err">' + esc(d.error || 'Could not load.') + '</div>'; return; }
-      logData = d; if(tab === 'log') drawLog();
+      logData = d; logData.loadedAt = Date.now(); if(tab === 'log') drawLog();
     }).catch(function(){ el.innerHTML = '<div class="err">Could not reach the server.</div>'; });
     return;
   }
@@ -1008,7 +1009,7 @@ function buildDay(st, L){
 }
 function drawLog(){
   const L = logData, el = document.getElementById('tab-log');
-  const q = (document.getElementById('logSearch') ? document.getElementById('logSearch').value : '').trim().toLowerCase();
+  const q = logQ.trim().toLowerCase();
   const onlyPasses = document.getElementById('logOnly') ? document.getElementById('logOnly').checked : false;
   const allRows = L.students.map(function(st){
     const day = buildDay(st, L), passes = L.passes.filter(function(p){ return p.studentId === st.id; });
@@ -1030,7 +1031,8 @@ function drawLog(){
   const isToday = L.date === L.today;
   let h = '<div class="bar"><input type="date" id="logDateIn" value="' + esc(L.date) + '" max="' + esc(L.today) + '" style="max-width:170px;">' +
     (isToday ? '' : '<button class="btn sm light" id="logToday">Today</button>') +
-    '<input type="text" id="logSearch" placeholder="Find a student" value="' + esc(q) + '">' +
+    '<input type="text" id="logSearch" placeholder="Find a student" value="' + esc(logQ) + '">' +
+    (isToday ? '<button class="btn sm light" id="logRefresh" title="Get the newest check-ins and passes">&#8635; Refresh</button><span class="small muted">as of ' + esc(fmtHM.format(new Date(L.loadedAt || Date.now()))) + '</span>' : '') +
     '<label class="small"><input type="checkbox" id="logOnly"' + (onlyPasses ? ' checked' : '') + '> Only students with passes</label>' +
     '<button class="btn sm" id="logCsv">Download (Excel)</button><button class="btn sm light" onclick="window.print()">Print</button></div>';
   h += '<div class="trays" style="margin:0 0 10px;">' +
@@ -1062,7 +1064,8 @@ function drawLog(){
   el.innerHTML = h;
   document.getElementById('logDateIn').onchange = function(){ if(this.value){ logDate = this.value; logOpen = {}; renderLog(); } };
   const lt = document.getElementById('logToday'); if(lt) lt.onclick = function(){ logDate = todayKey(); renderLog(); };
-  document.getElementById('logSearch').oninput = function(){ const pos = this.selectionStart; drawLog(); const s = document.getElementById('logSearch'); s.focus(); try{ s.setSelectionRange(pos, pos); }catch(e){} };
+  const lr = document.getElementById('logRefresh'); if(lr) lr.onclick = function(){ logData = null; renderLog(); };   // v21
+  document.getElementById('logSearch').oninput = function(){ logQ = this.value; const pos = this.selectionStart; drawLog(); const s = document.getElementById('logSearch'); s.focus(); try{ s.setSelectionRange(pos, pos); }catch(e){} };
   document.getElementById('logOnly').onchange = drawLog;
   el.querySelectorAll('[data-row]').forEach(function(r){ r.onclick = function(){ const id = r.getAttribute('data-row'); logOpen[id] = !logOpen[id]; drawLog(); }; });
   el.querySelectorAll('[data-hist]').forEach(function(b){ b.onclick = function(e){ e.stopPropagation(); openHistory(b.getAttribute('data-hist')); }; });
