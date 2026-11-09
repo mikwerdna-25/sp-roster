@@ -682,6 +682,10 @@
   #ftState .ft-c-top{ display:flex; justify-content:space-between; gap:10px; }
   #ftState .ft-c-loc{ font-weight:800; color:var(--navy, #1c2b4a); }
   #ftState .ft-c-sub{ font-size:0.8rem; color:#555; margin-top:2px; }
+  #ftState .ft-c-ns{ display:flex; gap:8px; } #ftState .ft-here{ color:#1b7f3b; font-weight:800; } #ftState .ft-c-here b{ color:#1b7f3b; }
+  #ftState .ft-today{ margin:6px 0 2px; font-size:0.85rem; } #ftState .ft-today summary{ cursor:pointer; color:#1b7f3b; }
+  #ftState .ft-today-l{ columns:2; column-gap:14px; margin:6px 0; } #ftState .ft-today-l .y{ color:#1b7f3b; } #ftState .ft-today-l .n{ color:#9a3412; }
+  #ftState .ft-sec-r{ float:right; font-weight:400; font-size:0.8rem; text-transform:none; letter-spacing:0; } #ftState label.ft-ho{ font-size:0.8rem; margin:0 0 4px; }
   #ftState .ft-c-n{ text-align:center; min-width:54px; } #ftState .ft-c-n b{ display:block; font-size:1.3rem; color:var(--navy, #1c2b4a); } #ftState .ft-c-n small{ color:var(--muted, #777); font-size:0.7rem; }
   #ftState .ft-tag{ font-size:0.68rem; background:#fbe9e6; color:#a32b2b; border-radius:999px; padding:1px 7px; font-weight:700; vertical-align:2px; }
   #ftState .ft-c-btns{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:8px; }
@@ -1907,7 +1911,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v76e-lausd';
+document.getElementById('buildTag').textContent = 'v76f-fthere';
 // ===================== v107: PREV (points from earlier semesters) - view and change with a warning =====================
 // pvBox(student, tab, { canEdit, onSaved(res) }) -> an element for the student's card/row.
 function pvFmt(v){ return v === null || v === undefined || v === '' ? '—' : String(Math.round(Number(v) * 100) / 100); }
@@ -2895,6 +2899,11 @@ const FT_TRANS_TXT = { bus: 'School bus', private: 'Private vehicle', walking: '
 let ftData = null, ftBack = '', ftEdit = null, ftSel = {}, ftQ = '', ftView = 'az';
 function ftE(t){ return String(t == null ? '' : t).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 function ftKey(s){ return s.id || (s.first + '|' + s.last).toLowerCase(); }
+// v175: who checked in today (from the server); ftHereOnly = picker shows only students here today
+let ftHereOnly = false;
+function ftIsHere(s){ return !!(s && s.here); }
+function ftHereMark(s){ return ftIsHere(s) ? ' <span class="ft-here" title="Checked in today">&#10003;</span>' : ''; }
+function ftOnToday(t){ const y = ftData.todayYmd; return !!y && t.date <= y && (t.dateEnd || t.date) >= y; }
 function ftWhen(tr){
   const d = function(s){ const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || ''); if(!m) return s || ''; const dt = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
     return dt.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }); };
@@ -2923,7 +2932,15 @@ function ftList(){
       '<div class="ft-c-sub">' + ftE(ftWhen(t)) + '</div>' +
       '<div class="ft-c-sub">' + ftE(t.supervisor) + ' · ' + ftE(FT_TRANS_TXT[t.transport] || '') + (t.transportOther ? ' (' + ftE(t.transportOther) + ')' : '') + ' · ' + ftE(FT_LUNCH_TXT[t.lunch] || '') + '</div>' +
       (t.owner !== d.who.name ? '<div class="ft-c-sub">Set up by ' + ftE(t.owner) + '</div>' : '') + '</div>' +
-      '<div class="ft-c-n"><b>' + t.students.length + '</b><small>student' + (t.students.length === 1 ? '' : 's') + '</small></div></div>' +
+      '<div class="ft-c-ns"><div class="ft-c-n"><b>' + t.students.length + '</b><small>student' + (t.students.length === 1 ? '' : 's') + '</small></div>' +
+      (!cancelled && ftOnToday(t) && t.students.length ? (function(){ const h = t.students.filter(ftIsHere).length;
+        return '<div class="ft-c-n ft-c-here"><b>' + h + '</b><small>&#10003; here</small></div>'; })() : '') + '</div></div>' +
+      (!cancelled && ftOnToday(t) && t.students.length ? (function(){
+        const no = t.students.filter(function(s){ return !ftIsHere(s); }).sort(function(a, b){ return a.last.localeCompare(b.last) || a.first.localeCompare(b.first); });
+        return '<details class="ft-today"><summary>Today: <b>' + (t.students.length - no.length) + ' of ' + t.students.length + '</b> checked in' + (no.length ? ' &middot; ' + no.length + ' not yet' : ' &#10003;') + '</summary>' +
+          '<div class="ft-today-l">' + t.students.slice().sort(function(a, b){ return a.last.localeCompare(b.last) || a.first.localeCompare(b.first); })
+            .map(function(s){ return '<div class="' + (ftIsHere(s) ? 'y' : 'n') + '">' + (ftIsHere(s) ? '&#10003;' : '&#9675;') + ' ' + ftE(s.last + ', ' + s.first) + '</div>'; }).join('') + '</div>' +
+          '<div class="ft-hint">&#10003; = checked in today. MiSiS attendance is final.</div></details>'; })() : '') +
       '<div class="ft-c-btns">' + (cancelled ? '' : '<button type="button" class="btn-primary ft-b" data-print="' + ftE(t.id) + '">&#128424;&#65039; Print slips</button>') +
       (d.who.readOnly || !(d.who.admin || t.owner === d.who.name) ? '' : '<button type="button" class="btn-secondary ft-b" data-edit="' + ftE(t.id) + '">Edit</button>' +
         '<button type="button" class="small-link" data-cancel="' + ftE(t.id) + '" data-restore="' + (cancelled ? 'yes' : '') + '">' + (cancelled ? 'Restore' : 'Cancel trip') + '</button>') + '</div></div>';
@@ -2931,9 +2948,10 @@ function ftList(){
   el.innerHTML = '<div class="ft-head"><div><div class="ft-h">Field trip slips</div><div class="ft-hint">LAUSD REF-2111.1 permission slip (Attachment H) in English, Spanish, Korean or Armenian &mdash; filled in for each student, ready to print.' +
       (d.who.admin ? '' : ' You can print any trip and add any student; you can change the trips you set up.') + '</div></div>' +
       (d.who.readOnly ? '' : '<button type="button" class="btn-primary ft-new" id="ftNewBtn">+ New field trip</button>') + '</div>' +
-    '<div class="ft-sec">Coming up</div>' + (up.length ? up.map(card).join('') : '<div class="ft-msg">No upcoming field trips.</div>') +
+    '<div class="ft-sec">Coming up' + (d.todayYmd ? ' <span class="ft-sec-r">' + (d.hereToday || 0) + ' checked in today &middot; <button type="button" class="small-link" id="ftRefresh">Refresh</button></span>' : '') + '</div>' + (up.length ? up.map(card).join('') : '<div class="ft-msg">No upcoming field trips.</div>') +
     (past.length ? '<details class="ft-past"><summary>Past and cancelled (' + past.length + ')</summary>' + past.map(card).join('') + '</details>' : '');
   const nb = document.getElementById('ftNewBtn'); if(nb) nb.onclick = function(){ ftEditOpen(null); };
+  const rf = document.getElementById('ftRefresh'); if(rf) rf.onclick = function(){ ftOpen(); };
   el.querySelectorAll('[data-edit]').forEach(function(b){ b.onclick = function(){ ftEditOpen(d.trips.filter(function(t){ return t.id === b.getAttribute('data-edit'); })[0]); }; });
   el.querySelectorAll('[data-print]').forEach(function(b){ b.onclick = function(){ ftPrintOpen(d.trips.filter(function(t){ return t.id === b.getAttribute('data-print'); })[0]); }; });
   el.querySelectorAll('[data-cancel]').forEach(function(b){ b.onclick = function(){
@@ -2967,6 +2985,8 @@ function ftEditOpen(trip){
     '</div>' +
     '<div class="ft-sec">Students <span id="ftSelN"></span></div>' +
     '<div class="ft-stu"><div class="ft-pick"><div class="ft-view"><button type="button" data-fv="az">A&ndash;Z &middot; all students</button><button type="button" data-fv="class">By class</button></div>' +
+    
+    '<label class="ft-s ft-ho"><input type="checkbox" id="ftHereOnly"' + (ftHereOnly ? ' checked' : '') + '> Only students checked in today &#10003; (' + (d.hereToday || 0) + ')</label>' +
     '<input type="search" id="ftQ" placeholder="Search a name"><div id="ftGroups"></div></div>' +
     '<div class="ft-chosen"><div class="ft-ch-h">On this trip &middot; slip language</div><div id="ftChosen"></div></div></div>' +
     '<div class="ft-save"><button type="button" class="btn-primary" id="ftSaveBtn">Save trip</button><div class="ft-msg" id="ftSaveMsg"></div></div>';
@@ -2974,20 +2994,21 @@ function ftEditOpen(trip){
   document.querySelectorAll('input[name=ftTr]').forEach(function(r){ r.onchange = function(){ document.getElementById('ftTrOther').style.display = r.value === 'other' && r.checked ? '' : 'none'; }; });
   document.getElementById('ftQ').oninput = function(){ ftQ = this.value.trim().toLowerCase(); ftDrawGroups(); };
   document.getElementById('ftSaveBtn').onclick = ftSave;
+  document.getElementById('ftHereOnly').onchange = function(){ ftHereOnly = this.checked; ftDrawGroups(); };
   document.querySelectorAll('[data-fv]').forEach(function(b){ b.onclick = function(){ ftView = b.getAttribute('data-fv'); ftDrawGroups(); }; });
   ftDrawGroups(); ftDrawChosen(); window.scrollTo(0, 0);
 }
 // v145: A-Z list of every student in the school (the default), or class by class
-function ftAdd(s, on){ const k = ftKey(s); if(on){ if(!ftSel[k]) ftSel[k] = { id: s.id, first: s.first, last: s.last, lang: (ftData.lastLang || {})[s.id] || 'en' }; } else delete ftSel[k]; }
+function ftAdd(s, on){ const k = ftKey(s); if(on){ if(!ftSel[k]) ftSel[k] = { id: s.id, first: s.first, last: s.last, here: s.here, lang: (ftData.lastLang || {})[s.id] || 'en' }; } else delete ftSel[k]; }
 function ftDrawAZ(){
   const d = ftData, box = document.getElementById('ftGroups'), q = ftQ;
-  const list = (d.students || []).filter(function(s){ return !q || (s.first + ' ' + s.last + ' ' + s.last + ', ' + s.first + ' ' + (s.id || '')).toLowerCase().indexOf(q) !== -1; });
-  if(!list.length){ box.innerHTML = '<div class="ft-msg">' + ((d.students || []).length ? 'No students match.' : 'No students found.') + '</div>'; return; }
+  const list = (d.students || []).filter(function(s){ return (!ftHereOnly || ftIsHere(s)) && (!q || (s.first + ' ' + s.last + ' ' + s.last + ', ' + s.first + ' ' + (s.id || '')).toLowerCase().indexOf(q) !== -1); });
+  if(!list.length){ box.innerHTML = '<div class="ft-msg">' + (ftHereOnly && !q ? 'No one has checked in yet today.' : (d.students || []).length ? 'No students match.' : 'No students found.') + '</div>'; return; }
   let h = '<div class="ft-az">', letter = '';
   list.forEach(function(s){
     const L = (s.last.charAt(0) || '#').toUpperCase();
     if(L !== letter){ letter = L; h += '<div class="ft-l">' + ftE(L) + '</div>'; }
-    h += '<label class="ft-s"><input type="checkbox" data-k="' + ftE(ftKey(s)) + '"' + (ftSel[ftKey(s)] ? ' checked' : '') + '> ' + ftE(s.last + ', ' + s.first) + '</label>';
+    h += '<label class="ft-s"><input type="checkbox" data-k="' + ftE(ftKey(s)) + '"' + (ftSel[ftKey(s)] ? ' checked' : '') + '> ' + ftE(s.last + ', ' + s.first) + ftHereMark(s) + '</label>';
   });
   box.innerHTML = h + '</div>';
   const byKey = {}; (d.students || []).forEach(function(s){ byKey[ftKey(s)] = s; });
@@ -3002,15 +3023,16 @@ function ftDrawGroups(){
   box.querySelectorAll('details.ft-g[open]').forEach(function(x){ openNow[x.getAttribute('data-lab')] = true; });
   const gs = d.groups.map(function(g){
     const lab = (g.period ? g.period.replace(/^P0?/, 'P') + ' · ' : '') + g.course + (g.teacher ? ' · ' + g.teacher : '');
-    const st = !q || lab.toLowerCase().indexOf(q) !== -1 ? g.students : g.students.filter(function(s){ return (s.first + ' ' + s.last + ' ' + s.last + ', ' + s.first + ' ' + (s.id || '')).toLowerCase().indexOf(q) !== -1; });
+    const pool = ftHereOnly ? g.students.filter(ftIsHere) : g.students;
+    const st = !q || lab.toLowerCase().indexOf(q) !== -1 ? pool : pool.filter(function(s){ return (s.first + ' ' + s.last + ' ' + s.last + ', ' + s.first + ' ' + (s.id || '')).toLowerCase().indexOf(q) !== -1; });
     return { g: g, lab: lab, st: st };
   }).filter(function(x){ return x.st.length; });
-  if(!gs.length){ box.innerHTML = '<div class="ft-msg">' + (d.groups.length ? 'No students match.' : 'No class rosters found.') + '</div>'; return; }
+  if(!gs.length){ box.innerHTML = '<div class="ft-msg">' + (ftHereOnly && !q ? 'No one in these classes has checked in yet today.' : d.groups.length ? 'No students match.' : 'No class rosters found.') + '</div>'; return; }
   box.innerHTML = gs.map(function(x, i){
     const allOn = x.st.every(function(s){ return ftSel[ftKey(s)]; });
     return '<details class="ft-g" data-lab="' + ftE(x.lab) + '"' + (q || gs.length === 1 || openNow[x.lab] ? ' open' : '') + '><summary><span>' + ftE(x.lab) + '</span><small>' + x.st.length + '</small></summary>' +
       '<label class="ft-s ft-all"><input type="checkbox" data-gi="' + i + '"' + (allOn ? ' checked' : '') + '> <b>Whole class</b></label>' +
-      x.st.map(function(s){ return '<label class="ft-s"><input type="checkbox" data-k="' + ftE(ftKey(s)) + '"' + (ftSel[ftKey(s)] ? ' checked' : '') + '> ' + ftE(s.last + ', ' + s.first) + '</label>'; }).join('') + '</details>';
+      x.st.map(function(s){ return '<label class="ft-s"><input type="checkbox" data-k="' + ftE(ftKey(s)) + '"' + (ftSel[ftKey(s)] ? ' checked' : '') + '> ' + ftE(s.last + ', ' + s.first) + ftHereMark(s) + '</label>'; }).join('') + '</details>';
   }).join('');
   const add = ftAdd;
   const byKey = {}; d.groups.forEach(function(g){ g.students.forEach(function(s){ byKey[ftKey(s)] = s; }); });
@@ -3019,10 +3041,11 @@ function ftDrawGroups(){
 }
 function ftDrawChosen(){
   const box = document.getElementById('ftChosen'), list = Object.keys(ftSel).map(function(k){ return ftSel[k]; }).sort(function(a, b){ return a.last.localeCompare(b.last) || a.first.localeCompare(b.first); });
-  document.getElementById('ftSelN').textContent = list.length ? '(' + list.length + ')' : '';
+  const hn = list.filter(ftIsHere).length;
+  document.getElementById('ftSelN').innerHTML = list.length ? '(' + list.length + ' &middot; <span class="ft-here">&#10003;</span> ' + hn + ' here today)' : '';
   if(!list.length){ box.innerHTML = '<div class="ft-msg">Check students on the list.</div>'; return; }
   box.innerHTML = list.map(function(s){ const k = ftKey(s);
-    return '<div class="ft-ch"><span>' + ftE(s.last + ', ' + s.first) + '</span><select data-lk="' + ftE(k) + '">' + Object.keys(FT_LANG_NAMES).map(function(l){ return '<option value="' + l + '"' + (s.lang === l ? ' selected' : '') + '>' + FT_LANG_NAMES[l] + '</option>'; }).join('') + '</select>' +
+    return '<div class="ft-ch"><span>' + ftE(s.last + ', ' + s.first) + ftHereMark(s) + '</span><select data-lk="' + ftE(k) + '">' + Object.keys(FT_LANG_NAMES).map(function(l){ return '<option value="' + l + '"' + (s.lang === l ? ' selected' : '') + '>' + FT_LANG_NAMES[l] + '</option>'; }).join('') + '</select>' +
       '<button type="button" class="ft-x" data-rk="' + ftE(k) + '" aria-label="Remove">&times;</button></div>'; }).join('');
   box.querySelectorAll('select[data-lk]').forEach(function(sel){ sel.onchange = function(){ ftSel[sel.getAttribute('data-lk')].lang = sel.value; }; });
   box.querySelectorAll('[data-rk]').forEach(function(b){ b.onclick = function(){ delete ftSel[b.getAttribute('data-rk')]; ftDrawChosen(); ftDrawGroups(); }; });
