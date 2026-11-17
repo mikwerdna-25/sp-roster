@@ -114,6 +114,7 @@
   .pg-grad{ border-left:4px solid #1c2b4a; }
   .pg-iv{ background:#fff4e5; border:2px solid #e07b00; border-radius:12px; padding:12px 14px; margin:0 0 12px; color:#4a2a00; text-align:left; font-size:0.95rem; line-height:1.4; }
   .pg-iv-t{ font-weight:800; font-size:1.05rem; color:#b35900; margin-bottom:4px; } .pg-iv-b{ margin-top:6px; font-weight:700; } .pg-iv-s{ margin-top:6px; font-size:0.8rem; opacity:0.8; }
+  .pg-ext{ background:#f3ecfb; border-color:#6a4c93; color:#2e1a47; } .pg-ext .pg-iv-t{ color:#5b3a8a; }
   .pg-title{ font-weight:800; color:var(--navy); font-size:1.05rem; margin-bottom:8px; text-align:center; }
   .pg-head{ font-weight:800; color:var(--navy); font-size:0.85rem; margin:14px 0 4px; }
   .pg-week{ background:#fff; border:1px solid var(--rule); border-radius:8px; padding:8px 10px; margin:6px 0; }
@@ -190,7 +191,7 @@
 
 <div class="sheet">
   <div class="school">Stoney Point High School<br>Daily Check-In</div>
-  <div style="text-align:center; font-size:0.65rem; color:var(--muted); margin-top:-14px; margin-bottom:14px;">v16-intervention</div>
+  <div style="text-align:center; font-size:0.65rem; color:var(--muted); margin-top:-14px; margin-bottom:14px;">v17-extended</div>
 
   <div class="state active" id="loadingState">
     <div class="spinner"></div>
@@ -549,10 +550,16 @@ function renderMyProgress(box, d){
   var h = '';
   // v16: after-school intervention notice (students on the Intervention list)
   var iv = d.intervention;
-  if(iv) h += '<div class="pg-iv"><div class="pg-iv-t">&#9888;&#65039; After-School Intervention</div>' +
+  if(iv && iv.on !== false && (iv.on || !iv.extended)) h += '<div class="pg-iv"><div class="pg-iv-t">&#9888;&#65039; After-School Intervention</div>' +
     '<div>' + (iv.today ? '<b>Today is an intervention day. You are required to stay after school.</b>' : 'You are required to stay after school on <b>' + pEsc(iv.days) + '</b>.') + '</div>' +
     (iv.blocks && iv.blocks.length ? '<div class="pg-iv-b">' + iv.blocks.map(pEsc).join('<br>') + '</div>' : '') +
     '<div class="pg-iv-s">Intervention days: ' + pEsc(iv.days) + '. Questions? See your counselor.</div></div>';
+  // v17: Extended Intervention (Thursdays 3:00 - 5:00)
+  var ex = iv && iv.extended;
+  if(ex) h += '<div class="pg-iv pg-ext"><div class="pg-iv-t">&#9888;&#65039; Extended Intervention</div>' +
+    '<div>' + (ex.today ? '<b>Today is Thursday. You are required to stay for Extended Intervention, 3:00 - 5:00.</b>' : 'You are required to stay for Extended Intervention on <b>' + pEsc(ex.days) + '</b>.') + '</div>' +
+    (ex.blocks && ex.blocks.length ? '<div class="pg-iv-b">' + ex.blocks.map(pEsc).join('<br>') + '</div>' : '') +
+    '<div class="pg-iv-s">Questions? See your counselor.</div></div>';
   h += '<div class="pg-title">Your points</div>';
   // v142/v15: graduation goal - by the student's own graduation year (class of 2027 or earlier: June 2027)
   var g = d.grad;
