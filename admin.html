@@ -4419,7 +4419,7 @@ function msRender(){
     else if(gap > seats * 0.5) recs.push('<li><b>' + msE(c) + '</b>: too few &mdash; about ' + a.projected + ' students for ' + bx + ' box(es). Add it to about <b>' + Math.ceil(gap / seats) + '</b> more.</li>');
     else if(bx >= 3 && per < 3) recs.push('<li><b>' + msE(c) + '</b>: spread thin &mdash; about ' + a.projected + ' students across ' + bx + ' boxes (' + per.toFixed(1) + ' per box). It could be offered in fewer periods.</li>');
   });
-  h += '<h3>Suggestions</h3>' + (recs.length ? '<ul style="margin:0 0 0 18px; padding:0; font-size:0.85rem;">' + recs.join('') + '</ul>' : '<div class="hint">No changes suggested Planned seats match what is expected in every area.mdash; every area has enough boxes for the students expected.</div>');
+  h += '<h3>Suggestions</h3>' + (recs.length ? '<ul style="margin:0 0 0 18px; padding:0; font-size:0.85rem;">' + recs.join('') + '</ul>' : '<div class="hint">No changes suggested &mdash; every area has enough boxes for the students expected.</div>');
   // 2) need vs planned
   h += '<h3>How many students will need each area next semester?</h3>' +
     '<div class="hint" style="margin-top:0;">A <b>box</b> = one teacher, one period (one room). Counts are class enrollments: a student taking two English courses counts twice.</div>' +
