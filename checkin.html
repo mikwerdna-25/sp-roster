@@ -114,6 +114,10 @@
   .pg-grad{ border-left:4px solid #1c2b4a; }
   .pg-iv{ background:#fff4e5; border:2px solid #e07b00; border-radius:12px; padding:12px 14px; margin:0 0 12px; color:#4a2a00; text-align:left; font-size:0.95rem; line-height:1.4; }
   .pg-iv-t{ font-weight:800; font-size:1.05rem; color:#b35900; margin-bottom:4px; } .pg-iv-b{ margin-top:6px; font-weight:700; } .pg-iv-s{ margin-top:6px; font-size:0.8rem; opacity:0.8; }
+  .pg-bd{ background:linear-gradient(135deg, #ffe3ec, #fff6d6 55%, #e3f2ff); border:2px solid #e34b7a; border-radius:14px; padding:14px; margin:0 0 12px; text-align:center; color:#4a1630; animation:pgBdIn .6s ease-out; }
+  .pg-bd-c{ font-size:2rem; letter-spacing:6px; animation:pgBdHop 1.6s ease-in-out infinite; } .pg-bd-t{ font-weight:800; font-size:1.35rem; color:#c2185b; margin-top:2px; } .pg-bd-s{ font-size:0.9rem; margin-top:4px; }
+  @keyframes pgBdIn{ from{ transform:scale(.85); opacity:0; } to{ transform:none; opacity:1; } } @keyframes pgBdHop{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-5px); } }
+  @media (prefers-reduced-motion: reduce){ .pg-bd, .pg-bd-c{ animation:none; } }
   .pg-ext{ background:#f3ecfb; border-color:#6a4c93; color:#2e1a47; } .pg-ext .pg-iv-t{ color:#5b3a8a; }
   .pg-title{ font-weight:800; color:var(--navy); font-size:1.05rem; margin-bottom:8px; text-align:center; }
   .pg-head{ font-weight:800; color:var(--navy); font-size:0.85rem; margin:14px 0 4px; }
@@ -191,7 +195,7 @@
 
 <div class="sheet">
   <div class="school">Stoney Point High School<br>Daily Check-In</div>
-  <div style="text-align:center; font-size:0.65rem; color:var(--muted); margin-top:-14px; margin-bottom:14px;">v17-extended</div>
+  <div style="text-align:center; font-size:0.65rem; color:var(--muted); margin-top:-14px; margin-bottom:14px;">v18-birthday</div>
 
   <div class="state active" id="loadingState">
     <div class="spinner"></div>
@@ -548,6 +552,10 @@ function renderMyProgress(box, d){
   var lastData = 0; totals.forEach(function(v, i){ if(v !== null) lastData = i + 1; });
   var n = Math.max(1, Math.min(totals.length, Math.max(cur, lastData)));
   var h = '';
+  // v18: happy birthday
+  var bd = d.birthday;
+  if(bd) h += '<div class="pg-bd"><div class="pg-bd-c" aria-hidden="true">&#127881; &#127874; &#127880;</div><div class="pg-bd-t">Happy Birthday' + (bd.first ? ', ' + pEsc(bd.first) : '') + '!</div>' +
+    '<div class="pg-bd-s">' + (bd.when === 'weekend' ? 'Have a great birthday this weekend!' : 'Have a great day! From all of us at Stoney Point.') + '</div></div>';
   // v16: after-school intervention notice (students on the Intervention list)
   var iv = d.intervention;
   if(iv && iv.on !== false && (iv.on || !iv.extended)) h += '<div class="pg-iv"><div class="pg-iv-t">&#9888;&#65039; After-School Intervention</div>' +

@@ -197,7 +197,7 @@
         <div class="bar" id="toolbar">
           <input type="text" id="search" placeholder="Find a student">
           <button class="toggle" id="mineToggle" style="display:none;"></button>
-          <select id="statusSel"><option value="">Everyone</option><option value="out">Out of class now</option><option value="absent">Not checked in</option><option value="intervention">Intervention list</option></select>
+          <select id="statusSel"><option value="">Everyone</option><option value="out">Out of class now</option><option value="absent">Not checked in</option><option value="intervention">Intervention list</option><option value="birthday">&#127874; Birthdays today</option></select>
           <span class="small muted" id="selLabel"></span>
         </div>
         <div id="dragHint" class="small muted" style="display:none; margin:-4px 0 8px;"><button class="toggle" id="moveToggle" type="button">&#9995; Move students: off</button> <span id="moveHintTxt">Turn on to drag a student onto another room to send them there on a hall pass. Tapping a name always shows their details.</span></div>
@@ -207,7 +207,7 @@
         <div id="tab-log" style="display:none;"></div>
       </div>
     </div>
-    <div class="small muted" style="margin-top:12px;">Student locations come from their MiSiS class schedule (points sheet), today's check-ins and hall passes. Updates every 20 seconds. <a href="#" id="signOut">Sign out</a> <span style="float:right;">hallmonitor v21</span></div>
+    <div class="small muted" style="margin-top:12px;">Student locations come from their MiSiS class schedule (points sheet), today's check-ins and hall passes. Updates every 20 seconds. <a href="#" id="signOut">Sign out</a> <span style="float:right;">hallmonitor v22</span></div>
   </div>
 </div></div>
 
@@ -314,6 +314,7 @@ function matches(st){
   if(f === 'out' && !activePass(st)) return false;
   if(f === 'absent' && st.checkedIn) return false;
   if(f === 'intervention' && !st.intervention) return false;
+  if(f === 'birthday' && !st.bday) return false;
   if(mineOnly && D.staff.rooms.length){
     const here = scheduledAt(st, blockMinute()).map(function(c){ return c.room; }), p = activePass(st);
     if(!here.some(function(r){ return D.staff.rooms.indexOf(r) !== -1; }) && !(p && (D.staff.rooms.indexOf(p.to) !== -1 || D.staff.rooms.indexOf(p.from) !== -1))) return false;
@@ -455,8 +456,9 @@ function renderTab(fromTick){
   }
   if(tab === 'map') renderMap(); else if(tab === 'timeline') renderTimeline(); else if(tab === 'log'){ if(logData && logData.date === logData.today) logData = null; renderLog(); } else renderPrograms();
 }
+function bdMark(st){ return st && st.bday ? ' <span title="Birthday today" aria-label="Birthday today">&#127874;</span>' : ''; }   // v22
 function chip(st, cls, extra){
-  return '<span class="sc ' + (cls || '') + '" data-sid="' + esc(st.id) + '" title="' + esc(st.first + ' ' + st.last) + '">' + esc(st.first.split(' ')[0] + ' ' + st.last.charAt(0) + '.') + (extra || '') + '</span>';
+  return '<span class="sc ' + (cls || '') + '" data-sid="' + esc(st.id) + '" title="' + esc(st.first + ' ' + st.last) + (st.bday ? ' - birthday today' : '') + '">' + esc(st.first.split(' ')[0] + ' ' + st.last.charAt(0) + '.') + bdMark(st) + (extra || '') + '</span>';
 }
 const MAP_AREAS = { '2':'r2', '3':'r3', '4':'r4', '5':'r5', '6':'r6', '7':'r7', '8':'r8', '1':'r1', '219':'r219', '218':'r218', 'OFFICE':'office', 'RR':'rr' };
 function renderMap(){
@@ -565,7 +567,7 @@ function openMoveChoice(sid, from, to){
   const st = D.students.filter(function(s){ return s.id === sid; })[0]; if(!st) return;
   const live = isLive(), b = selBlock(), p = activePass(st), toR = roomById(to);
   const sch = scheduledAt(st, blockMinute()), home = sch[0] ? sch[0].room : '';
-  let h = '<div style="display:flex; justify-content:space-between; gap:8px;"><div class="h1" style="font-size:1.05rem;">Send ' + esc(st.first + ' ' + st.last) + '</div><button class="btn sm light" id="mvClose">Cancel</button></div>' +
+  let h = '<div style="display:flex; justify-content:space-between; gap:8px;"><div class="h1" style="font-size:1.05rem;">Send ' + esc(st.first + ' ' + st.last) + bdMark(st) + '</div><button class="btn sm light" id="mvClose">Cancel</button></div>' +
     '<div class="small muted" style="margin:2px 0 10px;">' + esc(roomFull(from)) + ' \u2192 <b style="color:var(--navy);">' + esc(roomFull(to)) + '</b>' + (b ? ' \u00b7 ' + esc(b.label) : '') + '</div>';
   let any = false;
   if(live){
@@ -628,7 +630,7 @@ function renderTimeline(){
       });
       if(st.checkedIn) segs += '<div class="cin" style="left:' + pct(ptInfo(st.checkedIn).minute) + '%;" title="Checked in ' + esc(fmtHM.format(new Date(st.checkedIn))) + '"></div>';
       const status = p ? '<b style="color:' + (passLevel(p) === 'over' ? 'var(--crit)' : '#9a6a00') + ';"> → ' + esc(placeOf(p)) + '</b>' : (st.checkedIn ? '' : ' <span class="small">(not checked in)</span>');
-      h += '<div class="tlr' + (st.checkedIn ? '' : ' absent') + '"><div class="nmcol" data-sid="' + esc(st.id) + '" title="' + esc(st.first + ' ' + st.last) + '">' + esc(st.last + ', ' + st.first) + (st.intervention ? ' <span title="Intervention list" style="color:#a32b2b;">●</span>' : '') + status + '</div><div class="track">' + segs + needle() + '</div></div>';
+      h += '<div class="tlr' + (st.checkedIn ? '' : ' absent') + '"><div class="nmcol" data-sid="' + esc(st.id) + '" title="' + esc(st.first + ' ' + st.last) + '">' + esc(st.last + ', ' + st.first) + bdMark(st) + (st.intervention ? ' <span title="Intervention list" style="color:#a32b2b;">●</span>' : '') + status + '</div><div class="track">' + segs + needle() + '</div></div>';
     });
   });
   h += '</div><div class="legend"><span><i style="background:#3d7a4a"></i>Class (room number)</span><span><i style="background:#b8862f"></i>Program</span><span><i style="background:var(--crit)"></i>Out on a pass now</span><span><i style="background:#e8a39d"></i>Earlier pass</span><span><i style="background:var(--good)"></i>Signed in after school</span><span><i style="background:var(--good);width:2px;"></i>Checked in</span><span><span style="color:#a32b2b;">●</span> Intervention list</span></div>';
@@ -645,7 +647,7 @@ function renderPrograms(){
       '<span>' + (D.rollAccess[pg.key] ? '<button class="btn sm light" data-roll="' + pg.key + '">Take roll</button> ' : '') + (pg.roster && !ro ? '<button class="btn sm" data-save="' + pg.key + '">Save list</button>' : '') + '</span></div>';
     if(pg.roster){
       const ids = D.rosters[pg.key] || [];
-      h += '<div class="prog-list" data-prog="' + pg.key + '">' + D.students.map(function(st){ return '<label><input type="checkbox" value="' + esc(st.id) + '"' + (ids.indexOf(st.id) !== -1 ? ' checked' : '') + (ro ? ' disabled' : '') + '> ' + esc(st.last + ', ' + st.first) + '</label>'; }).join('') + '</div><div class="small muted" style="margin-top:4px;" data-msg="' + pg.key + '">' + ids.length + ' student(s)</div>';
+      h += '<div class="prog-list" data-prog="' + pg.key + '">' + D.students.map(function(st){ return '<label><input type="checkbox" value="' + esc(st.id) + '"' + (ids.indexOf(st.id) !== -1 ? ' checked' : '') + (ro ? ' disabled' : '') + '> ' + esc(st.last + ', ' + st.first) + bdMark(st) + '</label>'; }).join('') + '</div><div class="small muted" style="margin-top:4px;" data-msg="' + pg.key + '">' + ids.length + ' student(s)</div>';
     } else {
       const signed = D.passes.filter(function(p){ return p.type === pg.key; });
       const list = D.students.filter(function(s){ return s.intervention; });
@@ -694,7 +696,7 @@ function openStudent(id){
   const st = D.students.filter(function(s){ return s.id === id; })[0];
   if(!st) return;
   const p = activePass(st), info = ptInfo(nowMs()), here = scheduledAt(st, info.minute), ro = D.staff.readOnly;
-  let h = '<div style="display:flex; justify-content:space-between; gap:8px;"><div><div class="h1" style="font-size:1.1rem;">' + esc(st.first + ' ' + st.last) + '</div><div class="small muted">' + esc(st.id) + (st.intervention ? ' · <b style="color:#a32b2b;">intervention list</b>' : '') + '</div></div><button class="btn sm light" id="drClose">Close</button></div>';
+  let h = '<div style="display:flex; justify-content:space-between; gap:8px;"><div><div class="h1" style="font-size:1.1rem;">' + esc(st.first + ' ' + st.last) + bdMark(st) + '</div><div class="small muted">' + esc(st.id) + (st.intervention ? ' · <b style="color:#a32b2b;">intervention list</b>' : '') + '</div></div><button class="btn sm light" id="drClose">Close</button></div>';
   h += '<div class="kv" style="margin-top:8px;"><span>Right now</span><b>' + (p ? '<span style="color:' + (passLevel(p) === 'over' ? 'var(--crit)' : '#9a6a00') + ';">' + esc(placeOf(p)) + ' · <span data-timer="' + p.out + '">' + mmss(nowMs() - p.out) + '</span></span>' : (st.checkedIn ? esc(here.length ? roomFull(here[0].room) : 'No class scheduled') : '<span class="muted">Not checked in today</span>')) + '</b></div>';
   h += '<div class="kv"><span>Checked in</span><span>' + (st.checkedIn ? esc(fmtHM.format(new Date(st.checkedIn))) : '—') + '</span></div>';
   h += '<div style="font-weight:800; color:var(--navy); margin:10px 0 4px;">Today</div><div class="sched">';
@@ -1044,7 +1046,7 @@ function drawLog(){
   h += '<div class="tl"><div class="tlh"><div class="nmcol" style="width:220px;"><b>Student</b></div><div style="flex:1; display:flex; font-size:.74rem; font-weight:800; padding:5px 8px; gap:8px;"><span style="width:90px;">Checked in</span><span style="width:70px;">Passes</span><span>Out of class</span></div></div>';
   rows.forEach(function(r){
     const st = r.st, open = !!logOpen[st.id];
-    h += '<div class="tlr' + (st.checkedIn ? '' : ' absent') + '" style="cursor:pointer;" data-row="' + esc(st.id) + '"><div class="nmcol" style="width:220px;">' + (open ? '▾ ' : '▸ ') + esc(st.last + ', ' + st.first) + '</div>' +
+    h += '<div class="tlr' + (st.checkedIn ? '' : ' absent') + '" style="cursor:pointer;" data-row="' + esc(st.id) + '"><div class="nmcol" style="width:220px;">' + (open ? '▾ ' : '▸ ') + esc(st.last + ', ' + st.first) + bdMark(st) + '</div>' +
       '<div style="flex:1; display:flex; gap:8px; font-size:.8rem; padding:6px 8px; align-items:center;"><span style="width:90px;">' + (st.checkedIn ? esc(fmtHM.format(new Date(st.checkedIn))) : '<span class="muted">not checked in</span>') + '</span>' +
       '<span style="width:70px;">' + (r.passes.length || '') + '</span><span>' + (r.outMin ? '<b' + (r.outMin >= 30 ? ' style="color:var(--crit);"' : '') + '>' + fmtMin(r.outMin) + '</b>' : '') + '</span></div></div>';
     if(open){
