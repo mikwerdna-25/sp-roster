@@ -762,6 +762,8 @@
           <span class="m-ico">&#9989;</span><span><b>Intervention &amp; program roll</b><small>Intervention, Cinema 107 &amp; other programs</small></span></button>
         <button class="m-tool" id="printMineLink">
           <span class="m-ico">&#128424;&#65039;</span><span><b>Print</b><small>Schedules &amp; IGPs for my classes</small></span></button>
+        <button class="m-tool" id="ssidLink" onclick="ssidOpen()">
+          <span class="m-ico">&#127380;</span><span><b>SSID list</b><small>My students A&ndash;Z and by period, for testing</small></span></button>
         <button class="m-tool" id="fieldTripLink" onclick="ftOpen('classListState')">
           <span class="m-ico">&#128652;</span><span><b>Field trip slips</b><small>Permission slips for my students</small></span></button>
         <button class="m-tool m-red" id="emBtn" onclick="emOpen()">
@@ -1086,12 +1088,50 @@ function loadStudentPick(){
 function hEsc(t){ return String(t == null ? '' : t).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 function ptsFmt(v){ return (Math.round(v * 100) / 100).toString(); }
 // Read-only student card: any student in the school. Editing stays limited to your own classes.
+// ===================== v191: SSID lists for testing (A-Z and by teacher & period) =====================
+function ssidOpen(){
+  const win = window.open('', '_blank');                  // opened now, so the browser doesn't block it
+  if(!win){ alert('Allow pop-ups for this page to print the SSID list.'); return; }
+  win.document.write('<p style="font-family:sans-serif;padding:20px;">Making the SSID list&hellip;</p>');
+  apiGet({ mode: 'ssidlist', code: myCode }).then(function(d){
+    if(!d || !d.success){ win.document.body.innerHTML = '<p style="font-family:sans-serif;padding:20px;color:#a32b2b;">' + String((d && d.error) || 'Could not load.') + '</p>'; return; }
+    win.document.open(); win.document.write(ssidHtml(d)); win.document.close();
+  }).catch(function(){ win.document.body.innerHTML = '<p style="font-family:sans-serif;padding:20px;color:#a32b2b;">Could not reach the server.</p>'; });
+}
+function ssidHtml(d){
+  const E = function(t){ return String(t == null ? '' : t).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); };
+  const logo = document.querySelector('img.logo'), school = d.scope === 'school';
+  const head = function(t){ return '<div class="ph">' + (logo ? '<img src="' + logo.src + '" alt="">' : '') + '<div><div class="sch">Stoney Point Continuation High School</div><div class="ttl">' + E(t) + '</div></div><div class="yr">' + E(d.printedAt) + '</div></div>'; };
+  const row = function(s, i){ return '<tr><td class="n">' + (i + 1) + '</td><td>' + E(s.last + ', ' + s.first) + '</td><td class="m">' + E(s.id) + '</td><td class="m">' + (s.ssid ? E(s.ssid) : '<span class="miss">missing</span>') + '</td><td class="c">' + E(s.gradYear) + '</td><td class="sig"></td></tr>'; };
+  const thead = '<tr><th></th><th>Student</th><th>Student ID</th><th>SSID</th><th class="c">Class of</th><th class="sig">Notes</th></tr>';
+  const az = '<section class="az">' + head((school ? 'All students' : 'My students') + ' A&ndash;Z with SSID') +
+    '<div class="sub">' + d.students.length + ' students' + (d.missing ? ' &middot; ' + d.missing + ' with no SSID in STS' : '') + (school ? '' : ' &middot; ' + E(d.who)) + '</div>' +
+    '<table>' + thead + d.students.map(row).join('') + '</table></section>';
+  // by teacher, then period
+  const byT = {}; d.classes.forEach(function(c){ (byT[c.teacher] = byT[c.teacher] || []).push(c); });
+  const perKey = function(p){ const m = /^P?(\d+)$/.exec(String(p).replace(/^P0?/, 'P')); return m ? Number(m[1]) : (String(p) === 'PH' ? 99 : 50); };
+  const per = Object.keys(byT).sort().map(function(t){
+    return byT[t].sort(function(a, b){ return perKey(a.period) - perKey(b.period) || a.course.localeCompare(b.course); }).map(function(c){
+      return '<section class="cls">' + head(t + ' · Period ' + String(c.period || '?').replace(/^P0?/, '') + ' · ' + c.course) +
+        '<div class="sub">' + c.students.length + ' student' + (c.students.length === 1 ? '' : 's') + '</div><table>' + thead + c.students.map(row).join('') + '</table></section>'; }).join(''); }).join('');
+  return '<!doctype html><html><head><meta charset="utf-8"><title>SSID list</title><style>' +
+    'body{font-family:Arial,Helvetica,sans-serif;color:#111;margin:18px;} .bar{position:sticky;top:0;background:#fff;padding:8px 0;border-bottom:1px solid #ddd;margin-bottom:10px;}' +
+    '.bar button{font-size:14px;padding:6px 12px;margin-right:6px;cursor:pointer;} .bar .on{background:#1c2b4a;color:#fff;}' +
+    '.ph{display:flex;align-items:center;gap:12px;border-bottom:2px solid #1c2b4a;padding-bottom:6px;margin-bottom:4px;} .ph img{height:42px;} .ph .sch{font-size:12px;color:#555;} .ph .ttl{font-size:17px;font-weight:700;color:#1c2b4a;} .ph .yr{margin-left:auto;font-size:11px;color:#555;}' +
+    '.sub{font-size:11px;color:#555;margin:2px 0 8px;} table{width:100%;border-collapse:collapse;font-size:12px;} th,td{border-bottom:1px solid #ccc;padding:4px 6px;text-align:left;} th{background:#f2f2f2;font-size:11px;}' +
+    'td.n{color:#888;width:22px;} td.m{font-family:Consolas,monospace;} .c{text-align:center;} th.sig,td.sig{width:28%;} .miss{color:#a32b2b;font-style:italic;font-family:Arial;}' +
+    'section{margin-bottom:22px;} body.only-az section.cls, body.only-cls section.az{display:none;}' +
+    '@media print{ .bar{display:none;} section{page-break-after:always;} section:last-of-type{page-break-after:auto;} body{margin:0;} }' +
+    '</style></head><body class="only-az"><div class="bar"><button id="bAz" class="on" onclick="document.body.className=\'only-az\';this.className=\'on\';document.getElementById(\'bCl\').className=\'\';">A&ndash;Z list</button>' +
+    '<button id="bCl" onclick="document.body.className=\'only-cls\';this.className=\'on\';document.getElementById(\'bAz\').className=\'\';">By teacher &amp; period</button>' +
+    '<button onclick="window.print()">&#128424;&#65039; Print</button></div>' + az + per + '</body></html>';
+}
 function renderStudentCard(el, d, pickEl){
   const st = d.student;
   let html = '<div class="student-card-ro"><div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;">' +
     '<div style="font-weight:800;color:var(--navy);">' + hEsc(st.first + ' ' + st.last) + '</div>' +
     '<button class="small-link" id="closeStudentCard">Close</button></div>' +
-    (st.id ? '<div class="ro-sub">Student ID ' + hEsc(st.id) + '</div>' : '') +
+    (st.id ? '<div class="ro-sub">Student ID ' + hEsc(st.id) + (st.ssid ? ' &middot; SSID ' + hEsc(st.ssid) : '') + '</div>' : '') +
     '<div class="ro-sub" style="margin-bottom:8px;">View only &mdash; you can enter points only in your own classes.</div>';
   // weekly points across all classes, last 5 weeks up to the current one
   const cw = Math.max(1, Math.min(d.weeks.length, d.currentWeek || 1));
@@ -1911,7 +1951,7 @@ document.getElementById('submitCodeChangeBtn').onclick = function(){
   });
 };
 
-document.getElementById('buildTag').textContent = 'v76f-fthere';
+document.getElementById('buildTag').textContent = 'v76g-ssid';
 // ===================== v107: PREV (points from earlier semesters) - view and change with a warning =====================
 // pvBox(student, tab, { canEdit, onSaved(res) }) -> an element for the student's card/row.
 function pvFmt(v){ return v === null || v === undefined || v === '' ? '—' : String(Math.round(Number(v) * 100) / 100); }
@@ -2155,6 +2195,7 @@ function prHead(title, st, pack){
     '<div class="yr">' + prE(pack.schoolYear || '') + '<br>As of ' + prE(String(pack.printedAt || '').split(' ')[0]) + '</div></div>' +
     '<div class="who"><span><span class="k">Student</span><b>' + prE(st.last + ', ' + st.first) + '</b></span>' +
     (st.id ? '<span><span class="k">Student ID</span>' + prE(st.id) + '</span>' : '') +
+    (st.ssid ? '<span><span class="k">SSID</span>' + prE(st.ssid) + '</span>' : '') +
     (st.gradYear ? '<span><span class="k">Class of</span>' + prE(st.gradYear) + '</span>' : '') + '</div>';
 }
 function prTrAt(st){ return st && st.transcriptAt ? ' (MiSiS transcript uploaded ' + prE(st.transcriptAt) + ')' : ''; }   // v141
